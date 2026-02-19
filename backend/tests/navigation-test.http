@@ -1,0 +1,123 @@
+@baseUrl = http://localhost:5082
+@token = SEU_TOKEN_ADMIN_AQUI
+@routeId = GUID_DA_ROTA_AQUI
+
+### ============================================
+### TESTES DE NAVEGAÇÃO - WAZE & GOOGLE MAPS
+### ============================================
+
+### 1. Login Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### ============================================
+### 2. Criar uma rota (use o painel admin)
+### Depois de criar a rota no painel, copie o ID da rota
+### ============================================
+
+### 3. Obter links de navegação
+GET {{baseUrl}}/routes/{{routeId}}/navigation
+Authorization: Bearer {token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImFkbWluIiwianRpIjoiMDA2MGU0NjQtNzFiOS00YTVlLWI3NGQtMWQ2OGRkOTEwNDcwIiwiZXhwIjoxNzcxMjE4MDIzLCJpc3MiOiJQZXRzaG9wLkFwaSIsImF1ZCI6IlBldHNob3AuQWRtaW4ifQ.7uO3gbQBSG1VE242WZ-IICeSpg3o4BTqzU6Gf8Om1rA}
+
+
+### ============================================
+### RESPOSTA ESPERADA:
+### ============================================
+# {
+#   "routeNumber": "RT-20260215-001",
+#   "totalStops": 5,
+#   "stopsWithCoordinates": 5,
+#   "wazeLink": "waze://?ll=-22.900479,-43.178152&navigate=yes",
+#   "googleMapsLink": "https://www.google.com/maps/dir/?api=1&origin=-22.900479,-43.178152&destination=-22.983516,-43.22678&waypoints=-22.944333,-43.182559|-22.966914,-43.179067|-22.983066,-43.202767",
+#   "googleMapsWebLink": "https://www.google.com/maps/dir&origin=-22.900479,-43.178152&destination=-22.983516,-43.22678&waypoints=-22.944333,-43.182559|-22.966914,-43.179067|-22.983066,-43.202767",
+#   "stops": [
+#     {
+#       "sequence": 1,
+#       "orderNumber": "PS-20260215-402673",
+#       "customerName": "Carlos Oliveira",
+#       "address": "Praça Pio X",
+#       "latitude": -22.900479,
+#       "longitude": -43.178152,
+#       "hasCoordinates": true
+#     },
+#     ...
+#   ],
+#   "warnings": []
+# }
+
+### ============================================
+### 4. Como usar os links:
+### ============================================
+
+# WAZE (Mobile):
+# - Copie o wazeLink e abra no navegador do celular
+# - OU crie um QR Code com o link
+# - OU adicione um botão no frontend que abre: window.location.href = wazeLink
+
+# GOOGLE MAPS (Mobile - App):
+# - Use googleMapsLink no botão do frontend
+# - Abre o app Google Maps com rota completa
+
+# GOOGLE MAPS (Web/Desktop):
+# - Use googleMapsWebLink
+# - Abre no navegador
+
+### ============================================
+### EXEMPLO DE INTEGRAÇÃO NO FRONTEND (React):
+### ============================================
+
+# function NavigationButtons({ route }) {
+#   const openWaze = () => {
+#     window.location.href = route.wazeLink;
+#   };
+#
+#   const openGoogleMaps = () => {
+#     window.location.href = route.googleMapsLink;
+#   };
+#
+#   return (
+#     <div>
+#       <button onClick={openWaze}>
+#         🗺️ Abrir no Waze
+#       </button>
+#       <button onClick={openGoogleMaps}>
+#         🌍 Abrir no Google Maps
+#       </button>
+#     </div>
+#   );
+# }
+
+### ============================================
+### TESTE: Rota sem coordenadas (deve retornar warning)
+### ============================================
+
+# Se criar uma rota com pedidos SEM geocoding:
+# {
+#   "routeNumber": "RT-20260215-999",
+#   "totalStops": 3,
+#   "stopsWithCoordinates": 0,
+#   "wazeLink": "",
+#   "googleMapsLink": "",
+#   "googleMapsWebLink": "",
+#   "stops": [...],
+#   "warnings": [
+#     "⚠️ Nenhuma parada possui coordenadas. Não é possível gerar links de navegação."
+#   ]
+# }
+
+### ============================================
+### TESTE: Rota com ALGUNS stops sem coords
+### ============================================
+
+# Se 3 de 5 stops não tiverem coordenadas:
+# {
+#   "stopsWithCoordinates": 2,
+#   "warnings": [
+#     "⚠️ 3 parada(s) sem coordenadas serão ignoradas na navegação."
+#   ]
+# }

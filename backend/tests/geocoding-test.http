@@ -1,0 +1,264 @@
+@baseUrl = http://localhost:5082
+@token = SEU_TOKEN_ADMIN_AQUI
+
+### ============================================
+### PASSO 1: Login Admin (pegue o token)
+### ============================================
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### ============================================
+### PASSO 2: Listar produtos (pegue um productId)
+### ============================================
+GET {{baseUrl}}/catalog/products
+Accept: application/json
+
+### ============================================
+### PASSO 3: Criar pedidos com ENDEREÇOS REAIS DO RIO
+### (Copie o productId do passo anterior)
+### ============================================
+
+### Pedido 1 - BANGU (Rua Fonseca)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "Maria Silva",
+  "phone": "21987654321",
+  "cep": "21810-005",
+  "address": "Rua Fonseca 240",
+  "complement": "Próximo ao Bangu Shopping",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 2 }
+  ]
+}
+
+### Pedido 2 - REALENGO (Rua Cândido Benício)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "João Santos",
+  "phone": "21987654322",
+  "cep": "21710-240",
+  "address": "Rua Cândido Benício 1850",
+  "complement": "Casa",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 1 }
+  ]
+}
+
+### Pedido 3 - CAMPO GRANDE (Estrada do Mendanha)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "Ana Costa",
+  "phone": "21987654323",
+  "cep": "23087-280",
+  "address": "Estrada do Mendanha 555",
+  "complement": "Próximo ao West Shopping",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 3 }
+  ]
+}
+
+### Pedido 4 - SANTÍSSIMO (Rua Soldado Venceslau)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "Carlos Oliveira",
+  "phone": "21987654324",
+  "cep": "23090-020",
+  "address": "Rua Soldado Venceslau Sprazeres 80",
+  "complement": "Apto 201",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 1 }
+  ]
+}
+
+### Pedido 5 - VILA VALQUEIRE (Rua Retiro dos Artistas)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "Beatriz Lima",
+  "phone": "21987654325",
+  "cep": "21321-510",
+  "address": "Rua Retiro dos Artistas 150",
+  "complement": "Loja 2",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 2 }
+  ]
+}
+
+### ============================================
+### PASSO 4: Listar todos os pedidos
+### ============================================
+GET {{baseUrl}}/orders
+Accept: application/json
+Authorization: Bearer {{token}}
+### ============================================
+### PASSO 5: Mudar status para PRONTO_PARA_ENTREGA
+### (Substitua PS-XXXXXX pelo PublicId retornado nos passos anteriores)
+### ⚠️ AQUI O GEOCODING SERÁ EXECUTADO!
+### ============================================
+
+### Mudar Pedido 1 para PRONTO
+POST {{baseUrl}}/orders/PS-20260215-XXXXXX/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "PRONTO_PARA_ENTREGA"
+}
+
+### Mudar Pedido 2 para PRONTO
+POST {{baseUrl}}/orders/PS-20260215-YYYYYY/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "PRONTO_PARA_ENTREGA"
+}
+
+### Mudar Pedido 3 para PRONTO
+POST {{baseUrl}}/orders/PS-20260215-ZZZZZZ/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "PRONTO_PARA_ENTREGA"
+}
+
+### Mudar Pedido 4 para PRONTO
+POST {{baseUrl}}/orders/PS-20260215-WWWWWW/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "PRONTO_PARA_ENTREGA"
+}
+
+### Mudar Pedido 5 para PRONTO
+POST {{baseUrl}}/orders/PS-20260215-KKKKKK/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "PRONTO_PARA_ENTREGA"
+}
+
+### ============================================
+### PASSO 6: Verificar se os pedidos têm coordenadas
+### ============================================
+GET {{baseUrl}}/orders/PS-20260215-XXXXXX
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### ============================================
+### PASSO 7: REPROCESSAR GEOCODING (se algum falhou)
+### ============================================
+
+### Reprocessar um pedido específico (SEM forçar)
+POST {{baseUrl}}/orders/PS-20260215-XXXXXX/reprocess-geocoding
+Authorization: Bearer {{token}}
+
+### Reprocessar um pedido específico (FORÇAR reprocessamento)
+POST {{baseUrl}}/orders/PS-20260215-XXXXXX/reprocess-geocoding?force=true
+Authorization: Bearer {{token}}
+
+### Reprocessar TODOS os pedidos sem coordenadas (batch)
+POST {{baseUrl}}/orders/geocode-missing?limit=50
+Authorization: Bearer {{token}}
+
+### ============================================
+### PASSO 8: Criar entregador (se não existir)
+### ============================================
+# (Você precisa ter um endpoint para criar entregador)
+# Por enquanto, use o banco diretamente ou crie via SQL
+
+### ============================================
+### PASSO 9: Criar ROTA com os pedidos geocodificados
+### (Substitua delivererId e orderIds pelos IDs reais)
+### ============================================
+POST {{baseUrl}}/delivery/routes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "delivererId": "SEU_DELIVERER_GUID_AQUI",
+  "orderIds": [
+    "GUID_PEDIDO_1",
+    "GUID_PEDIDO_2",
+    "GUID_PEDIDO_3",
+    "GUID_PEDIDO_4",
+    "GUID_PEDIDO_5"
+  ]
+}
+
+### ============================================
+### PASSO 10: Verificar logs no console do backend
+### ============================================
+# Procure por:
+# 📍 GEOCODING START
+# 🌍 GEOCODING CALL
+# ✅ GEOCODING SUCCESS
+# RouteOptimization: received X orders, withCoords=X
+# RouteOptimization: Order=PS-XXX Lat=-22.XXX Lon=-43.XXX LooksLikeRio=True
+# RouteOptimization: pick next=PS-YYY from current=PS-XXX km=X.XX
+# RouteOptimization: final order => PS-XXX -> PS-YYY -> PS-ZZZ
+
+### ============================================
+### TESTES EXTRAS: Pedidos com problemas
+### ============================================
+
+### Pedido com CEP INVÁLIDO (deve dar warning)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "Teste CEP Inválido",
+  "phone": "21999999999",
+  "cep": "123",
+  "address": "Rua Teste 123",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 1 }
+  ]
+}
+
+### Pedido sem endereço (deve dar warning)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "name": "Teste Sem Endereço",
+  "phone": "21999999999",
+  "cep": "22070-001",
+  "address": "",
+  "paymentMethodStr": "PIX",
+  "items": [
+    { "productId": "47e63cc3-7f94-459e-ad6e-2d5461e1bde6", "qty": 1 }
+  ]
+}
+
+### ============================================
+### COORDENADAS ESPERADAS (para validação manual)
+### ============================================
+# Bangu (Rua Fonseca 240): ~Lat -22.87, Lon -43.46
+# Realengo (Rua Cândido Benício 1850): ~Lat -22.88, Lon -43.43
+# Campo Grande (Estrada do Mendanha 555): ~Lat -22.90, Lon -43.56
+# Santíssimo (Rua Soldado Venceslau 80): ~Lat -22.91, Lon -43.49
+# Vila Valqueire (Rua Retiro dos Artistas 150): ~Lat -22.88, Lon -43.37
