@@ -274,6 +274,74 @@ public class AdminOrdersController : ControllerBase
         return Ok(new { orderId = order.Id, publicId = order.PublicId, oldStatus = oldStatus.ToString(), newStatus = newStatus.ToString() });
     }
 
+    // ── POST /admin/orders/{id}/generate-dav ─────────────────────────────────
+    /// <summary>
+    /// Gera (ou retorna o já existente) DAV para um pedido do catálogo digital.
+    /// Idempotente: se já existe um SalesQuote com OriginOrderId = orderId, retorna ele.
+    /// Útil para importar pedidos no caixa antes de marcar como ENTREGUE.
+    /// </summary>
+    [HttpPost("{idOrNumber}/generate-dav")]
+    [Authorize(Roles = "admin,gerente")]
+    public async Task<IActionResult> GenerateDav(string idOrNumber, CancellationToken ct = default)
+    {
+        Order? order;
+        if (Guid.TryParse(idOrNumber, out var gid))
+            order = await _db.Orders
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.Id == gid && o.CompanyId == CompanyId, ct);
+        else
+            order = await _db.Orders
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.PublicId == idOrNumber && o.CompanyId == CompanyId, ct);
+
+        if (order is null) return NotFound(new { error = "Pedido não encontrado." });
+        if (order.Status == OrderStatus.CANCELADO)
+            return BadRequest(new { error = "Pedido cancelado não pode gerar DAV." });
+
+        // Idempotência: retorna o DAV existente
+        var existing = await _db.SalesQuotes
+            .AsNoTracking()
+            .Where(q => q.CompanyId == CompanyId && q.OriginOrderId == order.Id)
+            .OrderByDescending(q => q.CreatedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        if (existing is not null)
+            return Ok(new { davPublicId = existing.PublicId });
+
+        var items = order.Items.Select(i => new SalesQuoteItem
+        {
+            ProductId              = i.ProductId,
+            ProductNameSnapshot    = i.ProductNameSnapshot,
+            Qty                    = i.Qty,
+            UnitPriceCentsSnapshot = i.UnitPriceCentsSnapshot,
+            TotalCents             = i.Qty * i.UnitPriceCentsSnapshot,
+        }).ToList();
+
+        var dav = new SalesQuote
+        {
+            CompanyId     = CompanyId,
+            PublicId      = DavPublicIdGenerator.NewPublicId(),
+            Origin        = SalesQuoteOrigin.DeliveryOrder,
+            OriginOrderId = order.Id,
+            CustomerName  = order.CustomerName,
+            CustomerPhone = order.Phone,
+            PaymentMethod = order.PaymentMethod,
+            SubtotalCents = items.Sum(x => x.TotalCents),
+            TotalCents    = order.TotalCents,
+            Status        = SalesQuoteStatus.Draft,
+            Items         = items,
+        };
+
+        _db.SalesQuotes.Add(dav);
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "📋 DAV {DavId} gerado manualmente para pedido {OrderId} (empresa {CompanyId})",
+            dav.PublicId, order.PublicId, CompanyId);
+
+        return Ok(new { davPublicId = dav.PublicId });
+    }
+
     // ── DELETE /admin/orders/deliveries ───────────────────────────────────────
     /// <summary>
     /// Limpa todos os registros de entregas/pedidos da empresa atual, independente do status.

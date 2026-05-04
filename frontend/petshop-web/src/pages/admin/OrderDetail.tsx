@@ -114,6 +114,26 @@ export default function OrderDetail() {
   const isUpdating = updateStatus.isPending;
   const canManage = hasRole("admin", "gerente");
   const canEdit = !!order;
+  const [generatingDav, setGeneratingDav] = useState(false);
+
+  async function handleImportToCaixa() {
+    if (!order) return;
+    const existingDav = order.davPublicId ? normalizeDavCode(order.davPublicId) : null;
+    if (existingDav) {
+      navigate(`/pdv?dav=${encodeURIComponent(existingDav)}&autoImport=1`);
+      return;
+    }
+    setGeneratingDav(true);
+    try {
+      const res = await adminFetch<{ davPublicId: string }>(
+        `/admin/orders/${order.id}/generate-dav`,
+        { method: "POST", body: "{}" },
+      );
+      navigate(`/pdv?dav=${encodeURIComponent(normalizeDavCode(res.davPublicId))}&autoImport=1`);
+    } finally {
+      setGeneratingDav(false);
+    }
+  }
 
   const isDeliveryOrder = useMemo(() => {
     if (!ownDelivery) return false;
@@ -177,13 +197,14 @@ export default function OrderDetail() {
                   {reprinting ? "Imprimindo..." : "Imprimir"}
                 </button>
               )}
-              {davCode && (
+              {order && status !== "CANCELADO" && canManage && (
                 <button
-                  onClick={() => navigate(`/pdv?dav=${encodeURIComponent(davCode)}&autoImport=1`)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-700"
+                  onClick={handleImportToCaixa}
+                  disabled={generatingDav}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Wallet size={14} />
-                  Importar no caixa
+                  {generatingDav ? "Gerando DAV..." : "Importar no caixa"}
                 </button>
               )}
             </div>
@@ -394,15 +415,18 @@ export default function OrderDetail() {
                 )}
               </section>
 
-              {davCode && (
+              {status !== "CANCELADO" && canManage && (
                 <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 md:p-5">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-700">DAV para caixa</div>
-                  <div className="text-lg font-black text-emerald-800">{davCode}</div>
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-700">Caixa / NFC-e</div>
+                  {davCode && (
+                    <div className="mb-2 text-sm font-black text-emerald-800">{davCode}</div>
+                  )}
                   <button
-                    onClick={() => navigate(`/pdv?dav=${encodeURIComponent(davCode)}&autoImport=1`)}
-                    className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700"
+                    onClick={handleImportToCaixa}
+                    disabled={generatingDav}
+                    className="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
                   >
-                    Importar agora no caixa
+                    {generatingDav ? "Gerando DAV..." : "Importar no caixa"}
                   </button>
                 </section>
               )}
