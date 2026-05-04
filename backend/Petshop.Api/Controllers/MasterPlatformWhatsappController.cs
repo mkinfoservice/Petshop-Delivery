@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Petshop.Api.Contracts.Master.Companies;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Master;
 using Petshop.Api.Services.Master;
