@@ -72,6 +72,8 @@ export default function App() {
     r.style.setProperty("--text-muted",  storeFront.textMutedColor ?? "#6b7280");
   }, [storeFront]);
 
+  const brandColor = storeFront?.primaryColor ?? "#6366f1";
+
   // Verifica status do tenant (só em subdomínio válido)
   const effectiveTenantSlug = _tenantSlug ?? (_fallbackTenantSlug || null);
   const tenantQuery = useQuery({
