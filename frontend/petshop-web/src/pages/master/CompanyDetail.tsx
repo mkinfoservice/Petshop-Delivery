@@ -7,7 +7,7 @@ import {
   fetchCompany, updateCompany, suspendCompany, reactivateCompany, deleteCompany,
   fetchSettings, updateSettings,
   fetchAdmins, createAdmin, deactivateAdmin, resetAdminPassword,
-  fetchWhatsapp, upsertWhatsapp,
+  fetchWhatsapp, upsertWhatsapp, applyPlatformWhatsappToCompany,
   updateWhatsappPrefs,
   provisionCompany,
   fetchCompanyFeatures, updateCompanyFeatures,
@@ -963,11 +963,43 @@ function WhatsappTab({ companyId, company }: { companyId: string; company: Compa
     onError: (e: Error) => setSaveErr(e.message),
   });
 
+  const [applyMsg, setApplyMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const applyMut = useMutation({
+    mutationFn: () => applyPlatformWhatsappToCompany(companyId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["master", "whatsapp", companyId] });
+      setApplyMsg({ ok: true, text: "✓ Config global aplicada! Os campos foram preenchidos automaticamente." });
+      setTimeout(() => setApplyMsg(null), 5000);
+    },
+    onError: (e: Error) => setApplyMsg({ ok: false, text: e.message }),
+  });
+
   if (isLoading) return <div className="py-10 text-center text-sm text-gray-400">Carregando…</div>;
 
   return (
     <div className="space-y-4">
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+      {/* ── Carregar da config global ─────────────────────── */}
+      <div className="flex items-center justify-between flex-wrap gap-2 pb-1 border-b border-gray-100">
+        <div className="flex flex-col">
+          <span className="text-xs font-semibold text-gray-600">Config global da plataforma</span>
+          <span className="text-xs text-gray-400">Preenche todos os campos (credenciais + templates) a partir da config global salva.</span>
+        </div>
+        <button
+          onClick={() => applyMut.mutate()}
+          disabled={applyMut.isPending}
+          className="h-8 px-4 rounded-xl text-xs font-semibold text-white disabled:opacity-60 transition hover:brightness-110 shrink-0"
+          style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}
+        >
+          {applyMut.isPending ? "Carregando…" : "⬇ Carregar da config global"}
+        </button>
+      </div>
+      {applyMsg && (
+        <p className={`text-xs rounded-lg px-3 py-2 ${applyMsg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+          {applyMsg.text}
+        </p>
+      )}
+
       {isError && (
         <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
           Nenhuma integração configurada. Preencha abaixo para criar.

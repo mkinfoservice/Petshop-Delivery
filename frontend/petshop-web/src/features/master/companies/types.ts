@@ -43,6 +43,8 @@ export type PlatformWhatsappConfigDto = {
   phoneNumberId: string | null;
   hasAccessToken: boolean;
   templateLanguageCode: string;
+  notifyOnStatusesJson: string | null;
+  notificationTemplatesJson: string | null;
   isActive: boolean;
 };
 

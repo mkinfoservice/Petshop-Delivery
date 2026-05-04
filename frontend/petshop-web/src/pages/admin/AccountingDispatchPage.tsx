@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
@@ -55,6 +55,15 @@ function fmtDate(v: string | null) {
 
 function fmtMoney(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function LabeledField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{label}</label>
+      {children}
+    </div>
+  );
 }
 
 export default function AccountingDispatchPage() {
@@ -194,42 +203,67 @@ export default function AccountingDispatchPage() {
       <section className="rounded-2xl border p-5 space-y-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
         <h2 className="text-base font-semibold" style={{ color: "var(--text)" }}>Dados do contador</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input className={INPUT} style={inputStyle} placeholder="Nome do contador/escritório" value={form.accountantName ?? ""} onChange={(e) => set("accountantName", e.target.value)} />
-          <input className={INPUT} style={inputStyle} placeholder="contador@empresa.com" value={form.primaryEmail ?? ""} onChange={(e) => set("primaryEmail", e.target.value)} />
-          <input className={INPUT} style={inputStyle} placeholder="cc1@email.com; cc2@email.com" value={form.ccEmails ?? ""} onChange={(e) => set("ccEmails", e.target.value)} />
+          <LabeledField label="Nome do contador/escritório">
+            <input className={INPUT} style={inputStyle} placeholder="Ex.: Contabilidade XPTO" value={form.accountantName ?? ""} onChange={(e) => set("accountantName", e.target.value)} />
+          </LabeledField>
+          <LabeledField label="E-mail principal">
+            <input className={INPUT} style={inputStyle} placeholder="contador@empresa.com" value={form.primaryEmail ?? ""} onChange={(e) => set("primaryEmail", e.target.value)} />
+          </LabeledField>
+          <LabeledField label="E-mails em cópia (CC)">
+            <input className={INPUT} style={inputStyle} placeholder="cc1@email.com; cc2@email.com" value={form.ccEmails ?? ""} onChange={(e) => set("ccEmails", e.target.value)} />
+          </LabeledField>
         </div>
       </section>
 
       <section className="rounded-2xl border p-5 space-y-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
         <h2 className="text-base font-semibold" style={{ color: "var(--text)" }}>Regras de envio</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <select className={INPUT} style={inputStyle} value={form.frequency} onChange={(e) => set("frequency", e.target.value as AccountingDispatchFrequency)}>
-            <option value="Monthly">Mensal</option>
-            <option value="Weekly">Semanal</option>
-            <option value="Daily">Diário</option>
-            <option value="Manual">Manual</option>
-          </select>
-          <input className={INPUT} style={inputStyle} type="number" min={1} max={28} value={form.dayOfMonth} onChange={(e) => set("dayOfMonth", Number(e.target.value) || 1)} />
-          <select className={INPUT} style={inputStyle} value={form.dayOfWeek} onChange={(e) => set("dayOfWeek", Number(e.target.value))}>
-            <option value={0}>Domingo</option>
-            <option value={1}>Segunda</option>
-            <option value={2}>Terça</option>
-            <option value={3}>Quarta</option>
-            <option value={4}>Quinta</option>
-            <option value={5}>Sexta</option>
-            <option value={6}>Sábado</option>
-          </select>
-          <input className={INPUT} style={inputStyle} type="time" value={form.sendTimeLocal} onChange={(e) => set("sendTimeLocal", e.target.value)} />
-          <input className={INPUT} style={inputStyle} placeholder="America/Sao_Paulo" value={form.timezoneId} onChange={(e) => set("timezoneId", e.target.value)} />
+          <LabeledField label="Frequência">
+            <select className={INPUT} style={inputStyle} value={form.frequency} onChange={(e) => set("frequency", e.target.value as AccountingDispatchFrequency)}>
+              <option value="Monthly">Mensal</option>
+              <option value="Weekly">Semanal</option>
+              <option value="Daily">Diário</option>
+              <option value="Manual">Manual</option>
+            </select>
+          </LabeledField>
+          <LabeledField label="Dia do mês">
+            <input className={INPUT} style={inputStyle} type="number" min={1} max={28} value={form.dayOfMonth} onChange={(e) => set("dayOfMonth", Number(e.target.value) || 1)} />
+          </LabeledField>
+          <LabeledField label="Dia da semana">
+            <select className={INPUT} style={inputStyle} value={form.dayOfWeek} onChange={(e) => set("dayOfWeek", Number(e.target.value))}>
+              <option value={0}>Domingo</option>
+              <option value={1}>Segunda</option>
+              <option value={2}>Terça</option>
+              <option value={3}>Quarta</option>
+              <option value={4}>Quinta</option>
+              <option value={5}>Sexta</option>
+              <option value={6}>Sábado</option>
+            </select>
+          </LabeledField>
+          <LabeledField label="Horário local">
+            <input className={INPUT} style={inputStyle} type="time" value={form.sendTimeLocal} onChange={(e) => set("sendTimeLocal", e.target.value)} />
+          </LabeledField>
+          <LabeledField label="Fuso horário">
+            <input className={INPUT} style={inputStyle} placeholder="America/Sao_Paulo" value={form.timezoneId} onChange={(e) => set("timezoneId", e.target.value)} />
+          </LabeledField>
         </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <input className={INPUT} style={inputStyle} type="number" min={0} max={5} value={form.maxRetryCount} onChange={(e) => set("maxRetryCount", Number(e.target.value) || 0)} />
-          <input className={INPUT} style={inputStyle} type="number" min={1} max={120} value={form.retryDelayMinutes} onChange={(e) => set("retryDelayMinutes", Number(e.target.value) || 15)} />
-          <input className={INPUT} style={inputStyle} type="number" min={5} max={30} value={form.maxAttachmentSizeMb} onChange={(e) => set("maxAttachmentSizeMb", Number(e.target.value) || 15)} />
-          <select className={INPUT} style={inputStyle} value={form.sendWhenNoMovement} onChange={(e) => set("sendWhenNoMovement", e.target.value as AccountingSendWhenNoMovement)}>
-            <option value="Skip">Sem movimento: pular</option>
-            <option value="SendZeroed">Sem movimento: enviar zerado</option>
-          </select>
+          <LabeledField label="Tentativas máximas">
+            <input className={INPUT} style={inputStyle} type="number" min={0} max={5} value={form.maxRetryCount} onChange={(e) => set("maxRetryCount", Number(e.target.value) || 0)} />
+          </LabeledField>
+          <LabeledField label="Intervalo entre tentativas (min)">
+            <input className={INPUT} style={inputStyle} type="number" min={1} max={120} value={form.retryDelayMinutes} onChange={(e) => set("retryDelayMinutes", Number(e.target.value) || 15)} />
+          </LabeledField>
+          <LabeledField label="Tamanho máximo dos anexos (MB)">
+            <input className={INPUT} style={inputStyle} type="number" min={5} max={30} value={form.maxAttachmentSizeMb} onChange={(e) => set("maxAttachmentSizeMb", Number(e.target.value) || 15)} />
+          </LabeledField>
+          <LabeledField label="Política sem movimento">
+            <select className={INPUT} style={inputStyle} value={form.sendWhenNoMovement} onChange={(e) => set("sendWhenNoMovement", e.target.value as AccountingSendWhenNoMovement)}>
+              <option value="Skip">Sem movimento: pular</option>
+              <option value="SendZeroed">Sem movimento: enviar zerado</option>
+            </select>
+          </LabeledField>
         </div>
       </section>
 

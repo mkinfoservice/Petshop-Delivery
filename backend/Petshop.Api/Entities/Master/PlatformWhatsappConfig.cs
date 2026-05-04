@@ -23,6 +23,12 @@ public class PlatformWhatsappConfig
     [MaxLength(10)]
     public string TemplateLanguageCode { get; set; } = "pt_BR";
 
+    /// <summary>JSON array de status que disparam notificação (ex: ["RECEBIDO","EM_PREPARO"]).</summary>
+    public string? NotifyOnStatusesJson { get; set; }
+
+    /// <summary>JSON object mapeando status → nome do template Meta (ex: {"RECEBIDO":"pedido_recebido"}).</summary>
+    public string? NotificationTemplatesJson { get; set; }
+
     public bool IsActive { get; set; } = false;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

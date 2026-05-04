@@ -192,6 +192,13 @@ export function importPlatformWhatsappFromCompany(companyId: string) {
   );
 }
 
+export function applyPlatformWhatsappToCompany(companyId: string) {
+  return masterFetch<WhatsappIntegrationDto>(
+    `/master/integrations/whatsapp/platform/apply-to-company/${companyId}`,
+    { method: "POST", body: "{}" },
+  );
+}
+
 // ── Feature Flags ─────────────────────────────────────────────
 
 export type CompanyFeaturesDto = {
