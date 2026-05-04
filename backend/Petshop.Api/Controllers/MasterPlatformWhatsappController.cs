@@ -145,6 +145,10 @@ public class MasterPlatformWhatsappController : ControllerBase
         w.IsActive                  = true;
         w.UpdatedAtUtc              = DateTime.UtcNow;
 
+        // Habilita o modo WhatsApp na empresa — sem isso o serviço de notificação
+        // checa Company.WhatsappMode primeiro e retorna "none" antes de ler a integração.
+        company.WhatsappMode = "cloud_api";
+
         await _db.SaveChangesAsync(ct);
 
         return Ok(new WhatsappIntegrationDto(
