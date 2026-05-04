@@ -427,21 +427,31 @@ export default function StoreFrontConfigPage() {
   const deleteSlide   = useDeleteSlide();
   const reorderSlides = useReorderSlides();
 
-  const [color, setColor]         = useState("#7c5cf8");
+  const [color, setColor]               = useState("#6366f1");
+  const [bgColor, setBgColor]           = useState("#ffffff");
+  const [surface2Color, setSurface2Color] = useState("#f3f4f6");
+  const [borderColor, setBorderColor]   = useState("rgba(0,0,0,0.08)");
+  const [textColor, setTextColor]       = useState("#111827");
+  const [textMutedColor, setTextMutedColor] = useState("#6b7280");
   const [intervalSecs, setIntervalSecs] = useState(5);
-  const [logoUrl, setLogoUrl]     = useState("");
-  const [storeName, setStoreName] = useState("");
-  const [storeSlogan, setStoreSlogan] = useState("");
+  const [logoUrl, setLogoUrl]           = useState("");
+  const [storeName, setStoreName]       = useState("");
+  const [storeSlogan, setStoreSlogan]   = useState("");
   const [announcements, setAnnouncements] = useState<string[]>(["Frete Grátis acima de R$ 100"]);
   const [newAnnouncement, setNewAnnouncement] = useState("");
   const [visualSynced, setVisualSynced] = useState(false);
 
   useEffect(() => {
     if (config && !visualSynced) {
-      setColor(config.primaryColor ?? "#7c5cf8");
+      setColor(config.primaryColor   ?? "#6366f1");
+      setBgColor(config.bgColor      ?? "#ffffff");
+      setSurface2Color(config.surface2Color ?? "#f3f4f6");
+      setBorderColor(config.borderColor     ?? "rgba(0,0,0,0.08)");
+      setTextColor(config.textColor         ?? "#111827");
+      setTextMutedColor(config.textMutedColor ?? "#6b7280");
       setIntervalSecs(config.bannerIntervalSecs ?? 5);
-      setLogoUrl(config.logoUrl ?? "");
-      setStoreName(config.storeName ?? "");
+      setLogoUrl(config.logoUrl   ?? "");
+      setStoreName(config.storeName  ?? "");
       setStoreSlogan(config.storeSlogan ?? "");
       setAnnouncements(config.announcements?.length ? config.announcements : ["Frete Grátis acima de R$ 100"]);
       setVisualSynced(true);
@@ -460,7 +470,12 @@ export default function StoreFrontConfigPage() {
 
   const handleSaveVisual = () => {
     updateConfig.mutate({
-      primaryColor: color || "#7c5cf8",
+      primaryColor:    color         || "#6366f1",
+      bgColor:         bgColor       || "#ffffff",
+      surface2Color:   surface2Color || "#f3f4f6",
+      borderColor:     borderColor   || "rgba(0,0,0,0.08)",
+      textColor:       textColor     || "#111827",
+      textMutedColor:  textMutedColor || "#6b7280",
       bannerIntervalSecs: intervalSecs,
       logoUrl:      logoUrl      || null,
       storeName:    storeName    || null,
@@ -692,6 +707,101 @@ export default function StoreFrontConfigPage() {
               </div>
               <p className="text-xs text-gray-400">Barra do topo, badge e botão do carrinho.</p>
             </label>
+
+            {/* ── Paleta de cores ── */}
+            <div className="space-y-3 pt-1">
+              <p className="text-xs font-semibold text-gray-600">Paleta de cores</p>
+
+              {/* Fundo */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                />
+                <span className="text-xs text-gray-500 w-36 shrink-0">Fundo (--bg)</span>
+                <input
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  maxLength={30}
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                />
+              </div>
+
+              {/* Superfície secundária */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={surface2Color}
+                  onChange={(e) => setSurface2Color(e.target.value)}
+                  className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                />
+                <span className="text-xs text-gray-500 w-36 shrink-0">Superfície 2 (--surface-2)</span>
+                <input
+                  value={surface2Color}
+                  onChange={(e) => setSurface2Color(e.target.value)}
+                  maxLength={30}
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                />
+              </div>
+
+              {/* Borda (aceita rgba) */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-9 rounded-lg border border-gray-200 shrink-0 flex items-center justify-center">
+                  <div
+                    className="w-6 h-6 rounded-md border border-gray-300"
+                    style={{ background: borderColor }}
+                  />
+                </div>
+                <span className="text-xs text-gray-500 w-36 shrink-0">Borda (--border)</span>
+                <input
+                  value={borderColor}
+                  onChange={(e) => setBorderColor(e.target.value)}
+                  placeholder="rgba(0,0,0,0.08)"
+                  maxLength={40}
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                />
+              </div>
+
+              {/* Texto */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                />
+                <span className="text-xs text-gray-500 w-36 shrink-0">Texto (--text)</span>
+                <input
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  maxLength={30}
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                />
+              </div>
+
+              {/* Texto secundário */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={textMutedColor}
+                  onChange={(e) => setTextMutedColor(e.target.value)}
+                  className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                />
+                <span className="text-xs text-gray-500 w-36 shrink-0">Texto 2° (--text-muted)</span>
+                <input
+                  value={textMutedColor}
+                  onChange={(e) => setTextMutedColor(e.target.value)}
+                  maxLength={30}
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                />
+              </div>
+
+              <p className="text-[11px] text-gray-400">
+                Borda aceita qualquer valor CSS (ex: <code>rgba(0,0,0,0.08)</code>).
+              </p>
+            </div>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold text-gray-600">Intervalo do banner (segundos)</span>

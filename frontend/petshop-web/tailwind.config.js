@@ -6,15 +6,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#C8953A",
-          hover: "#A87830",
-          light: "#E8B56A",
-          muted: "rgba(200,149,58,0.14)",
+          DEFAULT: "#6366f1",
+          hover: "#4f46e5",
+          light: "#a5b4fc",
+          muted: "rgba(99,102,241,0.12)",
         },
         surface: {
-          DEFAULT: "#FAF7F2",
-          2: "#F5EDE0",
-          3: "#EDE0CC",
+          DEFAULT: "#ffffff",
+          2: "#f3f4f6",
+          3: "#e5e7eb",
         },
       },
       fontFamily: {

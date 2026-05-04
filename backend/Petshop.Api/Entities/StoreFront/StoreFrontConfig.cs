@@ -27,9 +27,29 @@ public class StoreFrontConfig
     public string? StoreSlogan { get; set; }
 
     // ── Visual ────────────────────────────────────────────────────────────────
-    /// <summary>Cor primária da marca em hexadecimal (ex: "#7c5cf8").</summary>
-    [MaxLength(10)]
-    public string PrimaryColor { get; set; } = "#7c5cf8";
+    /// <summary>Cor primária da marca em hexadecimal (ex: "#6366f1").</summary>
+    [MaxLength(20)]
+    public string PrimaryColor { get; set; } = "#6366f1";
+
+    /// <summary>Cor de fundo da página (ex: "#ffffff").</summary>
+    [MaxLength(50)]
+    public string BgColor { get; set; } = "#ffffff";
+
+    /// <summary>Cor de fundo secundária — cards, faixas (ex: "#f3f4f6").</summary>
+    [MaxLength(50)]
+    public string Surface2Color { get; set; } = "#f3f4f6";
+
+    /// <summary>Cor das bordas e divisores (ex: "rgba(0,0,0,0.08)").</summary>
+    [MaxLength(50)]
+    public string BorderColor { get; set; } = "rgba(0,0,0,0.08)";
+
+    /// <summary>Cor do texto principal (ex: "#111827").</summary>
+    [MaxLength(20)]
+    public string TextColor { get; set; } = "#111827";
+
+    /// <summary>Cor do texto secundário/muted (ex: "#6b7280").</summary>
+    [MaxLength(20)]
+    public string TextMutedColor { get; set; } = "#6b7280";
 
     // ── Banner ────────────────────────────────────────────────────────────────
     /// <summary>Intervalo (segundos) entre slides. 0 = sem auto-rotação.</summary>

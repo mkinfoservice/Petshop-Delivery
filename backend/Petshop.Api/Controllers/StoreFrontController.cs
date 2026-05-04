@@ -62,6 +62,11 @@ public class StoreFrontAdminController : ControllerBase
         if (req.StoreSlogan is not null) config.StoreSlogan = req.StoreSlogan == "" ? null : req.StoreSlogan;
         if (req.Announcements is not null)
             config.AnnouncementsJson = JsonSerializer.Serialize(req.Announcements);
+        if (req.BgColor        is not null) config.BgColor        = req.BgColor;
+        if (req.Surface2Color  is not null) config.Surface2Color  = req.Surface2Color;
+        if (req.BorderColor    is not null) config.BorderColor    = req.BorderColor;
+        if (req.TextColor      is not null) config.TextColor      = req.TextColor;
+        if (req.TextMutedColor is not null) config.TextMutedColor = req.TextMutedColor;
 
         config.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -199,7 +204,12 @@ public class StoreFrontAdminController : ControllerBase
             .OrderBy(s => s.SortOrder)
             .Select(ToSlideResponse)
             .ToList(),
-        c.CompanyId);
+        c.CompanyId,
+        c.BgColor,
+        c.Surface2Color,
+        c.BorderColor,
+        c.TextColor,
+        c.TextMutedColor);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -243,12 +253,12 @@ public class StoreFrontPublicController : ControllerBase
             .Include(c => c.BannerSlides)
             .FirstOrDefaultAsync(c => c.CompanyId == company.Id, ct);
 
-        // Empresa ainda sem configuração → defaults
+        // Empresa ainda sem configuração → defaults neutros
         if (config is null)
             return Ok(new StoreFrontConfigResponse(
-                Guid.Empty, "#7c5cf8", 5,
+                Guid.Empty, "#6366f1", 5,
                 null, null, null,
-                ["Frete Grátis acima de R$ 100"],
+                ["Bem-vindo à nossa loja!"],
                 Array.Empty<BannerSlideResponse>(),
                 company.Id));
 
@@ -269,6 +279,11 @@ public class StoreFrontPublicController : ControllerBase
             config.LogoUrl, config.StoreName, config.StoreSlogan,
             announcements,
             slides,
-            company.Id));
+            company.Id,
+            config.BgColor,
+            config.Surface2Color,
+            config.BorderColor,
+            config.TextColor,
+            config.TextMutedColor));
     }
 }

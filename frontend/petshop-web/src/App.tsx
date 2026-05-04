@@ -57,14 +57,20 @@ export default function App() {
   const navigate = useNavigate();
   const isDesktop = useMediaQuery("(min-width: 1280px)");
 
-  // Lê config da loja (cor, logo, nome, slogan)
+  // Lê config da loja (cor, logo, nome, slogan, paleta completa)
   const { data: storeFront } = useStoreFront();
-  const brandColor = storeFront?.primaryColor ?? "#7c5cf8";
 
-  // Propaga a cor para o documento inteiro (Checkout, ProductDetail etc. herdam)
+  // Propaga toda a paleta da tenant para o documento (Checkout, ProductDetail etc. herdam)
   useEffect(() => {
-    document.documentElement.style.setProperty("--brand", brandColor);
-  }, [brandColor]);
+    if (!storeFront) return;
+    const r = document.documentElement;
+    r.style.setProperty("--brand",       storeFront.primaryColor  ?? "#6366f1");
+    r.style.setProperty("--bg",          storeFront.bgColor       ?? "#ffffff");
+    r.style.setProperty("--surface-2",   storeFront.surface2Color ?? "#f3f4f6");
+    r.style.setProperty("--border",      storeFront.borderColor   ?? "rgba(0,0,0,0.08)");
+    r.style.setProperty("--text",        storeFront.textColor     ?? "#111827");
+    r.style.setProperty("--text-muted",  storeFront.textMutedColor ?? "#6b7280");
+  }, [storeFront]);
 
   // Verifica status do tenant (só em subdomínio válido)
   const effectiveTenantSlug = _tenantSlug ?? (_fallbackTenantSlug || null);

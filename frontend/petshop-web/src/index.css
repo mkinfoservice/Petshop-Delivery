@@ -4,25 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Variables — Go Coffee palette ──────────── */
+/* ─── CSS Variables — tema neutro (sobrescritas por JS após carregar storefront) */
 :root {
-  --bg: #FAF7F2;
-  --surface: #FFFFFF;
-  --surface-2: #F5EDE0;
-  --border: rgba(107,79,58,0.13);
-  --text: #1C1209;
-  --text-muted: #6B4F3A;
-  --brand: #C8953A;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --border: rgba(0,0,0,0.08);
+  --text: #111827;
+  --text-muted: #6b7280;
+  --brand: #6366f1;
 }
 
 .dark {
-  --bg: #1C1209;
-  --surface: #2A1A0E;
-  --surface-2: #3D2314;
-  --border: rgba(200,149,58,0.18);
-  --text: #FAF7F2;
-  --text-muted: rgba(245,237,224,0.55);
-  --brand: #C8953A;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-2: #334155;
+  --border: rgba(255,255,255,0.08);
+  --text: #f1f5f9;
+  --text-muted: rgba(241,245,249,0.55);
+  --brand: #6366f1;
 }
 
 /* ─── Base ───────────────────────────────────────── */

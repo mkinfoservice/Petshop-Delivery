@@ -20,6 +20,11 @@ export interface StoreFrontConfigResponse {
   storeSlogan: string | null;
   announcements: string[];
   slides: BannerSlideResponse[];
+  bgColor: string;
+  surface2Color: string;
+  borderColor: string;
+  textColor: string;
+  textMutedColor: string;
 }
 
 export interface UpdateStoreFrontConfigRequest {
@@ -29,6 +34,11 @@ export interface UpdateStoreFrontConfigRequest {
   storeName?: string | null;
   storeSlogan?: string | null;
   announcements?: string[];
+  bgColor?: string;
+  surface2Color?: string;
+  borderColor?: string;
+  textColor?: string;
+  textMutedColor?: string;
 }
 
 export interface UpsertBannerSlideRequest {

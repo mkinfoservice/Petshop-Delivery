@@ -175,6 +175,11 @@ export type StoreFrontConfig = {
   storeSlogan: string | null;
   announcements: string[];
   slides: BannerSlide[];
+  bgColor: string;
+  surface2Color: string;
+  borderColor: string;
+  textColor: string;
+  textMutedColor: string;
 };
 
 export async function fetchStoreFront(): Promise<StoreFrontConfig> {
