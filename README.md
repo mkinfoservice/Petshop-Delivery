@@ -1,36 +1,36 @@
-# vendApps â€” Plataforma de GestÃ£o Comercial Multi-tenant
+# vendApps — Plataforma de Gestão Comercial Multi-tenant
 
-> **SaaS completo para negÃ³cios que vendem.** Do catÃ¡logo online ao PDV, do iFood ao WhatsApp, da comanda Ã  nota fiscal â€” tudo em um lugar, acessÃ­vel de qualquer dispositivo, sem instalaÃ§Ã£o.
+> **SaaS completo para negócios que vendem.** Do catálogo online ao PDV, do iFood ao WhatsApp, da comanda à nota fiscal — tudo em um lugar, acessível de qualquer dispositivo, sem instalação.
 
 ---
 
-## O que Ã© o vendApps?
+## O que é o vendApps?
 
-O vendApps Ã© uma plataforma SaaS multi-tenant que centraliza toda a operaÃ§Ã£o de um negÃ³cio â€” food service, varejo ou serviÃ§os â€” em uma Ãºnica ferramenta. Cada cliente recebe seu prÃ³prio subdomÃ­nio (`suaempresa.vendapps.com.br`) com catÃ¡logo pÃºblico, painel administrativo e PDV completamente isolados.
+O vendApps é uma plataforma SaaS multi-tenant que centraliza toda a operação de um negócio — food service, varejo ou serviços — em uma única ferramenta. Cada cliente recebe seu próprio subdomínio (`suaempresa.vendapps.com.br`) com catálogo público, painel administrativo e PDV completamente isolados.
 
 A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pelo QR Code da mesa ou pelo iFood. Tudo entra no mesmo sistema, imprime na mesma impressora, aparece no mesmo painel.
 
 ---
 
-## Como o vendApps transforma o seu negÃ³cio
+## Como o vendApps transforma o seu negócio
 
 ### Antes
-- CardÃ¡pio no papel ou no grupo de WhatsApp, desatualizado, sem foto
-- Pedidos anotados em bloco, fÃ¡cil de errar e perder
+- Cardápio no papel ou no grupo de WhatsApp, desatualizado, sem foto
+- Pedidos anotados em bloco, fácil de errar e perder
 - Pedido do iFood digitado manualmente no sistema interno
-- Impressora sem automaÃ§Ã£o â€” barista precisa ser chamado o tempo todo
+- Impressora sem automação — barista precisa ser chamado o tempo todo
 - Caixa fechado no feeling, sem saber o que entrou de verdade
-- Nota fiscal emitida na mÃ£o, uma por uma
+- Nota fiscal emitida na mão, uma por uma
 - Estoque no caderno, compra feita quando acaba
 
 ### Depois
-- CatÃ¡logo digital atualizado em tempo real, com foto e preÃ§o correto
-- Pedido do iFood entra direto no sistema â€” sem redigitar nada
-- Comanda impressa automaticamente quando o pedido chega â€” barista jÃ¡ comeÃ§a
-- Caixa fechado com relatÃ³rio completo em 1 clique
+- Catálogo digital atualizado em tempo real, com foto e preço correto
+- Pedido do iFood entra direto no sistema — sem redigitar nada
+- Comanda impressa automaticamente quando o pedido chega — barista já começa
+- Caixa fechado com relatório completo em 1 clique
 - NFC-e emitida automaticamente no fechamento de cada venda
 - Estoque descontado a cada venda, alerta antes de acabar
-- Tudo no celular, sem papel, sem planilha, sem adivinhaÃ§Ã£o
+- Tudo no celular, sem papel, sem planilha, sem adivinhação
 
 ---
 
@@ -45,214 +45,214 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 
 ## Funcionalidades
 
-### CatÃ¡logo Online
-- Vitrine pÃºblica responsiva, otimizada para mobile e para Google
-- **ExperiÃªncia moderna opcional por tenant (feature flag):** layout em grade com categorias laterais, busca fixa, cards compactos e carrinho no padrÃ£o operacional (PDV/DAV), com foco em celular e tablet
-- Categorias com filtro, busca em tempo real e banner rotativo configurÃ¡vel
+### Catálogo Online
+- Vitrine pública responsiva, otimizada para mobile e para Google
+- **Experiência moderna opcional por tenant (feature flag):** layout em grade com categorias laterais, busca fixa, cards compactos e carrinho no padrão operacional (PDV/DAV), com foco em celular e tablet
+- Categorias com filtro, busca em tempo real e banner rotativo configurável
 - Carrinho persistente com controle de quantidade e subtotal ao vivo
-- Checkout com auto-preenchimento de CEP (ViaCEP), mÃºltiplas formas de pagamento e cÃ¡lculo de troco
-- NotificaÃ§Ã£o automÃ¡tica do pedido via WhatsApp com nÃºmero e resumo financeiro
-- Identidade visual configurÃ¡vel por tenant: cor principal, logo e banner
+- Checkout com auto-preenchimento de CEP (ViaCEP), múltiplas formas de pagamento e cálculo de troco
+- Notificação automática do pedido via WhatsApp com número e resumo financeiro
+- Identidade visual configurável por tenant: cor principal, logo e banner
 
 ### Autoatendimento por Mesa / QR Code
-- QR Code Ãºnico por mesa â€” cliente escaneia e abre o cardÃ¡pio no prÃ³prio celular
-- Pedido feito pelo cliente jÃ¡ entra automaticamente na fila da cozinha/barista
-- IdentificaÃ§Ã£o do cliente por nÃºmero de telefone antes de fazer o pedido
-- Suporte a pedidos com adicionais e observaÃ§Ãµes por item
-- **Quando o catÃ¡logo moderno estÃ¡ ativo no tenant:** experiÃªncia de mesa com grid moderno e seleÃ§Ã£o de adicionais em step-by-step (mesmo mecanismo do PDV)
-- Ideal para cafeterias, restaurantes, food courts e espaÃ§os de coworking
+- QR Code único por mesa — cliente escaneia e abre o cardápio no próprio celular
+- Pedido feito pelo cliente já entra automaticamente na fila da cozinha/barista
+- Identificação do cliente por número de telefone antes de fazer o pedido
+- Suporte a pedidos com adicionais e observações por item
+- **Quando o catálogo moderno está ativo no tenant:** experiência de mesa com grid moderno e seleção de adicionais em step-by-step (mesmo mecanismo do PDV)
+- Ideal para cafeterias, restaurantes, food courts e espaços de coworking
 
-### PDV â€” Ponto de Venda
+### PDV — Ponto de Venda
 - Interface otimizada para toque, com produtos organizados por categoria
-- Busca instantÃ¢nea por nome, cÃ³digo interno ou cÃ³digo de barras
-- Suporte nativo a leitor de cÃ³digo de barras USB e balanÃ§a integrada
-- **SeleÃ§Ã£o de adicionais step-by-step:** fluxo guiado por grupos configurÃ¡veis (ex: Tipo de Leite â†’ Cobertura â†’ Extras) com radio/checkbox, barra de progresso e auto-avanÃ§o ao escolher opÃ§Ã£o Ãºnica
+- Busca instantânea por nome, código interno ou código de barras
+- Suporte nativo a leitor de código de barras USB e balança integrada
+- **Seleção de adicionais step-by-step:** fluxo guiado por grupos configuráveis (ex: Tipo de Leite → Cobertura → Extras) com radio/checkbox, barra de progresso e auto-avanço ao escolher opção única
 - Variantes de produto (P/M/G, quente/gelado, 200ml/400ml)
-- SessÃ£o de caixa com abertura, sangria, suprimento e fechamento com relatÃ³rio
-- MÃºltiplas formas de pagamento combinadas na mesma venda
+- Sessão de caixa com abertura, sangria, suprimento e fechamento com relatório
+- Múltiplas formas de pagamento combinadas na mesma venda
 - Cupom impresso automaticamente ao finalizar
 
-### Atendimento TelefÃ´nico / BalcÃ£o
-- Busca de cliente por telefone com histÃ³rico de pedidos e sugestÃ£o de recompra
-- Montagem de pedido com adicionais, variantes e observaÃ§Ãµes
-- CÃ¡lculo automÃ¡tico de totais e troco em tempo real
+### Atendimento Telefônico / Balcão
+- Busca de cliente por telefone com histórico de pedidos e sugestão de recompra
+- Montagem de pedido com adicionais, variantes e observações
+- Cálculo automático de totais e troco em tempo real
 
-### ImpressÃ£o AutomÃ¡tica
-- Comanda impressa assim que o pedido chega â€” do iFood, da mesa, do site ou do balcÃ£o
-- ComunicaÃ§Ã£o em tempo real via WebSocket (SignalR) â€” sem delay, sem polling
+### Impressão Automática
+- Comanda impressa assim que o pedido chega — do iFood, da mesa, do site ou do balcão
+- Comunicação em tempo real via WebSocket (SignalR) — sem delay, sem polling
 - **PrintAgent (Windows):** worker service leve instalado localmente, conectado ao hub na nuvem; imprime silenciosamente sem dialog; suporta impressoras USB, serial, rede e Bluetooth (pareada com o PC)
-- **Agente Mobile (Android/iPad):** tablet vira estaÃ§Ã£o de impressÃ£o sem instalar nada â€” modo Bluetooth (Web Bluetooth API, Chrome Android, totalmente silencioso) ou modo AirPrint/Navegador (compatÃ­vel com iPad via dialog nativo do iOS)
-- Suporte a mÃºltiplas impressoras por empresa
-- Pedido avanÃ§a para **Em preparo** automaticamente ao ser impresso
-- ConfiguraÃ§Ãµes do agente mobile persistem no dispositivo â€” atendente pode trocar de turno sem reconfigurar
+- **Agente Mobile (Android/iPad):** tablet vira estação de impressão sem instalar nada — modo Bluetooth (Web Bluetooth API, Chrome Android, totalmente silencioso) ou modo AirPrint/Navegador (compatível com iPad via dialog nativo do iOS)
+- Suporte a múltiplas impressoras por empresa
+- Pedido avança para **Em preparo** automaticamente ao ser impresso
+- Configurações do agente mobile persistem no dispositivo — atendente pode trocar de turno sem reconfigurar
 
-### IntegraÃ§Ã£o iFood
+### Integração iFood
 - Webhook recebe eventos do iFood e responde em menos de 1 segundo
-- Novo pedido (PLACED) criado automaticamente no sistema â€” zero intervenÃ§Ã£o manual
-- Status enviado de volta ao iFood em cada etapa: confirmado â†’ pronto â†’ saiu â†’ entregue
-- Sync de cardÃ¡pio: preÃ§os e disponibilidade atualizados em lote (atÃ© 100 itens por requisiÃ§Ã£o)
-- Suporte a mÃºltiplas lojas do mesmo cliente no iFood
-- ConfiguraÃ§Ã£o em 3 campos: ClientId + ClientSecret + MerchantId
+- Novo pedido (PLACED) criado automaticamente no sistema — zero intervenção manual
+- Status enviado de volta ao iFood em cada etapa: confirmado → pronto → saiu → entregue
+- Sync de cardápio: preços e disponibilidade atualizados em lote (até 100 itens por requisição)
+- Suporte a múltiplas lojas do mesmo cliente no iFood
+- Configuração em 3 campos: ClientId + ClientSecret + MerchantId
 
 ### WhatsApp
-- NotificaÃ§Ã£o automÃ¡tica ao cliente quando o pedido Ã© criado ou atualizado
-- **Complemento de fidelidade:** mensagem automÃ¡tica com pontos ganhos e saldo apÃ³s cada compra PDV (template configurÃ¡vel por empresa, independente de NFC-e)
+- Notificação automática ao cliente quando o pedido é criado ou atualizado
+- **Complemento de fidelidade:** mensagem automática com pontos ganhos e saldo após cada compra PDV (template configurável por empresa, independente de NFC-e)
 - Webhook de entrada para receber e responder mensagens de clientes no painel
 - Roteamento inteligente de conversas por empresa
-- IdempotÃªncia garantida: cada notificaÃ§Ã£o Ã© enviada exatamente uma vez por evento
+- Idempotência garantida: cada notificação é enviada exatamente uma vez por evento
 
-### GestÃ£o de Pedidos
+### Gestão de Pedidos
 - Painel em tempo real com todos os pedidos do dia por canal
-- Filtros por status, canal (web, mesa, iFood, telefone) e perÃ­odo
+- Filtros por status, canal (web, mesa, iFood, telefone) e período
 - Timeline de status por pedido com timestamps precisos
-- Detalhe completo: itens, adicionais, forma de pagamento, endereÃ§o e mapa
-- Fluxo de status adaptado ao tipo de operaÃ§Ã£o: delivery (saiu para entrega) ou balcÃ£o/mesa (pronto para servir)
+- Detalhe completo: itens, adicionais, forma de pagamento, endereço e mapa
+- Fluxo de status adaptado ao tipo de operação: delivery (saiu para entrega) ou balcão/mesa (pronto para servir)
 
-### GestÃ£o de Clientes e Fidelidade
-- Cadastro automÃ¡tico na primeira compra por telefone
-- HistÃ³rico completo de pedidos e ticket mÃ©dio por cliente
-- Programa de fidelidade configurÃ¡vel: pontos por real gasto
-- IdentificaÃ§Ã£o por CPF **ou por telefone** â€” ambos acumulam pontos corretamente
-- Resgate de pontos no checkout e no balcÃ£o
-- NotificaÃ§Ã£o WhatsApp de pontos acumulados apÃ³s cada compra PDV, independente de NFC-e
-- RelatÃ³rio de clientes mais fiÃ©is, frequÃªncia e LTV
+### Gestão de Clientes e Fidelidade
+- Cadastro automático na primeira compra por telefone
+- Histórico completo de pedidos e ticket médio por cliente
+- Programa de fidelidade configurável: pontos por real gasto
+- Identificação por CPF **ou por telefone** — ambos acumulam pontos corretamente
+- Resgate de pontos no checkout e no balcão
+- Notificação WhatsApp de pontos acumulados após cada compra PDV, independente de NFC-e
+- Relatório de clientes mais fiéis, frequência e LTV
 
-### Fiscal â€” NFC-e
-- EmissÃ£o automÃ¡tica de NFC-e no fechamento de venda no PDV
-- ContingÃªncia offline: documentos emitidos sem internet, transmitidos depois
-- ConfiguraÃ§Ã£o por caixa: CNPJ, CSC, sÃ©rie, certificado digital A1
+### Fiscal — NFC-e
+- Emissão automática de NFC-e no fechamento de venda no PDV
+- Contingência offline: documentos emitidos sem internet, transmitidos depois
+- Configuração por caixa: CNPJ, CSC, série, certificado digital A1
 - Suporte a Simples Nacional e Lucro Presumido
-- Fila de reprocessamento automÃ¡tico para documentos rejeitados pela SEFAZ
+- Fila de reprocessamento automático para documentos rejeitados pela SEFAZ
 
 ### Estoque
-- Desconto automÃ¡tico de estoque a cada venda PDV
+- Desconto automático de estoque a cada venda PDV
 - Entrada manual por recebimento de compra
-- Ajuste e inventÃ¡rio com histÃ³rico de movimentaÃ§Ãµes
-- Alertas de nÃ­vel mÃ­nimo por produto
+- Ajuste e inventário com histórico de movimentações
+- Alertas de nível mínimo por produto
 
 ### Compras e Fornecedores
-- Cadastro de fornecedores com histÃ³rico de compras
-- Pedido de compra com itens e preÃ§os acordados
-- Recebimento que atualiza estoque e custo mÃ©dio automaticamente
+- Cadastro de fornecedores com histórico de compras
+- Pedido de compra com itens e preços acordados
+- Recebimento que atualiza estoque e custo médio automaticamente
 
 ### Financeiro
-- LanÃ§amentos de receita e despesa categorizados
-- ConciliaÃ§Ã£o automÃ¡tica com vendas do PDV
-- RelatÃ³rio de fluxo de caixa por perÃ­odo
+- Lançamentos de receita e despesa categorizados
+- Conciliação automática com vendas do PDV
+- Relatório de fluxo de caixa por período
 
-### Agenda de ServiÃ§os
-- Agendamento com tipo de serviÃ§o, duraÃ§Ã£o estimada e responsÃ¡vel
-- VisÃ£o de calendÃ¡rio por dia e semana
-- ConfirmaÃ§Ã£o automÃ¡tica por WhatsApp
+### Agenda de Serviços
+- Agendamento com tipo de serviço, duração estimada e responsável
+- Visão de calendário por dia e semana
+- Confirmação automática por WhatsApp
 
-### ComissÃµes e Gorjetas
-- ComissÃ£o por vendedor configurÃ¡vel individualmente
-- Pool de gorjetas com distribuiÃ§Ã£o automÃ¡tica proporcional entre a equipe
-- RelatÃ³rio mensal de comissÃµes com breakdown por funcionÃ¡rio
+### Comissões e Gorjetas
+- Comissão por vendedor configurável individualmente
+- Pool de gorjetas com distribuição automática proporcional entre a equipe
+- Relatório mensal de comissões com breakdown por funcionário
 
-### GestÃ£o de CatÃ¡logo
-- CRUD completo de produtos com foto, descriÃ§Ã£o, variantes e adicionais
-- **Grupos de adicionais configurÃ¡veis:** organize adicionais em etapas (ex: Tipo de Leite â†’ Cobertura â†’ Extras) com seleÃ§Ã£o Ãºnica (radio) ou mÃºltipla (checkbox) por grupo
-- ClassificaÃ§Ã£o automÃ¡tica na inicializaÃ§Ã£o: adicionais existentes sÃ£o organizados em grupos por padrÃ£o de nome sem intervenÃ§Ã£o manual
-- Categorias com ordenaÃ§Ã£o personalizada e slug automÃ¡tico
-- Enriquecimento automÃ¡tico: normalizaÃ§Ã£o de nomes e busca de imagens por cÃ³digo de barras (base Cosmos/Bluesoft)
+### Gestão de Catálogo
+- CRUD completo de produtos com foto, descrição, variantes e adicionais
+- **Grupos de adicionais configuráveis:** organize adicionais em etapas (ex: Tipo de Leite → Cobertura → Extras) com seleção única (radio) ou múltipla (checkbox) por grupo
+- Classificação automática na inicialização: adicionais existentes são organizados em grupos por padrão de nome sem intervenção manual
+- Categorias com ordenação personalizada e slug automático
+- Enriquecimento automático: normalização de nomes e busca de imagens por código de barras (base Cosmos/Bluesoft)
 - Sync bidirecional com sistemas externos via conectores CSV, REST ou banco de dados
-- HistÃ³rico de alteraÃ§Ãµes e preÃ§os por produto
+- Histórico de alterações e preços por produto
 
-### DAV / OrÃ§amentos
-- CriaÃ§Ã£o de orÃ§amento com itens e validade
-- Envio do orÃ§amento por WhatsApp com resumo financeiro
-- ConversÃ£o de orÃ§amento aprovado em pedido com 1 clique
+### DAV / Orçamentos
+- Criação de orçamento com itens e validade
+- Envio do orçamento por WhatsApp com resumo financeiro
+- Conversão de orçamento aprovado em pedido com 1 clique
 
 ### Rotas de Entrega
-- Planejamento de rotas com otimizaÃ§Ã£o por OpenRouteService (ORS)
-- App do entregador com atualizaÃ§Ãµes de status por parada
-- NavegaÃ§Ã£o integrada com Google Maps e Waze
+- Planejamento de rotas com otimização por OpenRouteService (ORS)
+- App do entregador com atualizações de status por parada
+- Navegação integrada com Google Maps e Waze
 - Rastreamento em tempo real no painel admin
 
 ### App do Entregador
 
-PWA mobile-first dedicado ao entregador â€” sem instalaÃ§Ã£o, acessÃ­vel pelo navegador do celular.
+PWA mobile-first dedicado ao entregador — sem instalação, acessível pelo navegador do celular.
 
-**AutenticaÃ§Ã£o**
+**Autenticação**
 - Login por telefone + PIN (sem senha longa para facilitar o uso no campo)
-- JWT com role `deliverer`, vinculado Ã  empresa pelo `CompanyId`
-- SessÃ£o persistida no `localStorage`; redirecionamento automÃ¡tico ao abrir o app
+- JWT com role `deliverer`, vinculado à empresa pelo `CompanyId`
+- Sessão persistida no `localStorage`; redirecionamento automático ao abrir o app
 
-**Tela Inicial â€” Minhas Rotas**
-- Lista todas as rotas ativas atribuÃ­das ao entregador
-- Exibe status da rota (Pendente / Em andamento / ConcluÃ­da), nÃºmero de paradas e endereÃ§o geral
-- AtualizaÃ§Ã£o automÃ¡tica a cada **30 segundos** via polling (sem WebSocket)
-- BotÃ£o "Iniciar Rota" muda o status de `Pendente` â†’ `Em andamento`
+**Tela Inicial — Minhas Rotas**
+- Lista todas as rotas ativas atribuídas ao entregador
+- Exibe status da rota (Pendente / Em andamento / Concluída), número de paradas e endereço geral
+- Atualização automática a cada **30 segundos** via polling (sem WebSocket)
+- Botão "Iniciar Rota" muda o status de `Pendente` → `Em andamento`
 
-**Tela de Detalhe da Rota â€” NavegaÃ§Ã£o Stop-by-Stop**
-- AtualizaÃ§Ã£o automÃ¡tica a cada **15 segundos**
-- Exibe a **prÃ³xima parada** em destaque (`NextStopCard`) com nome do cliente, endereÃ§o e nÃºmero do pedido
-- Lista todas as paradas com status individual (Pendente / PrÃ³xima / Entregue / Falhou / Ignorada)
-- Barra de progresso com contagem de paradas concluÃ­das
+**Tela de Detalhe da Rota — Navegação Stop-by-Stop**
+- Atualização automática a cada **15 segundos**
+- Exibe a **próxima parada** em destaque (`NextStopCard`) com nome do cliente, endereço e número do pedido
+- Lista todas as paradas com status individual (Pendente / Próxima / Entregue / Falhou / Ignorada)
+- Barra de progresso com contagem de paradas concluídas
 
-**NavegaÃ§Ã£o Integrada**
-- Dois botÃµes por parada: **Waze** e **Google Maps** â€” abrem o app nativo com destino preenchido
+**Navegação Integrada**
+- Dois botões por parada: **Waze** e **Google Maps** — abrem o app nativo com destino preenchido
   - Waze: `waze://?ll={lat},{lon}&navigate=yes`
   - Google Maps: `https://www.google.com/maps/dir/?api=1&destination={lat},{lon}`
-- Para rotas com mÃºltiplas paradas, o endpoint `/deliverer/routes/{routeId}/navigation/next` retorna URL com waypoints encadeados
+- Para rotas com múltiplas paradas, o endpoint `/deliverer/routes/{routeId}/navigation/next` retorna URL com waypoints encadeados
 - Coordenadas geocodificadas via OpenRouteService (ORS) com fallback Nominatim
 
-**TransiÃ§Ãµes de Status por Parada**
-- Cada parada comeÃ§a como `Pendente` â†’ backend avanÃ§a automaticamente a primeira para `Proxima`
+**Transições de Status por Parada**
+- Cada parada começa como `Pendente` → backend avança automaticamente a primeira para `Proxima`
 - O entregador registra o desfecho de cada parada:
-  - **Entregue** â€” pedido entregue com sucesso
-  - **Falhou** â€” tentativa sem sucesso (abre `ReasonModal` para registrar motivo)
-  - **Ignorada** â€” parada pulada (tambÃ©m requer motivo)
-- Ao confirmar, o backend (`RouteStopTransitionService`) avanÃ§a automaticamente a prÃ³xima parada para `Proxima`
-- Quando todas as paradas sÃ£o finalizadas, a rota muda automaticamente para `ConcluÃ­da`
+  - **Entregue** — pedido entregue com sucesso
+  - **Falhou** — tentativa sem sucesso (abre `ReasonModal` para registrar motivo)
+  - **Ignorada** — parada pulada (também requer motivo)
+- Ao confirmar, o backend (`RouteStopTransitionService`) avança automaticamente a próxima parada para `Proxima`
+- Quando todas as paradas são finalizadas, a rota muda automaticamente para `Concluída`
 
-**IntegraÃ§Ã£o com Pedidos**
-- Cada parada estÃ¡ vinculada a um `Order`; ao marcar **Entregue**, o pedido muda para status `ENTREGUE`
+**Integração com Pedidos**
+- Cada parada está vinculada a um `Order`; ao marcar **Entregue**, o pedido muda para status `ENTREGUE`
 - Ao marcar **Falhou/Ignorada**, o pedido volta para `PRONTO_PARA_ENTREGA`
-- TransiÃ§Ã£o de status dispara notificaÃ§Ã£o WhatsApp automÃ¡tica ao cliente (quando configurado)
-- QR Code por parada disponÃ­vel para confirmaÃ§Ã£o presencial de entrega
+- Transição de status dispara notificação WhatsApp automática ao cliente (quando configurado)
+- QR Code por parada disponível para confirmação presencial de entrega
 
 **Rastreamento no Painel Admin**
 - Gestores acompanham todas as rotas em tempo real no painel administrativo
-- VisÃ£o por entregador com mapa de paradas e status atualizado
-- HistÃ³rico de tentativas e motivos de falha por parada
+- Visão por entregador com mapa de paradas e status atualizado
+- Histórico de tentativas e motivos de falha por parada
 
 ### Painel Master Admin
-- VisÃ£o consolidada de todas as empresas da plataforma
-- AtivaÃ§Ã£o e desativaÃ§Ã£o de features por tenant (feature flags)
-- Feature flag `modern_catalog_experience` para habilitar/desabilitar o novo catÃ¡logo/carrinho pÃºblico por empresa, sem impacto nos demais tenants
-- Log de auditoria de aÃ§Ãµes administrativas crÃ­ticas
+- Visão consolidada de todas as empresas da plataforma
+- Ativação e desativação de features por tenant (feature flags)
+- Feature flag `modern_catalog_experience` para habilitar/desabilitar o novo catálogo/carrinho público por empresa, sem impacto nos demais tenants
+- Log de auditoria de ações administrativas críticas
 
 ---
 
-## Stack TÃ©cnica
+## Stack Técnica
 
 | Camada | Tecnologia |
 |---|---|
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + Radix UI (shadcn) |
 | Backend | ASP.NET Core 8 + EF Core 8 |
-| Banco de Dados | PostgreSQL (NeonDB serverless em produÃ§Ã£o) |
-| Realtime | SignalR (WebSocket) â€” impressÃ£o e balanÃ§a |
+| Banco de Dados | PostgreSQL (NeonDB serverless em produção) |
+| Realtime | SignalR (WebSocket) — impressão e balança |
 | Jobs agendados | Hangfire 1.8 + PostgreSQL |
-| AutenticaÃ§Ã£o | JWT â€” roles: `admin`, `gerente`, `atendente`, `deliverer` |
+| Autenticação | JWT — roles: `admin`, `gerente`, `atendente`, `deliverer` |
 | Deploy Frontend | Vercel (SPA + rewrite rules) |
 | Deploy Backend | Render (Docker, auto-deploy via push) |
-| Multi-tenant | SubdomÃ­nio detectado em runtime â†’ `CompanyId` isolado |
+| Multi-tenant | Subdomínio detectado em runtime → `CompanyId` isolado |
 
 ---
 
-## IntegraÃ§Ãµes Externas
+## Integrações Externas
 
-| ServiÃ§o | Finalidade |
+| Serviço | Finalidade |
 |---|---|
-| iFood Partner API | RecepÃ§Ã£o de pedidos via webhook + sync de cardÃ¡pio |
-| WhatsApp (Evolution API) | NotificaÃ§Ãµes automÃ¡ticas e atendimento conversacional |
-| ViaCEP | Preenchimento automÃ¡tico de endereÃ§o por CEP |
-| Cosmos (Bluesoft) | Enriquecimento de catÃ¡logo por EAN/GTIN (base brasileira) |
-| SEFAZ | EmissÃ£o de NFC-e em homologaÃ§Ã£o e produÃ§Ã£o |
-| OpenRouteService (ORS) | OtimizaÃ§Ã£o de rotas e geocodificaÃ§Ã£o |
-| Nominatim | GeocodificaÃ§Ã£o de endereÃ§os como fallback |
+| iFood Partner API | Recepção de pedidos via webhook + sync de cardápio |
+| WhatsApp (Evolution API) | Notificações automáticas e atendimento conversacional |
+| ViaCEP | Preenchimento automático de endereço por CEP |
+| Cosmos (Bluesoft) | Enriquecimento de catálogo por EAN/GTIN (base brasileira) |
+| SEFAZ | Emissão de NFC-e em homologação e produção |
+| OpenRouteService (ORS) | Otimização de rotas e geocodificação |
+| Nominatim | Geocodificação de endereços como fallback |
 
 ---
 
@@ -260,41 +260,41 @@ PWA mobile-first dedicado ao entregador â€” sem instalaÃ§Ã£o, acessÃ­
 
 ```
 slug.vendapps.com.br
-        â”‚
-        â–¼
+        │
+        ▼
   Vercel (React SPA)          vendapps.onrender.com
-     Vite + TS        â”€â”€â”€â”€â”€â”€â–º   ASP.NET Core 8
-                                     â”‚
-               â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-               â”‚                     â”‚                      â”‚
+     Vite + TS        ──────►   ASP.NET Core 8
+                                     │
+               ┌─────────────────────┼──────────────────────┐
+               │                     │                      │
           NeonDB               Hangfire Jobs           SignalR Hub
         (PostgreSQL)          (sync, fiscal,         (impressoras,
-       dados isolados          reprocessamento)         balanÃ§as)
+       dados isolados          reprocessamento)         balanças)
         por CompanyId
 ```
 
-**Multi-tenancy:** slug do subdomÃ­nio resolvido em runtime â†’ todos os dados filtrados por `CompanyId`. Zero cruzamento entre clientes.
+**Multi-tenancy:** slug do subdomínio resolvido em runtime → todos os dados filtrados por `CompanyId`. Zero cruzamento entre clientes.
 
-**Plug-in de marketplace:** `IMarketplaceOrderIngester` e `IMarketplaceStatusCallback` permitem adicionar novos canais (Rappi, Uber Eats) sem alterar o core â€” implementar a interface e registrar no DI.
+**Plug-in de marketplace:** `IMarketplaceOrderIngester` e `IMarketplaceStatusCallback` permitem adicionar novos canais (Rappi, Uber Eats) sem alterar o core — implementar a interface e registrar no DI.
 
 ---
 
 ## Agentes Locais
 
 ### PrintAgent
-Worker service .NET que conecta impressoras fÃ­sicas locais ao sistema na nuvem via SignalR. Imprime comandas silenciosamente sem diÃ¡logo de confirmaÃ§Ã£o. Instala como serviÃ§o Windows.
+Worker service .NET que conecta impressoras físicas locais ao sistema na nuvem via SignalR. Imprime comandas silenciosamente sem diálogo de confirmação. Instala como serviço Windows.
 
 ### ScaleAgent
-Worker service .NET que integra balanÃ§as Filizola via porta serial (RS-232). Sincroniza peso em tempo real com o PDV via SignalR.
+Worker service .NET que integra balanças Filizola via porta serial (RS-232). Sincroniza peso em tempo real com o PDV via SignalR.
 
 ---
 
-## InÃ­cio RÃ¡pido
+## Início Rápido
 
 ### Backend
 ```bash
 cd backend/Petshop.Api
-# Configure appsettings.Development.json com a string de conexÃ£o PostgreSQL
+# Configure appsettings.Development.json com a string de conexão PostgreSQL
 dotnet run
 # API: http://localhost:5082
 # Swagger: http://localhost:5082/swagger
@@ -309,11 +309,11 @@ npm run dev
 # http://localhost:5173
 ```
 
-Na primeira execuÃ§Ã£o o `DbSeeder` cria empresa, categorias e produtos de exemplo automaticamente.
+Na primeira execução o `DbSeeder` cria empresa, categorias e produtos de exemplo automaticamente.
 
 ---
 
-## VariÃ¡veis de Ambiente (ProduÃ§Ã£o)
+## Variáveis de Ambiente (Produção)
 
 **Backend (Render):**
 ```
@@ -334,7 +334,7 @@ VITE_API_URL=https://vendapps.onrender.com
 
 ---
 
-## Ativando a IntegraÃ§Ã£o iFood
+## Ativando a Integração iFood
 
 1. No portal iFood Parceiro, gere **ClientId** e **ClientSecret**
 2. Obtenha o **MerchantId** da loja
@@ -346,7 +346,6 @@ VITE_API_URL=https://vendapps.onrender.com
 
 ---
 
-## LicenÃ§a
+## Licença
 
-Projeto proprietÃ¡rio â€” todos os direitos reservados.
-
+Projeto proprietário — todos os direitos reservados.
