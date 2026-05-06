@@ -2,9 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import {
   Search, X, ShoppingCart, Plus, Minus, Trash2,
-  LayoutGrid, Coffee, Snowflake, Sandwich, CupSoda, ShoppingBag,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { petCategoryIcon } from "@/features/catalog/CategoryTile";
 import { useCategories, useProducts, useStoreFront } from "@/features/catalog/queries";
 import type { Product } from "@/features/catalog/api";
 import { useCart } from "@/features/cart/cart";
@@ -26,24 +25,19 @@ function qtyForBaseProduct(items: Array<{ product: Product; qty: number }>, base
   }, 0);
 }
 
-function inferCategoryIcon(name: string | null): LucideIcon {
-  if (!name) return LayoutGrid;
-  const n = name.toLocaleLowerCase();
-  if (n.includes("quente") || n.includes("cafe") || n.includes("caf") || n.includes("espresso") || n.includes("capuccino")) return Coffee;
-  if (n.includes("gelad") || n.includes("ice") || n.includes("frappe") || n.includes("frap") || n.includes("cold")) return Snowflake;
-  if (n.includes("salgado") || n.includes("sanduiche") || n.includes("lanche") || n.includes("toast")) return Sandwich;
-  if (n.includes("bebida") || n.includes("suco") || n.includes("shake")) return CupSoda;
-  return ShoppingBag;
-}
-
 function inferCategoryDescription(name: string | null): string {
-  if (!name) return "Ver todos os itens";
+  if (!name) return "Ver todos os produtos";
   const n = name.toLocaleLowerCase();
-  if (n.includes("quente") || n.includes("cafe") || n.includes("caf")) return "Cafes e bebidas quentes";
-  if (n.includes("gelad") || n.includes("ice") || n.includes("frappe") || n.includes("frap")) return "Refrescantes e gelados";
-  if (n.includes("salgado") || n.includes("sanduiche") || n.includes("lanche")) return "Lanches e salgados";
-  if (n.includes("doce") || n.includes("torta") || n.includes("brownie")) return "Sobremesas e doces";
-  return "Itens desta categoria";
+  if (n.includes("cão") || n.includes("cao") || n.includes("cães") || n.includes("cachorro")) return "Produtos para cães";
+  if (n.includes("gato") || n.includes("felino")) return "Produtos para gatos";
+  if (n.includes("ave") || n.includes("pássaro") || n.includes("passaro")) return "Produtos para aves";
+  if (n.includes("peixe") || n.includes("aquário")) return "Aquário e peixes";
+  if (n.includes("farmácia") || n.includes("farmacia") || n.includes("remédio") || n.includes("medicament")) return "Saúde e medicamentos";
+  if (n.includes("ração") || n.includes("racao") || n.includes("aliment") || n.includes("petisco")) return "Ração e petiscos";
+  if (n.includes("brinquedo") || n.includes("osso")) return "Brinquedos e diversão";
+  if (n.includes("higiene") || n.includes("shampoo") || n.includes("banho")) return "Higiene e banho";
+  if (n.includes("acessório") || n.includes("acessorio") || n.includes("coleira")) return "Acessórios e coleiras";
+  return "Ver produtos desta categoria";
 }
 
 function ModernProductCard({ product, onRequestOpen }: { product: Product; onRequestOpen: (id: string) => void }) {
@@ -221,7 +215,7 @@ function ModernPublicCatalogContent() {
       id: cat.id,
       slug: cat.slug,
       name: cat.name,
-      icon: inferCategoryIcon(cat.name),
+      icon: petCategoryIcon(cat.name, 15),
       description: inferCategoryDescription(cat.name),
     })),
     [categories],
@@ -272,7 +266,6 @@ function ModernPublicCatalogContent() {
             {!categoriesLoading &&
               categoryItems.map((c) => {
                 const active = categorySlug === c.slug;
-                const Icon = c.icon;
                 return (
                   <button
                     key={c.id}
@@ -281,11 +274,11 @@ function ModernPublicCatalogContent() {
                     className="w-full rounded-2xl px-1.5 py-2.5 transition-all"
                     style={active
                       ? { background: "var(--brand)", color: "#fff", boxShadow: "0 10px 24px color-mix(in srgb, var(--brand) 28%, transparent)" }
-                      : { background: "#F5EDE0", color: "#1C1209", border: "1px solid rgba(107,79,58,0.1)" }}
+                      : { background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)" }}
                   >
                     <span className="flex flex-col items-center gap-1">
-                      <span className="w-7 h-7 rounded-xl grid place-items-center" style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "rgba(200,149,58,0.18)", color: "var(--brand)" }}>
-                        <Icon size={15} />
+                      <span className="w-7 h-7 rounded-xl grid place-items-center" style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "color-mix(in srgb, var(--brand) 15%, transparent)", color: "var(--brand)" }}>
+                        {c.icon}
                       </span>
                       <span className="text-[10px] font-extrabold leading-tight text-center line-clamp-2 w-full px-0.5">{c.name}</span>
                     </span>
@@ -299,7 +292,6 @@ function ModernPublicCatalogContent() {
           <div className="mb-3 flex gap-2 overflow-x-auto lg:hidden scrollbar-none" style={{ scrollbarWidth: "none" }}>
             {categoryItems.map((c) => {
               const active = categorySlug === c.slug;
-              const Icon = c.icon;
               return (
                 <button
                   key={c.id}
@@ -308,9 +300,9 @@ function ModernPublicCatalogContent() {
                   className="shrink-0 min-w-[150px] rounded-2xl px-3 py-2 flex items-center gap-2 text-xs font-bold"
                   style={active
                     ? { background: "var(--brand)", color: "#fff", boxShadow: "0 4px 12px color-mix(in srgb, var(--brand) 28%, transparent)" }
-                    : { background: "#fff", color: "#6B4F3A", border: "1px solid rgba(107,79,58,0.12)" }}
+                    : { background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}
                 >
-                  <Icon size={15} />
+                  {c.icon}
                   <span className="text-left whitespace-normal break-words leading-tight">{c.name}</span>
                 </button>
               );
