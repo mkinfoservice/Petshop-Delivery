@@ -26,15 +26,6 @@ public class AddCatalogStyleAndFixTenantColors : Migration
               AND c."Slug" = 'megapetfaim';
             """);
 
-        // GoCoffee: SecondaryColor = espresso escuro (para admin panel por tenant)
-        // O admin header usa var(--brand-2), que agora reflete a cor da marca de cada tenant
-        migrationBuilder.Sql("""
-            UPDATE "StoreFrontConfigs" sf
-            SET "SecondaryColor" = '#1C1209'
-            FROM "Companies" c
-            WHERE sf."CompanyId" = c."Id"
-              AND c."Slug" = 'novaempresa';
-            """);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
@@ -42,14 +33,6 @@ public class AddCatalogStyleAndFixTenantColors : Migration
         migrationBuilder.Sql("""
             ALTER TABLE "StoreFrontConfigs"
                 DROP COLUMN IF EXISTS "CatalogStyle";
-            """);
-
-        migrationBuilder.Sql("""
-            UPDATE "StoreFrontConfigs" sf
-            SET "SecondaryColor" = '#6366f1'
-            FROM "Companies" c
-            WHERE sf."CompanyId" = c."Id"
-              AND c."Slug" = 'novaempresa';
             """);
     }
 }

@@ -862,6 +862,14 @@ using (var scope = app.Services.CreateScope())
             ON "EmployeeCommissionAdjustments" ("CompanyId", "ReferenceDateUtc", "AdminUserId");
         """);
 
+    // [20260506] StoreFront — colunas de branding por tenant.
+    await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "StoreFrontConfigs"
+            ADD COLUMN IF NOT EXISTS "SecondaryColor" character varying(30) NOT NULL DEFAULT '#6366f1',
+            ADD COLUMN IF NOT EXISTS "AccentColor"    character varying(30) NOT NULL DEFAULT '#f59e0b',
+            ADD COLUMN IF NOT EXISTS "CatalogStyle"   character varying(30) NOT NULL DEFAULT 'default';
+        """);
+
     await DbSeeder.SeedAsync(db);
     await AddonGroupSeeder.SeedAsync(app.Services);
     await AddonSplitSeeder.SeedAsync(app.Services);

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, X, ShoppingCart, Plus, Minus, Trash2,
 } from "lucide-react";
-import { petCategoryIcon } from "@/features/catalog/CategoryTile";
+import { categoryIconForStyle } from "@/features/catalog/CategoryTile";
 import { useCategories, useProducts, useStoreFront } from "@/features/catalog/queries";
 import type { Product } from "@/features/catalog/api";
 import { useCart } from "@/features/cart/cart";
@@ -219,10 +219,10 @@ function ModernPublicCatalogContent() {
       id: cat.id,
       slug: cat.slug,
       name: cat.name,
-      icon: petCategoryIcon(cat.name, 15),
+      icon: categoryIconForStyle(cat.name, storefront?.catalogStyle, 15),
       description: inferCategoryDescription(cat.name),
     })),
-    [categories],
+    [categories, storefront?.catalogStyle],
   );
 
   return (
@@ -416,5 +416,4 @@ export function ModernPublicCatalog() {
     </ToastProvider>
   );
 }
-
 

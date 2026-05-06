@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { ShoppingCart, Search, X, AlertTriangle, LayoutGrid, Coffee, Snowflake, Sandwich, CupSoda, ShoppingBag, type LucideIcon } from "lucide-react";
+import { ShoppingCart, Search, X, AlertTriangle, LayoutGrid, Coffee, Snowflake, Sandwich, CupSoda, ShoppingBag, PawPrint, Bird, Fish, Pill, Droplets, Tag, Bone, Utensils, type LucideIcon } from "lucide-react";
 import { resolveTenantFromHost, fetchTenantInfoBySlug } from "@/utils/tenant";
 import { useCategories, useProducts, useStoreFront } from "./features/catalog/queries";
 import { useCart } from "./features/cart/cart";
@@ -21,6 +21,12 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function normalizeCategoryName(value: string) {
+  return value
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function ProductSkeleton() {
@@ -75,6 +81,7 @@ export default function App() {
   }, [storeFront]);
 
   const brandColor = storeFront?.primaryColor ?? "#6366f1";
+  const catalogStyle = storeFront?.catalogStyle ?? "default";
 
   // Verifica status do tenant (só em subdomínio válido)
   const effectiveTenantSlug = _tenantSlug ?? (_fallbackTenantSlug || null);
@@ -93,20 +100,36 @@ export default function App() {
   const products = productsQuery.data ?? [];
   const categoryItems = useMemo(() => {
     const resolveIcon = (name: string): LucideIcon => {
-      const n = name.toLocaleLowerCase();
-      if (n.includes("quente") || n.includes("cafe") || n.includes("caf") || n.includes("espresso") || n.includes("capuccino")) return Coffee;
-      if (n.includes("gelad") || n.includes("ice") || n.includes("frappe") || n.includes("frap") || n.includes("cold")) return Snowflake;
-      if (n.includes("salgado") || n.includes("sanduiche") || n.includes("lanche") || n.includes("toast")) return Sandwich;
-      if (n.includes("bebida") || n.includes("suco") || n.includes("shake")) return CupSoda;
+      const n = normalizeCategoryName(name);
+      if (catalogStyle === "coffee") {
+        if (n.includes("quente") || n.includes("cafe") || n.includes("caf") || n.includes("espresso") || n.includes("capuccino")) return Coffee;
+        if (n.includes("gelad") || n.includes("ice") || n.includes("frappe") || n.includes("frap") || n.includes("cold")) return Snowflake;
+        if (n.includes("salgado") || n.includes("sanduiche") || n.includes("lanche") || n.includes("toast")) return Sandwich;
+        if (n.includes("bebida") || n.includes("suco") || n.includes("shake")) return CupSoda;
+      }
+      if (catalogStyle === "petshop") {
+        if (n.includes("cao") || n.includes("caes") || n.includes("cachorro") || n.includes("dog")) return PawPrint;
+        if (n.includes("gato") || n.includes("felino") || n.includes("cat")) return PawPrint;
+        if (n.includes("ave") || n.includes("passaro") || n.includes("bird") || n.includes("periquito")) return Bird;
+        if (n.includes("peixe") || n.includes("aquario") || n.includes("fish")) return Fish;
+        if (n.includes("roedor") || n.includes("hamster") || n.includes("coelho") || n.includes("cobaia")) return PawPrint;
+        if (n.includes("farmacia") || n.includes("remedio") || n.includes("medicament") || n.includes("veterinar") || n.includes("saude")) return Pill;
+        if (n.includes("racao") || n.includes("aliment") || n.includes("petisco") || n.includes("comida") || n.includes("snack")) return Utensils;
+        if (n.includes("brinquedo") || n.includes("toy") || n.includes("osso") || n.includes("bone")) return Bone;
+        if (n.includes("higiene") || n.includes("shampoo") || n.includes("banho") || n.includes("limpeza") || n.includes("tosa")) return Droplets;
+        if (n.includes("acessorio") || n.includes("coleira") || n.includes("roupa") || n.includes("cama") || n.includes("guia")) return Tag;
+      }
       return ShoppingBag;
     };
 
     const resolveHint = (name: string): string => {
-      const n = name.toLocaleLowerCase();
-      if (n.includes("quente") || n.includes("cafe") || n.includes("caf")) return "Bebidas quentes";
-      if (n.includes("gelad") || n.includes("ice") || n.includes("frappe") || n.includes("frap")) return "Refrescantes";
-      if (n.includes("salgado") || n.includes("sanduiche") || n.includes("lanche")) return "Lanches";
-      if (n.includes("doce") || n.includes("torta") || n.includes("brownie")) return "Sobremesas";
+      const n = normalizeCategoryName(name);
+      if (catalogStyle === "coffee") {
+        if (n.includes("quente") || n.includes("cafe") || n.includes("caf")) return "Bebidas quentes";
+        if (n.includes("gelad") || n.includes("ice") || n.includes("frappe") || n.includes("frap")) return "Refrescantes";
+        if (n.includes("salgado") || n.includes("sanduiche") || n.includes("lanche")) return "Lanches";
+        if (n.includes("doce") || n.includes("torta") || n.includes("brownie")) return "Sobremesas";
+      }
       return "Categoria";
     };
 
@@ -118,7 +141,7 @@ export default function App() {
         hint: resolveHint(c.name),
       })),
     ];
-  }, [categories]);
+  }, [categories, catalogStyle]);
   const visibleProducts = products.slice(0, visibleCount);
   const hasMore = products.length > visibleCount;
   const isLoading = categoriesQuery.isLoading || productsQuery.isLoading;
