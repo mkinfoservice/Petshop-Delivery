@@ -182,6 +182,7 @@ export type StoreFrontConfig = {
   textMutedColor: string;
   secondaryColor: string;
   accentColor: string;
+  catalogStyle: string;
 };
 
 export async function fetchStoreFront(): Promise<StoreFrontConfig> {

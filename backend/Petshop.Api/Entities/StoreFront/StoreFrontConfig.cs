@@ -59,6 +59,10 @@ public class StoreFrontConfig
     [MaxLength(20)]
     public string AccentColor { get; set; } = "#f59e0b";
 
+    /// <summary>Estilo visual do catálogo moderno. "default" = layout padrão; "petshop" = header escuro + padrão de patas.</summary>
+    [MaxLength(30)]
+    public string CatalogStyle { get; set; } = "default";
+
     // ── Banner ────────────────────────────────────────────────────────────────
     /// <summary>Intervalo (segundos) entre slides. 0 = sem auto-rotação.</summary>
     public int BannerIntervalSecs { get; set; } = 5;

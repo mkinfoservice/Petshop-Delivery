@@ -32,7 +32,8 @@ public record StoreFrontConfigResponse(
     string TextColor      = "#111827",
     string TextMutedColor = "#6b7280",
     string SecondaryColor = "#6366f1",
-    string AccentColor    = "#f59e0b");
+    string AccentColor    = "#f59e0b",
+    string CatalogStyle   = "default");
 
 // ── Requests — config geral ───────────────────────────────────────────────────
 
@@ -49,7 +50,8 @@ public record UpdateStoreFrontConfigRequest(
     [MaxLength(20)]  string? TextColor,
     [MaxLength(20)]  string? TextMutedColor,
     [MaxLength(20)]  string? SecondaryColor,
-    [MaxLength(20)]  string? AccentColor);
+    [MaxLength(20)]  string? AccentColor,
+    [MaxLength(30)]  string? CatalogStyle);
 
 // ── Requests — slides ─────────────────────────────────────────────────────────
 

@@ -127,7 +127,7 @@ export function CartSidebar() {
             type="button"
             onClick={() => navigate("/checkout")}
             className="w-full py-3.5 rounded-2xl font-black text-base text-white transition hover:brightness-110 active:scale-[0.99]"
-            style={{ background: "linear-gradient(135deg, #1C1209, #3D2314)" }}
+            style={{ background: "var(--brand)" }}
           >
             Finalizar Pedido
           </button>

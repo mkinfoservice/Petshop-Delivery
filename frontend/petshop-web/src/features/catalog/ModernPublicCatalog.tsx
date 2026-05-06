@@ -188,7 +188,7 @@ function CartPanel({ onCheckout }: { onCheckout: () => void }) {
           disabled={!hasItems}
           onClick={onCheckout}
           className="h-11 w-full rounded-2xl font-black text-white disabled:opacity-40"
-          style={{ background: "linear-gradient(135deg, #1C1209, #3D2314)" }}
+          style={{ background: "var(--brand)" }}
         >
           Finalizar pedido
         </button>
@@ -210,9 +210,8 @@ function ModernPublicCatalogContent() {
   const { data: products = [], isLoading: productsLoading } = useProducts(categorySlug || undefined, search || undefined);
   const brand = storefront?.storeName || "Catálogo";
   const brandColor = storefront?.primaryColor || "#C8953A";
-  // Detecta tenant com tema configurado: bgColor diferente do branco padrão
-  // Megapetfaim tem '#FFFAF6'; todos os outros tenants têm '#ffffff' (default da migration)
-  const isPetshop = Boolean(storefront && storefront.bgColor !== '#ffffff');
+  // catalogStyle vem do banco — 'petshop' ativa header escuro + paw-bg + barra de anúncio
+  const isPetshop = storefront?.catalogStyle === 'petshop';
   const stickyTop = isPetshop && storefront?.announcements?.[0] ? "9.5rem" : "7.5rem";
 
   const categoryItems = useMemo(

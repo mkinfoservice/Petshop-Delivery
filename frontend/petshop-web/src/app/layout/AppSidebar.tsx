@@ -52,19 +52,19 @@ function SidebarLink({ module }: { module: AppModule }) {
       className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all"
       style={{
         backgroundColor: isActive ? module.iconBg : "transparent",
-        color: isActive ? module.iconColor : "var(--text-muted)",
+        color: isActive ? module.iconColor : "rgba(255,255,255,0.7)",
         fontWeight: isActive ? 600 : 400,
       }}
       onMouseEnter={(e) => {
         if (!isActive) {
-          (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-2)";
-          (e.currentTarget as HTMLElement).style.color = "var(--text)";
+          (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.1)";
+          (e.currentTarget as HTMLElement).style.color = "#fff";
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
           (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-          (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+          (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)";
         }
       }}
     >
@@ -85,19 +85,22 @@ export function AppSidebar() {
   return (
     <aside
       className="w-48 shrink-0 hidden lg:flex flex-col gap-1 px-3 pt-6 pb-6 sticky top-14 self-start h-[calc(100dvh-3.5rem)] overflow-y-auto border-r"
-      style={{ borderColor: "var(--border)" }}
+      style={{
+        background: "linear-gradient(175deg, var(--brand-2) 0%, color-mix(in srgb, var(--brand-2) 82%, #000) 100%)",
+        borderColor: "color-mix(in srgb, var(--brand-2) 55%, #000)",
+      }}
     >
       {/* Voltar à Central */}
       <Link
         to="/app"
         className="flex items-center gap-2 px-3 py-1.5 mb-2 text-xs font-semibold rounded-lg transition-colors"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: "rgba(255,255,255,0.6)" }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.color = "var(--text)";
-          (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-2)";
+          (e.currentTarget as HTMLElement).style.color = "#fff";
+          (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.1)";
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+          (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.6)";
           (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
         }}
       >
@@ -108,13 +111,13 @@ export function AppSidebar() {
       {/* Divider */}
       <div
         className="h-px mx-3 mb-2"
-        style={{ backgroundColor: "var(--border)" }}
+        style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
       />
 
       {/* Group label */}
       <p
         className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: "rgba(255,255,255,0.4)" }}
       >
         {groupMeta.label}
       </p>
