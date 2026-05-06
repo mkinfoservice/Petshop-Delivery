@@ -25,12 +25,14 @@ public record StoreFrontConfigResponse(
     string? StoreSlogan,
     IReadOnlyList<string> Announcements,
     IReadOnlyList<BannerSlideResponse> Slides,
-    Guid   CompanyId = default,
+    Guid   CompanyId      = default,
     string BgColor        = "#ffffff",
     string Surface2Color  = "#f3f4f6",
     string BorderColor    = "rgba(0,0,0,0.08)",
     string TextColor      = "#111827",
-    string TextMutedColor = "#6b7280");
+    string TextMutedColor = "#6b7280",
+    string SecondaryColor = "#6366f1",
+    string AccentColor    = "#f59e0b");
 
 // ── Requests — config geral ───────────────────────────────────────────────────
 
@@ -45,7 +47,9 @@ public record UpdateStoreFrontConfigRequest(
     [MaxLength(50)]  string? Surface2Color,
     [MaxLength(50)]  string? BorderColor,
     [MaxLength(20)]  string? TextColor,
-    [MaxLength(20)]  string? TextMutedColor);
+    [MaxLength(20)]  string? TextMutedColor,
+    [MaxLength(20)]  string? SecondaryColor,
+    [MaxLength(20)]  string? AccentColor);
 
 // ── Requests — slides ─────────────────────────────────────────────────────────
 

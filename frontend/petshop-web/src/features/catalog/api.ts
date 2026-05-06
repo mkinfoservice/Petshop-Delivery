@@ -180,6 +180,8 @@ export type StoreFrontConfig = {
   borderColor: string;
   textColor: string;
   textMutedColor: string;
+  secondaryColor: string;
+  accentColor: string;
 };
 
 export async function fetchStoreFront(): Promise<StoreFrontConfig> {

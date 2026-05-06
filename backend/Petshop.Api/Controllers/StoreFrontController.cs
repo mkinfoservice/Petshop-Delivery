@@ -67,6 +67,8 @@ public class StoreFrontAdminController : ControllerBase
         if (req.BorderColor    is not null) config.BorderColor    = req.BorderColor;
         if (req.TextColor      is not null) config.TextColor      = req.TextColor;
         if (req.TextMutedColor is not null) config.TextMutedColor = req.TextMutedColor;
+        if (req.SecondaryColor is not null) config.SecondaryColor = req.SecondaryColor;
+        if (req.AccentColor    is not null) config.AccentColor    = req.AccentColor;
 
         config.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -209,7 +211,9 @@ public class StoreFrontAdminController : ControllerBase
         c.Surface2Color,
         c.BorderColor,
         c.TextColor,
-        c.TextMutedColor);
+        c.TextMutedColor,
+        c.SecondaryColor,
+        c.AccentColor);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -284,6 +288,8 @@ public class StoreFrontPublicController : ControllerBase
             config.Surface2Color,
             config.BorderColor,
             config.TextColor,
-            config.TextMutedColor));
+            config.TextMutedColor,
+            config.SecondaryColor,
+            config.AccentColor));
     }
 }

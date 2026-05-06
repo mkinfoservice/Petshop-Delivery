@@ -51,6 +51,14 @@ public class StoreFrontConfig
     [MaxLength(20)]
     public string TextMutedColor { get; set; } = "#6b7280";
 
+    /// <summary>Cor secundária da marca (ex: navy, usada em headers e profundidade).</summary>
+    [MaxLength(20)]
+    public string SecondaryColor { get; set; } = "#6366f1";
+
+    /// <summary>Cor de destaque/acento (ex: amarelo dourado, usado em badges e promoções).</summary>
+    [MaxLength(20)]
+    public string AccentColor { get; set; } = "#f59e0b";
+
     // ── Banner ────────────────────────────────────────────────────────────────
     /// <summary>Intervalo (segundos) entre slides. 0 = sem auto-rotação.</summary>
     public int BannerIntervalSecs { get; set; } = 5;
