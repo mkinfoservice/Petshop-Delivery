@@ -35,7 +35,7 @@ export function AppHeader() {
   return (
     <header
       className="sticky top-0 z-40 border-b"
-      style={{ backgroundColor: "var(--brand-2)", borderColor: "color-mix(in srgb, var(--brand) 25%, transparent)" }}
+      style={{ backgroundColor: "#1C1209", borderColor: "rgba(200,149,58,0.2)" }}
     >
       <div className="mx-auto max-w-[1600px] px-4 h-14 flex items-center gap-3">
         {/* Logo + breadcrumb */}
@@ -45,17 +45,17 @@ export function AppHeader() {
             className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity"
           >
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "var(--brand)" }}>
+              style={{ background: "linear-gradient(135deg, #C8953A, #A07230)" }}>
               <Coffee size={14} className="text-white" />
             </div>
-            <span className="text-sm font-black hidden sm:block" style={{ color: "var(--brand)" }}>
+            <span className="text-sm font-black hidden sm:block" style={{ color: "#C8953A" }}>
               vendApps
             </span>
           </Link>
 
           {breadcrumb && (
             <>
-              <ChevronRight size={14} className="shrink-0" style={{ color: "color-mix(in srgb, var(--brand) 40%, transparent)" }} />
+              <ChevronRight size={14} className="shrink-0" style={{ color: "rgba(200,149,58,0.4)" }} />
               <span className="text-sm font-semibold truncate" style={{ color: "rgba(245,237,224,0.85)" }}>
                 {breadcrumb}
               </span>
@@ -100,7 +100,7 @@ export function AppHeader() {
           {/* User avatar */}
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 select-none"
-            style={{ background: "var(--brand)", color: "#fff" }}
+            style={{ background: "linear-gradient(135deg, #C8953A, #A07230)", color: "#fff" }}
             title={username}
           >
             {initials}

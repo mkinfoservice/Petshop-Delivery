@@ -210,6 +210,10 @@ function ModernPublicCatalogContent() {
   const { data: products = [], isLoading: productsLoading } = useProducts(categorySlug || undefined, search || undefined);
   const brand = storefront?.storeName || "Catálogo";
   const brandColor = storefront?.primaryColor || "#C8953A";
+  // Detecta tenant com tema configurado: bgColor diferente do branco padrão
+  // Megapetfaim tem '#FFFAF6'; todos os outros tenants têm '#ffffff' (default da migration)
+  const isPetshop = Boolean(storefront && storefront.bgColor !== '#ffffff');
+  const stickyTop = isPetshop && storefront?.announcements?.[0] ? "9.5rem" : "7.5rem";
 
   const categoryItems = useMemo(
     () => [{ id: "all", slug: "", name: "Todos" }, ...categories].map((cat) => ({
@@ -223,53 +227,93 @@ function ModernPublicCatalogContent() {
   );
 
   return (
-    <div className="min-h-dvh paw-bg" style={{ background: "var(--bg)", ["--brand" as string]: brandColor }}>
-      <div className="sticky top-0 z-30" style={{ background: "var(--brand-2)", boxShadow: "0 2px 16px rgba(0,0,0,0.18)" }}>
-        <div
-          className="text-center py-1 px-4 text-xs font-semibold tracking-wide"
-          style={{ background: "var(--brand)", color: "#fff" }}
-        >
-          Delivery e retirada disponíveis · Consulte condições de frete
-        </div>
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>Catálogo online</p>
-            <p className="truncate text-sm font-black" style={{ color: "#fff" }}>{brand}</p>
+    <div className={`min-h-dvh${isPetshop ? " paw-bg" : ""}`} style={{ background: "var(--bg)", ["--brand" as string]: brandColor }}>
+      {isPetshop ? (
+        /* ── Header escuro para tenants com tema configurado (ex: megapetfaim) ── */
+        <div className="sticky top-0 z-30" style={{ background: "var(--brand-2)", boxShadow: "0 2px 16px rgba(0,0,0,0.18)" }}>
+          {storefront?.announcements?.[0] && (
+            <div
+              className="text-center py-1 px-4 text-xs font-semibold tracking-wide"
+              style={{ background: "var(--brand)", color: "#fff" }}
+            >
+              {storefront.announcements[0]}
+            </div>
+          )}
+          <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>Catálogo online</p>
+              <p className="truncate text-sm font-black" style={{ color: "#fff" }}>{brand}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileCartOpen(true)}
+              className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white lg:hidden"
+              style={{ background: "var(--brand)" }}
+            >
+              <ShoppingCart size={14} />
+              <span>Carrinho</span>
+              {cart.totalItems > 0 && <span className="rounded-full bg-white/20 px-1.5 text-xs">{cart.totalItems}</span>}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setMobileCartOpen(true)}
-            className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white lg:hidden"
-            style={{ background: "var(--brand)" }}
-          >
-            <ShoppingCart size={14} />
-            <span>Carrinho</span>
-            {cart.totalItems > 0 && <span className="rounded-full bg-white/20 px-1.5 text-xs">{cart.totalItems}</span>}
-          </button>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 pb-3">
-          <div className="flex h-11 items-center gap-2 rounded-2xl border px-3" style={{ background: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }}>
-            <Search size={15} style={{ color: "rgba(255,255,255,0.65)" }} className="shrink-0" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, código ou código de barras"
-              className="flex-1 bg-transparent text-sm outline-none search-navy"
-              style={{ color: "#fff" }}
-            />
-            {search && (
-              <button type="button" onClick={() => setSearch("")} style={{ color: "rgba(255,255,255,0.6)" }} className="hover:opacity-100">
-                <X size={14} />
-              </button>
-            )}
+          <div className="mx-auto max-w-7xl px-4 pb-3">
+            <div className="flex h-11 items-center gap-2 rounded-2xl border px-3" style={{ background: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }}>
+              <Search size={15} style={{ color: "rgba(255,255,255,0.65)" }} className="shrink-0" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, código ou código de barras"
+                className="flex-1 bg-transparent text-sm outline-none search-navy"
+                style={{ color: "#fff" }}
+              />
+              {search && (
+                <button type="button" onClick={() => setSearch("")} style={{ color: "rgba(255,255,255,0.6)" }} className="hover:opacity-100">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* ── Header claro padrão para demais tenants ── */
+        <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur-sm">
+          <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] opacity-60">Catálogo online</p>
+              <p className="truncate text-sm font-black">{brand}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileCartOpen(true)}
+              className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white lg:hidden"
+              style={{ background: "linear-gradient(135deg, #1C1209, #3D2314)" }}
+            >
+              <ShoppingCart size={14} />
+              <span>Carrinho</span>
+              {cart.totalItems > 0 && <span className="rounded-full bg-white/20 px-1.5 text-xs">{cart.totalItems}</span>}
+            </button>
+          </div>
+          <div className="mx-auto max-w-7xl px-4 pb-3">
+            <div className="flex h-11 items-center gap-2 rounded-2xl border px-3" style={{ background: "#EEE8DD", borderColor: "#e6dccd" }}>
+              <Search size={15} className="opacity-50 shrink-0" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, código ou código de barras"
+                className="flex-1 bg-transparent text-sm outline-none"
+              />
+              {search && (
+                <button type="button" onClick={() => setSearch("")} className="opacity-60 hover:opacity-100">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
         <aside className="hidden lg:block">
-          <div className="sticky top-[7.5rem] rounded-3xl border p-2 h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="rounded-3xl border p-2 h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ position: "sticky", top: stickyTop, background: "var(--surface)", borderColor: "var(--border)" }}>
             {categoriesLoading && <div className="h-16 rounded-2xl animate-pulse col-span-2" style={{ background: "var(--surface-2)" }} />}
             {!categoriesLoading &&
               categoryItems.map((c) => {
@@ -335,7 +379,7 @@ function ModernPublicCatalogContent() {
         </main>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-[7.5rem]">
+          <div style={{ position: "sticky", top: stickyTop }}>
             <CartPanel onCheckout={() => navigate("/checkout")} />
           </div>
         </aside>
