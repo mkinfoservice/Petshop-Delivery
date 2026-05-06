@@ -334,18 +334,19 @@ export default function Checkout() {
     <div className="min-h-dvh bg-gray-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-40">
+      <div className="sticky top-0 z-40" style={{ background: "var(--brand-2)", boxShadow: "0 2px 16px rgba(0,0,0,0.18)" }}>
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition active:scale-95"
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition active:scale-95"
+            style={{ background: "rgba(255,255,255,0.12)" }}
           >
-            <ArrowLeft className="w-4 h-4 text-gray-600" />
+            <ArrowLeft className="w-4 h-4 text-white" />
           </button>
           <div>
-            <h1 className="font-black text-gray-900 text-base leading-tight">Finalizar Pedido</h1>
-            <p className="text-xs text-gray-400">Confirme seus dados</p>
+            <h1 className="font-black text-white text-base leading-tight">Finalizar Pedido</h1>
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>Confirme seus dados</p>
           </div>
         </div>
       </div>
@@ -353,7 +354,7 @@ export default function Checkout() {
       <div className="max-w-lg mx-auto px-4 pt-4 pb-32 space-y-4">
 
         {/* Resumo */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" style={{ borderTop: "2.5px solid var(--brand)" }}>
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-gray-400" />
