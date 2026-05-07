@@ -201,6 +201,16 @@ builder.Services.AddHttpClient<NominatimGeocodingService>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+builder.Services.AddHttpClient<GoogleGeocodingService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
+builder.Services.AddHttpClient<Petshop.Api.Services.Routes.GoogleDistanceMatrixService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
 builder.Services.AddScoped<IGeocodingService, FallbackGeocodingService>();
 
 // ===============================

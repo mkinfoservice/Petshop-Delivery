@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities;
+using Petshop.Api.Services.Routes;
 
 namespace Petshop.Api.Services;
 
@@ -9,15 +10,18 @@ public class RouteOptimizationService
     private readonly AppDbContext _db;
     private readonly ILogger<RouteOptimizationService> _logger;
     private readonly OrsMatrixService? _orsMatrix;
+    private readonly GoogleDistanceMatrixService? _googleMatrix;
 
     public RouteOptimizationService(
         AppDbContext db,
         ILogger<RouteOptimizationService> logger,
-        OrsMatrixService? orsMatrix = null)
+        OrsMatrixService? orsMatrix = null,
+        GoogleDistanceMatrixService? googleMatrix = null)
     {
         _db = db;
         _logger = logger;
         _orsMatrix = orsMatrix;
+        _googleMatrix = googleMatrix;
     }
 
     // Distância aproximada (Haversine) em km
@@ -108,26 +112,30 @@ public class RouteOptimizationService
         _logger.LogInformation("🎯 START (oldest) = {PublicId} ({CreatedAtUtc:yyyy-MM-dd HH:mm})",
             start.PublicId, start.CreatedAtUtc);
 
-        // 2) Tenta usar ORS Matrix API para tempos reais de trajeto
+        // 2) Tenta usar matrix API para tempos reais: ORS → Google → Haversine
         double[][]? travelTimeMatrix = null;
+        var coords = withCoords.Select(o => (o.Latitude!.Value, o.Longitude!.Value)).ToList();
+
         if (_orsMatrix != null)
         {
-            var coords = withCoords.Select(o => (o.Latitude!.Value, o.Longitude!.Value)).ToList();
             travelTimeMatrix = await _orsMatrix.GetTravelTimeMatrixAsync(coords, ct);
-
             if (travelTimeMatrix != null)
-            {
-                _logger.LogInformation("✅ ORS Matrix API: usando tempos reais de trajeto!");
-            }
+                _logger.LogInformation("✅ ORS Matrix: usando tempos reais de trajeto!");
             else
-            {
-                _logger.LogWarning("⚠️ ORS Matrix API falhou, usando fallback Haversine");
-            }
+                _logger.LogWarning("⚠️ ORS Matrix falhou, tentando Google Distance Matrix...");
         }
-        else
+
+        if (travelTimeMatrix == null && _googleMatrix != null)
         {
-            _logger.LogInformation("ℹ️ ORS Matrix não configurado, usando Haversine");
+            travelTimeMatrix = await _googleMatrix.GetTravelTimeMatrixAsync(coords, ct);
+            if (travelTimeMatrix != null)
+                _logger.LogInformation("✅ Google Distance Matrix: usando tempos reais de trajeto!");
+            else
+                _logger.LogWarning("⚠️ Google Distance Matrix falhou, usando fallback Haversine");
         }
+
+        if (travelTimeMatrix == null)
+            _logger.LogInformation("ℹ️ Usando Haversine (distância em linha reta) para otimização");
 
         // 3) Greedy nearest neighbor (com Matrix API ou Haversine)
         var remaining = new List<Order>(withCoords);
@@ -356,38 +364,58 @@ public class RouteOptimizationService
 
         var expectedSize = allCoordinates.Count;
 
+        // Tenta ORS → Google → Haversine
         if (_orsMatrix != null)
         {
             try
             {
-                matrix = await _orsMatrix.GetTravelTimeMatrixAsync(allCoordinates, ct);
-                if (matrix != null)
+                var orsMatrix = await _orsMatrix.GetTravelTimeMatrixAsync(allCoordinates, ct);
+                if (orsMatrix != null &&
+                    orsMatrix.Length == expectedSize &&
+                    orsMatrix.All(row => row != null && row.Length == expectedSize))
                 {
-                    // Validar dimensões da matriz
-                    if (matrix.Length == expectedSize && matrix.All(row => row != null && row.Length == expectedSize))
-                    {
-                        metricType = "ORS Matrix API";
-                        _logger.LogInformation("🚗 Usando ORS Matrix API ({Size}x{Size}) para calcular tempos reais",
-                            expectedSize, expectedSize);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("⚠️ ORS Matrix API retornou dimensões inválidas ({Rows}x?), esperado {Expected}x{Expected2}. Fallback Haversine.",
-                            matrix.Length, expectedSize, expectedSize);
-                        matrix = null;
-                    }
+                    matrix = orsMatrix;
+                    metricType = "ORS Matrix";
+                    _logger.LogInformation("🚗 ORS Matrix ({Size}x{Size}): tempos reais de trajeto", expectedSize, expectedSize);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ ORS Matrix retornou dimensões inválidas, tentando Google...");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("⚠️ ORS Matrix API falhou, usando fallback Haversine: {Error}", ex.Message);
-                matrix = null;
+                _logger.LogWarning("⚠️ ORS Matrix falhou ({Error}), tentando Google...", ex.Message);
+            }
+        }
+
+        if (matrix == null && _googleMatrix != null)
+        {
+            try
+            {
+                var gMatrix = await _googleMatrix.GetTravelTimeMatrixAsync(allCoordinates, ct);
+                if (gMatrix != null &&
+                    gMatrix.Length == expectedSize &&
+                    gMatrix.All(row => row != null && row.Length == expectedSize))
+                {
+                    matrix = gMatrix;
+                    metricType = "Google Distance Matrix";
+                    _logger.LogInformation("🚗 Google Distance Matrix ({Size}x{Size}): tempos reais de trajeto", expectedSize, expectedSize);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Google Distance Matrix retornou dimensões inválidas, usando Haversine.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("⚠️ Google Distance Matrix falhou ({Error}), usando Haversine.", ex.Message);
             }
         }
 
         if (matrix == null)
         {
-            _logger.LogInformation("🚗 Usando fallback Haversine (distância em linha reta)");
+            _logger.LogInformation("🚗 Usando Haversine (distância em linha reta) para otimização");
         }
 
         // Greedy nearest neighbor a partir do depot (índice 0)
