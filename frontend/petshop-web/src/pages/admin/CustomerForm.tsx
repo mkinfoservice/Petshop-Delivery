@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, createCustomer, updateCustomer } from "@/features/admin/customers/api";
+import { fetchCompanyFeatures } from "@/features/admin/company/featuresApi";
 import type { UpsertCustomerRequest } from "@/features/admin/customers/types";
+import { fetchAddressByCep } from "@/features/shipping/viacep";
 import { formatCpf, isValidCpf, digitsOnly } from "@/utils/cpf";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -13,11 +15,33 @@ function maskPhone(v: string) {
   return d.replace(/^(\d{2})(\d{5})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
 }
 function maskCPF(v: string) { return formatCpf(v); }
+function maskCep(v: string) {
+  const d = digitsOnly(v).slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
 function unmask(v: string) { return digitsOnly(v); }
 
-type FormState = { name: string; phone: string; cpf: string };
+type FormState = {
+  name: string;
+  phone: string;
+  cpf: string;
+  cep: string;
+  address: string;
+  complement: string;
+  addressReference: string;
+  notes: string;
+};
 
-const EMPTY: FormState = { name: "", phone: "", cpf: "" };
+const EMPTY: FormState = {
+  name: "",
+  phone: "",
+  cpf: "",
+  cep: "",
+  address: "",
+  complement: "",
+  addressReference: "",
+  notes: "",
+};
 
 export default function CustomerForm() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +51,9 @@ export default function CustomerForm() {
 
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepHint, setCepHint] = useState<string | null>(null);
+  const [cepError, setCepError] = useState<string | null>(null);
 
   const { data: customer, isLoading } = useQuery({
     queryKey: ["customer", id],
@@ -34,12 +61,24 @@ export default function CustomerForm() {
     enabled: isEdit,
   });
 
+  const { data: companyFeatures } = useQuery({
+    queryKey: ["company-features"],
+    queryFn: fetchCompanyFeatures,
+    staleTime: 5 * 60 * 1000,
+  });
+  const customerAddressGeocoding = companyFeatures?.features?.["customer_address_geocoding"] ?? false;
+
   useEffect(() => {
     if (!customer) return;
     setForm({
       name: customer.name,
       phone: maskPhone(customer.phone ?? ""),
       cpf: maskCPF(customer.cpf ?? ""),
+      cep: maskCep(customer.cep ?? ""),
+      address: customer.address ?? "",
+      complement: customer.complement ?? "",
+      addressReference: customer.addressReference ?? "",
+      notes: customer.notes ?? "",
     });
   }, [customer]);
 
@@ -77,8 +116,40 @@ export default function CustomerForm() {
       phone: unmask(form.phone) || undefined,
       cpf: cpfDigits || undefined,
     };
+
+    if (customerAddressGeocoding || isEdit) {
+      payload.cep = unmask(form.cep) || undefined;
+      payload.address = form.address.trim() || undefined;
+      payload.complement = form.complement.trim() || undefined;
+      payload.addressReference = form.addressReference.trim() || undefined;
+      payload.notes = form.notes.trim() || undefined;
+    }
+
     if (isEdit) updateMut.mutate(payload);
     else createMut.mutate(payload);
+  }
+
+  async function handleCepLookup() {
+    const cep = unmask(form.cep);
+    if (cep.length !== 8) return;
+
+    setCepLoading(true);
+    setCepHint(null);
+    setCepError(null);
+    try {
+      const data = await fetchAddressByCep(cep);
+      const hint = [data.logradouro, data.bairro, data.localidade && data.uf ? `${data.localidade}/${data.uf}` : null]
+        .filter(Boolean)
+        .join(", ");
+      setCepHint(hint);
+      if (!form.address.trim() && data.logradouro) {
+        setForm((f) => ({ ...f, address: data.logradouro }));
+      }
+    } catch {
+      setCepError("CEP não encontrado.");
+    } finally {
+      setCepLoading(false);
+    }
   }
 
   const isSaving = createMut.isPending || updateMut.isPending;
@@ -152,6 +223,77 @@ export default function CustomerForm() {
               </Field>
             </div>
           </section>
+
+          {customerAddressGeocoding && (
+            <section className="rounded-2xl border p-5 space-y-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
+              <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Endereço de entrega</h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-4">
+                <Field label="CEP">
+                  <div className="relative">
+                    <input
+                      value={form.cep}
+                      onChange={e => {
+                        setForm(f => ({ ...f, cep: maskCep(e.target.value) }));
+                        setCepHint(null);
+                        setCepError(null);
+                      }}
+                      onBlur={handleCepLookup}
+                      placeholder="00000-000"
+                      className={`${inputClass} pr-9`}
+                      style={inputStyle}
+                    />
+                    {cepLoading && (
+                      <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin" style={{ color: "var(--text-muted)" }} />
+                    )}
+                  </div>
+                </Field>
+                <Field label="Endereço">
+                  <input
+                    value={form.address}
+                    onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                    placeholder="Rua, número, bairro"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </Field>
+              </div>
+
+              {cepError && <p className="text-xs text-red-600">{cepError}</p>}
+              {cepHint && <p className="text-xs" style={{ color: "var(--text-muted)" }}>{cepHint}</p>}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Complemento">
+                  <input
+                    value={form.complement}
+                    onChange={e => setForm(f => ({ ...f, complement: e.target.value }))}
+                    placeholder="Apto, bloco, loja..."
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </Field>
+                <Field label="Referência">
+                  <input
+                    value={form.addressReference}
+                    onChange={e => setForm(f => ({ ...f, addressReference: e.target.value }))}
+                    placeholder="Ponto de referência"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Observações">
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Preferências, restrições ou notas do atendimento"
+                  className={`${inputClass} min-h-20 resize-y`}
+                  style={inputStyle}
+                />
+              </Field>
+            </section>
+          )}
 
           <div className="flex gap-3">
             <button
