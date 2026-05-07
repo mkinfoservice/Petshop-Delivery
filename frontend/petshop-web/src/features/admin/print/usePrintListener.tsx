@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import * as signalR from "@microsoft/signalr";
+import type { HubConnection } from "@microsoft/signalr";
 import { getToken, decodeTokenPayload } from "@/features/admin/auth/auth";
 import { fetchPendingPrintJobs, markPrinted } from "./api";
 import type { PrintOrderPayload, PendingJobDto } from "./types";
@@ -46,32 +46,28 @@ function printViaBrowser(payload: PrintOrderPayload, jobId: string) {
   });
 }
 
-// Registra o fallback de browser para o módulo de impressão mobile
 registerBrowserPrintFn(printViaBrowser);
 
 function printPayload(payload: PrintOrderPayload, jobId: string) {
-  // Modo mobile agent (tablet): Bluetooth ou AirPrint via mobilePrint
   if (isMobileAgent()) {
     mobilePrint(payload, jobId).catch((err) =>
-      console.error("[MobileAgent] Erro na impressão:", err),
+      console.error("[MobileAgent] Erro na impressao:", err),
     );
     return;
   }
 
-  // Modo estação de impressão desktop: window.print()
   printViaBrowser(payload, jobId);
 }
 
-/**
- * Hook que mantém conexão SignalR com o PrintHub.
- * Só imprime se este PC for a estação de impressão (isPrintStation() === true).
- * Todos os PCs conectam ao hub (para ver a fila), mas apenas a estação imprime.
- * onNewOrder é chamado em todos os PCs para exibir notificações.
- */
 export function usePrintListener(onNewOrder?: (payload: PrintOrderPayload) => void) {
-  const connectionRef = useRef<signalR.HubConnection | null>(null);
+  const connectionRef = useRef<HubConnection | null>(null);
+  const onNewOrderRef = useRef(onNewOrder);
   const [connected, setConnected] = useState(false);
   const [printStation, setPrintStationState] = useState<boolean>(isPrintStation);
+
+  useEffect(() => {
+    onNewOrderRef.current = onNewOrder;
+  }, [onNewOrder]);
 
   function togglePrintStation() {
     const next = !printStation;
@@ -80,17 +76,21 @@ export function usePrintListener(onNewOrder?: (payload: PrintOrderPayload) => vo
   }
 
   const replayPending = useCallback(async () => {
-    if (!isPrintStation()) return; // apenas a estação faz replay
+    if (!isPrintStation()) return;
     try {
       const jobs: PendingJobDto[] = await fetchPendingPrintJobs();
       for (const job of jobs) {
         try {
           const payload: PrintOrderPayload = JSON.parse(job.printPayloadJson);
           printPayload(payload, job.id);
-          await new Promise(r => setTimeout(r, 1500));
-        } catch {/* ignora job corrompido */}
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        } catch {
+          // Ignore corrupt jobs.
+        }
       }
-    } catch {/* ignora falha de rede */}
+    } catch {
+      // Ignore transient network failures.
+    }
   }, []);
 
   useEffect(() => {
@@ -101,42 +101,56 @@ export function usePrintListener(onNewOrder?: (payload: PrintOrderPayload) => vo
     const companyId = decoded?.companyId;
     if (!companyId) return;
 
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${API_URL}/hubs/print?access_token=${token}`, {
-        transport: signalR.HttpTransportType.WebSockets |
-                   signalR.HttpTransportType.LongPolling,
-      })
-      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-      .withKeepAliveInterval(10_000)   // cliente → servidor a cada 10s (mantém Render acordado)
-      .withServerTimeout(60_000)       // espera até 60s antes de declarar servidor morto
-      .configureLogging(signalR.LogLevel.Warning)
-      .build();
+    let cancelled = false;
+    let connection: HubConnection | null = null;
 
-    connection.on("PrintOrder", (data: { jobId: string; payload: PrintOrderPayload }) => {
-      if (isPrintStation()) {
-        printPayload(data.payload, data.jobId);
+    void import("@microsoft/signalr").then(async (signalR) => {
+      if (cancelled) return;
+
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${API_URL}/hubs/print?access_token=${token}`, {
+          transport: signalR.HttpTransportType.WebSockets |
+                     signalR.HttpTransportType.LongPolling,
+        })
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .withKeepAliveInterval(10_000)
+        .withServerTimeout(60_000)
+        .configureLogging(signalR.LogLevel.Warning)
+        .build();
+
+      connection.on("PrintOrder", (data: { jobId: string; payload: PrintOrderPayload }) => {
+        if (isPrintStation()) {
+          printPayload(data.payload, data.jobId);
+        }
+        onNewOrderRef.current?.(data.payload);
+      });
+
+      connection.onreconnected(async () => {
+        setConnected(true);
+        await connection?.invoke("JoinCompany", companyId);
+        await replayPending();
+      });
+
+      connection.onclose(() => setConnected(false));
+      connectionRef.current = connection;
+
+      try {
+        await connection.start();
+        if (cancelled) {
+          await connection.stop();
+          return;
+        }
+        await connection.invoke("JoinCompany", companyId);
+        setConnected(true);
+        await replayPending();
+      } catch {
+        // Automatic reconnect is configured after the first successful start.
       }
-      onNewOrder?.(data.payload);
     });
-
-    connection.onreconnected(async () => {
-      setConnected(true);
-      await connection.invoke("JoinCompany", companyId);
-      await replayPending();
-    });
-
-    connection.onclose(() => setConnected(false));
-
-    connection.start().then(async () => {
-      await connection.invoke("JoinCompany", companyId);
-      setConnected(true);
-      await replayPending();
-    }).catch(() => {/* tentará reconectar automaticamente */});
-
-    connectionRef.current = connection;
 
     return () => {
-      connection.stop();
+      cancelled = true;
+      void (connection ?? connectionRef.current)?.stop();
       connectionRef.current = null;
       setConnected(false);
     };
