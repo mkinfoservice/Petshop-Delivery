@@ -16,7 +16,7 @@ import {
 import { CalendarRange, HandCoins, PiggyBank, Save, Trash2, Users } from "lucide-react";
 
 const INPUT =
-  "h-10 rounded-xl border px-3 text-sm outline-none focus:ring-2 focus:ring-[#C8953A]/30";
+  "h-10 rounded-xl border px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-accent)]/30";
 
 function brl(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

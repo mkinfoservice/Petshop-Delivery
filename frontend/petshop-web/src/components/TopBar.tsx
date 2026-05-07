@@ -14,7 +14,7 @@ export function TopBar({ cartSlot, logoUrl, storeName, storeSlogan }: Props) {
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
-            style={logoUrl ? undefined : { background: `linear-gradient(135deg, #1C1209, #3D2314)` }}
+            style={logoUrl ? undefined : { background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}
           >
             {logoUrl
               ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" />

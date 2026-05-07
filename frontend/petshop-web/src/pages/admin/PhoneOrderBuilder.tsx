@@ -13,7 +13,6 @@ import {
   Tag, Trash2, User, X, LayoutGrid, Snowflake, Sandwich, CupSoda, type LucideIcon,
 } from "lucide-react";
 
-const GC = { bg: "#FAF7F2", cream: "#F5EDE0", brown: "#6B4F3A", dark: "#1C1209", caramel: "#C8953A" };
 
 type Step = "search" | "customer" | "cart" | "payment" | "summary";
 const STEPS: Step[] = ["search", "customer", "cart", "payment", "summary"];
@@ -71,7 +70,7 @@ function StepBar({ current }: { current: Step }) {
     <div className="flex gap-1.5">
       {STEPS.map((s, i) => (
         <div key={s} className="flex-1 h-1.5 rounded-full transition-all"
-          style={{ background: i <= idx ? `linear-gradient(90deg, ${GC.caramel}, #A87830)` : `rgba(107,79,58,0.15)` }} />
+          style={{ background: i <= idx ? `linear-gradient(90deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` : "color-mix(in srgb, var(--border) 60%, transparent)" }} />
       ))}
     </div>
   );
@@ -328,19 +327,19 @@ export default function PhoneOrderBuilder() {
   if (isSuccessScreen) {
     const davForPdv = confirmedDavId ? normalizeDavCode(confirmedDavId) : null;
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center" style={{ background: GC.bg }}>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center" style={{ background: "var(--bg)" }}>
         <div className="w-full max-w-sm space-y-6">
           <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto"
-            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 8px 32px rgba(28,18,9,0.25)" }}>
-            <CheckCircle2 size={44} style={{ color: GC.caramel }} />
+            style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
+            <CheckCircle2 size={44} style={{ color: "var(--brand-accent)" }} />
           </div>
           <div className="space-y-2">
-            <h2 className="text-3xl font-black" style={{ color: GC.dark }}>Pedido confirmado!</h2>
-            <p style={{ color: GC.brown, opacity: 0.7 }}>
-              Atendimento de <strong style={{ color: GC.dark }}>{effectiveName.split(" ")[0]}</strong> registrado.
+            <h2 className="text-3xl font-black" style={{ color: "var(--text)" }}>Pedido confirmado!</h2>
+            <p style={{ color: "var(--text-muted)" }}>
+              Atendimento de <strong style={{ color: "var(--text)" }}>{effectiveName.split(" ")[0]}</strong> registrado.
             </p>
             <div className="inline-block px-5 py-2.5 rounded-2xl mt-2"
-              style={{ background: `${GC.caramel}18`, color: GC.caramel }}>
+              style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
               <span className="text-xs font-semibold block">Número do pedido</span>
               <span className="text-xl font-black">{confirmedOrderNumber}</span>
             </div>
@@ -355,7 +354,7 @@ export default function PhoneOrderBuilder() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
             <button onClick={() => navigate(`/app/pedidos/${confirmedOrderId}`)}
               className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition active:scale-[0.98]"
-              style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+              style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--surface-2)" }}>
               Ver pedido
             </button>
             {davForPdv && (
@@ -368,7 +367,7 @@ export default function PhoneOrderBuilder() {
             )}
             <button onClick={resetFlow}
               className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white transition active:scale-[0.98]"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 18px rgba(28,18,9,0.3)" }}>
+              style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 18px rgba(0,0,0,0.22)" }}>
               Novo atendimento
             </button>
           </div>
@@ -378,26 +377,26 @@ export default function PhoneOrderBuilder() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: GC.bg }}>
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       {/* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-4"
-        style={{ background: GC.bg, borderBottom: `1px solid rgba(107,79,58,0.1)` }}>
+        style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
         <button onClick={() => (stepIndex(step) > 0 ? goPrev() : navigate("/app/atendimento"))}
           className="w-10 h-10 rounded-2xl flex items-center justify-center transition active:scale-90 shrink-0"
-          style={{ background: GC.cream, color: GC.brown }}>
+          style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-base leading-tight" style={{ color: GC.dark }}>{stepTitles[step]}</p>
-          <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>
+          <p className="font-black text-base leading-tight" style={{ color: "var(--text)" }}>{stepTitles[step]}</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
             Etapa {stepIndex(step) + 1} de {STEPS.length} · {STEP_LABELS[stepIndex(step)]}
           </p>
         </div>
         {cart.length > 0 && step !== "cart" && step !== "summary" && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full shrink-0"
-            style={{ background: `${GC.caramel}18` }}>
-            <ShoppingBag size={13} style={{ color: GC.caramel }} />
-            <span className="text-xs font-black" style={{ color: GC.caramel }}>{cart.reduce((s, i) => s + i.qty, 0)}</span>
+            style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)" }}>
+            <ShoppingBag size={13} style={{ color: "var(--brand-accent)" }} />
+            <span className="text-xs font-black" style={{ color: "var(--brand-accent)" }}>{cart.reduce((s, i) => s + i.qty, 0)}</span>
           </div>
         )}
       </div>
@@ -413,10 +412,10 @@ export default function PhoneOrderBuilder() {
           <div className="max-w-lg mx-auto space-y-4">
             {/* Hero */}
             <div className="rounded-3xl p-6 text-center"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 8px 32px rgba(28,18,9,0.25)" }}>
+              style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: "rgba(200,149,58,0.2)" }}>
-                <Coffee size={28} style={{ color: GC.caramel }} />
+                style={{ background: "color-mix(in srgb, var(--brand-accent) 20%, transparent)" }}>
+                <Coffee size={28} style={{ color: "var(--brand-accent)" }} />
               </div>
               <h2 className="text-xl font-black text-white mb-1">Novo Atendimento</h2>
               <p className="text-sm" style={{ color: "rgba(245,237,224,0.6)" }}>
@@ -425,13 +424,13 @@ export default function PhoneOrderBuilder() {
             </div>
 
             {/* Tab toggle */}
-            <div className="rounded-2xl p-1 flex gap-1" style={{ background: GC.cream }}>
+            <div className="rounded-2xl p-1 flex gap-1" style={{ background: "var(--surface-2)" }}>
               {(["lookup", "quick"] as SearchMode[]).map((m) => (
                 <button key={m} onClick={() => setSearchMode(m)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
                   style={searchMode === m
-                    ? { background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, color: "#fff" }
-                    : { color: GC.brown, opacity: 0.65 }}>
+                    ? { background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, color: "#fff" }
+                    : { color: "var(--text-muted)"5 }}>
                   {m === "lookup" ? "Cliente cadastrado" : "Sem cadastro"}
                 </button>
               ))}
@@ -439,31 +438,31 @@ export default function PhoneOrderBuilder() {
 
             {/* Lookup mode */}
             {searchMode === "lookup" && (
-              <div className="rounded-3xl p-5 space-y-4" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
-                <p className="text-sm" style={{ color: GC.brown, opacity: 0.7 }}>
+              <div className="rounded-3xl p-5 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                   Digite o telefone ou CPF do cliente.
                 </p>
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                      style={{ color: GC.brown, opacity: 0.5 }} />
+                      style={{ color: "var(--text-muted)", opacity: 0.5 }} />
                     <input type="tel" value={lookupInput}
                       onChange={(e) => setLookupInput(formatLookupPhoneOrCpf(e.target.value))}
                       onKeyDown={(e) => e.key === "Enter" && handleLookup()}
                       placeholder="Telefone ou CPF" autoFocus
                       className="w-full pl-10 pr-4 py-3 rounded-2xl text-sm focus:outline-none"
-                      style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }} />
+                      style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }} />
                   </div>
                   <button onClick={handleLookup}
                     className="px-5 py-3 rounded-2xl text-sm font-black text-white flex items-center gap-2 transition active:scale-95"
-                    style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+                    style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
                     {searchingCustomer ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
                     Buscar
                   </button>
                 </div>
 
                 {lookupValue && !searchingCustomer && (
-                  <div className="rounded-2xl p-4 space-y-3" style={{ background: GC.bg, border: `1.5px solid rgba(107,79,58,0.1)` }}>
+                  <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--bg)", border: "1.5px solid var(--border)" }}>
                     {foundCustomer ? (
                       <>
                         <div className="flex items-center gap-2" style={{ color: "#059669" }}>
@@ -472,14 +471,14 @@ export default function PhoneOrderBuilder() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-white"
-                            style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+                            style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
                             {foundCustomer.name.slice(0, 1).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold" style={{ color: GC.dark }}>{foundCustomer.name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.65 }}>{foundCustomer.phone || foundCustomer.cpf || "—"}</p>
+                            <p className="font-bold" style={{ color: "var(--text)" }}>{foundCustomer.name}</p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)"5 }}>{foundCustomer.phone || foundCustomer.cpf || "—"}</p>
                             {foundCustomer.address && (
-                              <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: GC.brown, opacity: 0.5 }}>
+                              <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
                                 <MapPin size={11} />{foundCustomer.address}
                               </p>
                             )}
@@ -488,45 +487,45 @@ export default function PhoneOrderBuilder() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <button onClick={openEditCustomerModal}
                             className="w-full py-3 rounded-2xl text-sm font-bold transition active:scale-[0.98] flex items-center justify-center gap-2"
-                            style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+                            style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--surface-2)" }}>
                             <Pencil size={14} /> Editar cadastro
                           </button>
                           <button onClick={continueFromSearch}
                             className="w-full py-3 rounded-2xl font-black text-sm text-white transition active:scale-[0.98]"
-                            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 16px rgba(28,18,9,0.25)" }}>
+                            style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}>
                             Confirmar e montar pedido →
                           </button>
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2" style={{ color: GC.brown, opacity: 0.65 }}>
+                        <div className="flex items-center gap-2" style={{ color: "var(--text-muted)"5 }}>
                           <User size={16} />
                           <span className="text-sm">Cliente não encontrado. Cadastre abaixo:</span>
                         </div>
                         <div className="space-y-2">
                           <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Nome *"
                             className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-                            style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }} />
+                            style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }} />
                           <div className="grid grid-cols-2 gap-2">
                             <input value={guestPhone} onChange={(e) => setGuestPhone(formatPhone(e.target.value))} placeholder="Telefone"
                               className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-                              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }} />
+                              style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }} />
                             <input value={guestCpf} onChange={(e) => setGuestCpf(formatCpf(e.target.value))} placeholder="CPF"
                               className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-                              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }} />
+                              style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }} />
                           </div>
                         </div>
                         {registerError && <p className="text-xs text-red-500">{registerError}</p>}
                         <div className="grid grid-cols-2 gap-2">
                           <button disabled={!guestName.trim() || registerLoading} onClick={handleRegisterAndContinue}
                             className="py-3 rounded-2xl text-sm font-black text-white disabled:opacity-50 transition active:scale-95"
-                            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+                            style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))` }}>
                             {registerLoading ? "Cadastrando..." : "Cadastrar e continuar"}
                           </button>
                           <button disabled={!guestName.trim()} onClick={continueFromSearch}
                             className="py-3 rounded-2xl text-sm font-semibold disabled:opacity-50 transition active:scale-95"
-                            style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+                            style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--surface-2)" }}>
                             Só desta vez
                           </button>
                         </div>
@@ -539,18 +538,18 @@ export default function PhoneOrderBuilder() {
 
             {/* Quick guest mode */}
             {searchMode === "quick" && (
-              <div className="rounded-3xl p-5 space-y-4" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
-                <p className="text-sm" style={{ color: GC.brown, opacity: 0.7 }}>
+              <div className="rounded-3xl p-5 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                   Informe o nome para iniciar o pedido agora.
                 </p>
                 <input value={guestName} onChange={(e) => setGuestName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && continueQuickGuest()}
                   placeholder="Nome do cliente *" autoFocus
                   className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
-                  style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }} />
+                  style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }} />
                 <button disabled={!guestName.trim()} onClick={continueQuickGuest}
                   className="w-full py-3 rounded-2xl font-black text-sm text-white disabled:opacity-50 transition active:scale-[0.98]"
-                  style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 16px rgba(28,18,9,0.25)" }}>
+                  style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}>
                   Ir para produtos →
                 </button>
               </div>
@@ -561,33 +560,33 @@ export default function PhoneOrderBuilder() {
         {/* â”€â”€ STEP: customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {step === "customer" && (
           <div className="max-w-lg mx-auto">
-            <div className="rounded-3xl p-6 space-y-4" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
+            <div className="rounded-3xl p-6 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl text-white shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+                  style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
                   {effectiveName.slice(0, 1).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-black text-lg" style={{ color: GC.dark }}>{effectiveName}</p>
-                  <p className="text-sm mt-0.5" style={{ color: GC.brown, opacity: 0.65 }}>{effectivePhone || "Sem contato"}</p>
+                  <p className="font-black text-lg" style={{ color: "var(--text)" }}>{effectiveName}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)"5 }}>{effectivePhone || "Sem contato"}</p>
                   {(customer?.address || guestAddress) && (
-                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: GC.brown, opacity: 0.5 }}>
+                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
                       <MapPin size={11} />{customer?.address ?? guestAddress}
                     </p>
                   )}
                 </div>
               </div>
               {customer && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: `${GC.caramel}12` }}>
-                  <Star size={13} style={{ color: GC.caramel }} className="fill-current" />
-                  <span className="text-xs font-semibold" style={{ color: GC.caramel }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--brand-accent) 12%, transparent)" }}>
+                  <Star size={13} style={{ color: "var(--brand-accent)" }} className="fill-current" />
+                  <span className="text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
                     {(customer as any).points ?? 0} pontos de fidelidade
                   </span>
                 </div>
               )}
               <button onClick={goNext}
                 className="w-full py-3.5 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 transition active:scale-[0.98]"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 16px rgba(28,18,9,0.25)" }}>
+                style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}>
                 Montar carrinho <ArrowRight size={16} />
               </button>
             </div>
@@ -599,33 +598,33 @@ export default function PhoneOrderBuilder() {
           <div className="space-y-4">
             {/* Customer tag */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-              style={{ background: "#fff", boxShadow: "0 2px 12px rgba(28,18,9,0.06)" }}>
+              style={{ background: "var(--surface)", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0"
-                style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+                style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
                 {effectiveName.slice(0, 1).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold truncate" style={{ color: GC.dark }}>{effectiveName}</p>
-                <p className="text-xs" style={{ color: GC.brown, opacity: 0.55 }}>{effectivePhone || "Sem contato"}</p>
+                <p className="text-sm font-bold truncate" style={{ color: "var(--text)" }}>{effectiveName}</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{effectivePhone || "Sem contato"}</p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${GC.caramel}15`, color: GC.caramel }}>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "color-mix(in srgb, var(--brand-accent) 15%, transparent)", color: "var(--brand-accent)" }}>
                 {cart.reduce((s, i) => s + i.qty, 0)} iten(s)
               </span>
             </div>
 
             {/* Search */}
             <div className="relative">
-              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: GC.brown, opacity: 0.45 }} />
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-muted)" }} />
               <input value={productSearch} onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Buscar produto, código ou barras..."
                 className="w-full pl-11 pr-4 py-3 rounded-2xl text-sm focus:outline-none"
-                style={{ background: "#fff", border: `1.5px solid rgba(107,79,58,0.12)`, color: GC.dark, boxShadow: "0 2px 8px rgba(28,18,9,0.05)" }} />
+                style={{ background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text)", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} />
             </div>
 
             <div className="xl:grid xl:grid-cols-[220px_minmax(0,1fr)] xl:gap-4">
               {categories.length > 0 && (
                 <aside className="hidden xl:block">
-                  <div className="rounded-3xl p-2.5 space-y-1.5 border sticky top-24" style={{ background: "#fff", borderColor: "rgba(107,79,58,0.12)" }}>
+                  <div className="rounded-3xl p-2.5 space-y-1.5 border sticky top-24" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                     {categoryItems.map((item) => {
                       const Icon = item.icon;
                       const active = item.key === activeCategory;
@@ -636,12 +635,12 @@ export default function PhoneOrderBuilder() {
                           onClick={() => setActiveCategory(item.key)}
                           className="w-full text-left rounded-2xl px-3 py-2.5 transition-all"
                           style={active
-                            ? { background: GC.caramel, color: "#fff", boxShadow: `0 10px 24px ${GC.caramel}44` }
-                            : { background: GC.cream, color: GC.dark, border: "1px solid rgba(107,79,58,0.1)" }}
+                            ? { background: "var(--brand-accent)", color: "#fff", boxShadow: "0 10px 24px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }
+                            : { background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)" }}
                         >
                           <span className="flex items-center gap-2.5">
                             <span className="w-8 h-8 rounded-xl grid place-items-center"
-                              style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "rgba(200,149,58,0.18)", color: GC.caramel }}>
+                              style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
                               <Icon size={16} />
                             </span>
                             <span className="min-w-0">
@@ -669,8 +668,8 @@ export default function PhoneOrderBuilder() {
                           onClick={() => setActiveCategory(item.key)}
                           className="shrink-0 min-w-[150px] rounded-2xl px-3 py-2 flex items-center gap-2 text-xs font-bold"
                           style={active
-                            ? { background: GC.caramel, color: "#fff", boxShadow: `0 4px 12px ${GC.caramel}44` }
-                            : { background: "#fff", color: GC.brown, border: "1px solid rgba(107,79,58,0.12)" }}
+                            ? { background: "var(--brand-accent)", color: "#fff", boxShadow: "0 4px 12px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }
+                            : { background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
                         >
                           <Icon size={15} />
                           <span className="text-left whitespace-normal break-words leading-tight">{item.label}</span>
@@ -682,14 +681,14 @@ export default function PhoneOrderBuilder() {
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] mt-2">
               {/* Product grid */}
-              <div className="rounded-3xl p-4" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.07)" }}>
+              <div className="rounded-3xl p-4" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: GC.brown, opacity: 0.6 }}>Catálogo</p>
-                  <span className="text-xs" style={{ color: GC.brown, opacity: 0.45 }}>{filteredProducts.length} itens</span>
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Catálogo</p>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>{filteredProducts.length} itens</span>
                 </div>
                 {loadingProducts ? (
                   <div className="h-56 flex items-center justify-center">
-                    <Loader2 className="animate-spin" size={20} style={{ color: GC.caramel }} />
+                    <Loader2 className="animate-spin" size={20} style={{ color: "var(--brand-accent)" }} />
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-3 max-h-[520px] overflow-y-auto pr-1">
@@ -697,26 +696,26 @@ export default function PhoneOrderBuilder() {
                       <button key={p.id}
                         onClick={() => (p.hasAddons ? openConfig(p) : addToCart(p))}
                         className="text-left rounded-2xl p-2.5 transition-all active:scale-95 hover:-translate-y-0.5"
-                        style={{ border: `1.5px solid rgba(107,79,58,0.1)`, background: GC.bg }}>
-                        <div className="aspect-square rounded-xl overflow-hidden mb-2" style={{ background: GC.cream }}>
+                        style={{ border: "1.5px solid var(--border)", background: "var(--bg)" }}>
+                        <div className="aspect-square rounded-xl overflow-hidden mb-2" style={{ background: "var(--surface-2)" }}>
                           {p.imageUrl
                             ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                            : <div className="w-full h-full flex items-center justify-center"><Coffee size={20} style={{ color: GC.brown, opacity: 0.3 }} /></div>}
+                            : <div className="w-full h-full flex items-center justify-center"><Coffee size={20} style={{ color: "var(--text-muted)", opacity: 0.3 }} /></div>}
                         </div>
-                        <p className="text-xs font-semibold line-clamp-2 min-h-[2rem]" style={{ color: GC.dark }}>{p.name}</p>
+                        <p className="text-xs font-semibold line-clamp-2 min-h-[2rem]" style={{ color: "var(--text)" }}>{p.name}</p>
                         <div className="mt-1.5 flex items-center justify-between gap-1">
                           <div className="flex flex-col min-w-0">
                             {p.promotionPriceCents !== null ? (
                               <>
-                                <span className="text-[10px] line-through" style={{ color: GC.brown, opacity: 0.5 }}>{formatCents(p.priceCents)}</span>
+                                <span className="text-[10px] line-through" style={{ color: "var(--text-muted)", opacity: 0.5 }}>{formatCents(p.priceCents)}</span>
                                 <span className="text-sm font-black" style={{ color: "#059669" }}>{formatCents(p.promotionPriceCents)}</span>
                               </>
                             ) : (
-                              <span className="text-sm font-black" style={{ color: GC.caramel }}>{formatCents(p.priceCents)}</span>
+                              <span className="text-sm font-black" style={{ color: "var(--brand-accent)" }}>{formatCents(p.priceCents)}</span>
                             )}
                           </div>
                           <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                            style={{ background: `${GC.caramel}18`, color: GC.caramel }}>
+                            style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
                             <Plus size={12} />
                           </span>
                         </div>
@@ -729,7 +728,7 @@ export default function PhoneOrderBuilder() {
                           )}
                           {p.isBestSeller && (
                             <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                              style={{ background: `${GC.caramel}15`, color: GC.caramel }}>
+                              style={{ background: "color-mix(in srgb, var(--brand-accent) 15%, transparent)", color: "var(--brand-accent)" }}>
                               <Star size={9} className="fill-current" /> Top
                             </span>
                           )}
@@ -741,8 +740,8 @@ export default function PhoneOrderBuilder() {
               </div>
 
               {/* Cart panel */}
-              <div className="rounded-3xl p-4 space-y-3" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.07)" }}>
-                <p className="text-xs font-black uppercase tracking-widest" style={{ color: GC.brown, opacity: 0.6 }}>
+              <div className="rounded-3xl p-4 space-y-3" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
                   Carrinho ({cart.reduce((s, i) => s + i.qty, 0)})
                 </p>
                 <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
@@ -750,23 +749,23 @@ export default function PhoneOrderBuilder() {
                     const unit = itemUnitPriceCents(item);
                     return (
                       <div key={item.key} className="rounded-2xl p-3 space-y-2"
-                        style={{ border: `1.5px solid rgba(107,79,58,0.1)`, background: GC.bg }}>
+                        style={{ border: "1.5px solid var(--border)", background: "var(--bg)" }}>
                         <div className="flex items-start gap-2.5">
-                          <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0" style={{ background: GC.cream }}>
+                          <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0" style={{ background: "var(--surface-2)" }}>
                             {item.product.imageUrl
                               ? <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
-                              : <div className="w-full h-full flex items-center justify-center"><Coffee size={14} style={{ color: GC.brown, opacity: 0.3 }} /></div>}
+                              : <div className="w-full h-full flex items-center justify-center"><Coffee size={14} style={{ color: "var(--text-muted)", opacity: 0.3 }} /></div>}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold line-clamp-2" style={{ color: GC.dark }}>{item.product.name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>{formatCents(unit)} un.</p>
+                            <p className="text-sm font-semibold line-clamp-2" style={{ color: "var(--text)" }}>{item.product.name}</p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{formatCents(unit)} un.</p>
                           </div>
                           <button onClick={() => setQty(item.key, 0)} style={{ color: "rgba(239,68,68,0.7)" }}><Trash2 size={13} /></button>
                         </div>
                         {item.addons.length > 0 && (
                           <div className="text-xs space-y-0.5">
                             {item.addons.map((a) => (
-                              <div key={a.id} className="flex justify-between" style={{ color: GC.caramel }}>
+                              <div key={a.id} className="flex justify-between" style={{ color: "var(--brand-accent)" }}>
                                 <span className="flex items-center gap-1"><Tag size={10} />{a.name}</span>
                                 <span>+{formatCents(a.priceCents)}</span>
                               </div>
@@ -777,21 +776,21 @@ export default function PhoneOrderBuilder() {
                           <div className="flex items-center gap-2">
                             <button onClick={() => setQty(item.key, item.qty - 1)}
                               className="w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"
-                              style={{ border: `1.5px solid rgba(107,79,58,0.18)`, color: GC.brown }}>
+                              style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
                               <Minus size={12} />
                             </button>
-                            <span className="w-5 text-center text-sm font-black" style={{ color: GC.dark }}>{item.qty}</span>
+                            <span className="w-5 text-center text-sm font-black" style={{ color: "var(--text)" }}>{item.qty}</span>
                             <button onClick={() => setQty(item.key, item.qty + 1)}
                               className="w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"
-                              style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+                              style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
                               <Plus size={12} className="text-white" />
                             </button>
                           </div>
-                          <span className="text-sm font-black" style={{ color: GC.dark }}>{formatCents(unit * item.qty)}</span>
+                          <span className="text-sm font-black" style={{ color: "var(--text)" }}>{formatCents(unit * item.qty)}</span>
                         </div>
                         <button onClick={() => openConfig(toPseudoProduct(item), item)}
                           className="w-full py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition active:scale-95"
-                          style={{ border: `1.5px solid rgba(107,79,58,0.12)`, color: GC.brown }}>
+                          style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
                           <Pencil size={11} /> Editar adicionais
                         </button>
                       </div>
@@ -799,14 +798,14 @@ export default function PhoneOrderBuilder() {
                   })}
                   {cart.length === 0 && (
                     <div className="h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2"
-                      style={{ borderColor: "rgba(107,79,58,0.15)" }}>
-                      <ShoppingBag size={24} style={{ color: GC.brown, opacity: 0.2 }} />
-                      <p className="text-sm" style={{ color: GC.brown, opacity: 0.4 }}>Adicione produtos</p>
+                      style={{ borderColor: "var(--border)" }}>
+                      <ShoppingBag size={24} style={{ color: "var(--text-muted)", opacity: 0.2 }} />
+                      <p className="text-sm" style={{ color: "var(--text-muted)", opacity: 0.4 }}>Adicione produtos</p>
                     </div>
                   )}
                 </div>
-                <div className="pt-2 border-t flex justify-between text-sm font-black" style={{ borderColor: "rgba(107,79,58,0.12)", color: GC.dark }}>
-                  <span>Subtotal</span><span style={{ color: GC.caramel }}>{formatCents(subtotal)}</span>
+                <div className="pt-2 border-t flex justify-between text-sm font-black" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
+                  <span>Subtotal</span><span style={{ color: "var(--brand-accent)" }}>{formatCents(subtotal)}</span>
                 </div>
               </div>
             </div>
@@ -820,9 +819,9 @@ export default function PhoneOrderBuilder() {
           <div className="mx-auto max-w-5xl">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
               <div className="space-y-4 lg:col-span-3">
-                <div className="rounded-3xl p-5 space-y-5" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
+                <div className="rounded-3xl p-5 space-y-5" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: GC.brown, opacity: 0.6 }}>
+                    <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
                       Forma de pagamento
                     </p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -832,8 +831,8 @@ export default function PhoneOrderBuilder() {
                           onClick={() => setPaymentMethod(m.key)}
                           className="py-3 rounded-2xl text-sm font-bold transition active:scale-95"
                           style={paymentMethod === m.key
-                            ? { background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, color: "#fff" }
-                            : { border: `1.5px solid rgba(107,79,58,0.15)`, color: GC.brown, background: GC.bg }}
+                            ? { background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, color: "#fff" }
+                            : { border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--bg)" }}
                         >
                           {m.label}
                         </button>
@@ -843,7 +842,7 @@ export default function PhoneOrderBuilder() {
 
                   {paymentMethod === "CASH" && (
                     <div>
-                      <label className="text-xs font-black uppercase tracking-widest block mb-2" style={{ color: GC.brown, opacity: 0.6 }}>
+                      <label className="text-xs font-black uppercase tracking-widest block mb-2" style={{ color: "var(--text-muted)" }}>
                         Valor em dinheiro (R$)
                       </label>
                       <input
@@ -853,7 +852,7 @@ export default function PhoneOrderBuilder() {
                         onChange={(e) => setCashGiven(e.target.value)}
                         placeholder={`Mín. ${formatCents(total)}`}
                         className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
-                        style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }}
+                        style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
                       />
                       {cashGivenCents > 0 && cashGivenCents >= total && (
                         <p className="text-sm font-bold mt-2" style={{ color: "#059669" }}>Troco: {formatCents(change)}</p>
@@ -864,21 +863,21 @@ export default function PhoneOrderBuilder() {
                     </div>
                   )}
 
-                  <div className="rounded-2xl p-4 space-y-2" style={{ background: GC.bg }}>
-                    <div className="flex items-center justify-between text-sm" style={{ color: GC.brown }}>
+                  <div className="rounded-2xl p-4 space-y-2" style={{ background: "var(--bg)" }}>
+                    <div className="flex items-center justify-between text-sm" style={{ color: "var(--text-muted)" }}>
                       <span>Subtotal</span>
                       <span className="font-bold">{formatCents(subtotal)}</span>
                     </div>
                     {deliveryCents > 0 && (
-                      <div className="flex items-center justify-between text-sm" style={{ color: GC.brown }}>
+                      <div className="flex items-center justify-between text-sm" style={{ color: "var(--text-muted)" }}>
                         <span>Entrega</span>
                         <span className="font-bold">{formatCents(deliveryCents)}</span>
                       </div>
                     )}
-                    <div className="h-px" style={{ background: "rgba(107,79,58,0.12)" }} />
-                    <div className="flex justify-between font-black" style={{ color: GC.dark }}>
+                    <div className="h-px" style={{ background: "var(--border)" }} />
+                    <div className="flex justify-between font-black" style={{ color: "var(--text)" }}>
                       <span>Total</span>
-                      <span style={{ color: GC.caramel, fontSize: "1.1rem" }}>{formatCents(total)}</span>
+                      <span style={{ color: "var(--brand-accent)", fontSize: "1.1rem" }}>{formatCents(total)}</span>
                     </div>
                   </div>
 
@@ -886,7 +885,7 @@ export default function PhoneOrderBuilder() {
                     onClick={goNext}
                     disabled={!canProceed.payment}
                     className="w-full py-4 rounded-2xl font-black text-white text-base disabled:opacity-40 transition active:scale-[0.98]"
-                    style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 18px rgba(28,18,9,0.3)" }}
+                    style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 18px rgba(0,0,0,0.22)" }}
                   >
                     Ver resumo →
                   </button>
@@ -894,24 +893,24 @@ export default function PhoneOrderBuilder() {
               </div>
 
               <aside className="lg:col-span-2">
-                <div className="rounded-3xl p-5 space-y-4 lg:sticky lg:top-24" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
+                <div className="rounded-3xl p-5 space-y-4 lg:sticky lg:top-24" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: GC.brown, opacity: 0.55 }}>
+                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
                       Resumo rápido
                     </p>
-                    <p className="mt-2 text-sm font-bold" style={{ color: GC.dark }}>{effectiveName || "Sem nome"}</p>
-                    {effectivePhone && <p className="text-xs" style={{ color: GC.brown, opacity: 0.65 }}>{effectivePhone}</p>}
+                    <p className="mt-2 text-sm font-bold" style={{ color: "var(--text)" }}>{effectiveName || "Sem nome"}</p>
+                    {effectivePhone && <p className="text-xs" style={{ color: "var(--text-muted)"5 }}>{effectivePhone}</p>}
                   </div>
 
                   <div className="space-y-2">
                     {cart.slice(0, 4).map((item) => (
                       <div key={item.key} className="flex items-start justify-between gap-2 text-sm">
-                        <span className="line-clamp-2" style={{ color: GC.dark }}>{item.qty}× {item.product.name}</span>
-                        <span className="font-bold shrink-0" style={{ color: GC.dark }}>{formatCents(itemUnitPriceCents(item) * item.qty)}</span>
+                        <span className="line-clamp-2" style={{ color: "var(--text)" }}>{item.qty}× {item.product.name}</span>
+                        <span className="font-bold shrink-0" style={{ color: "var(--text)" }}>{formatCents(itemUnitPriceCents(item) * item.qty)}</span>
                       </div>
                     ))}
                     {cart.length > 4 && (
-                      <p className="text-xs" style={{ color: GC.brown, opacity: 0.65 }}>
+                      <p className="text-xs" style={{ color: "var(--text-muted)"5 }}>
                         +{cart.length - 4} item(ns)
                       </p>
                     )}
@@ -932,31 +931,31 @@ export default function PhoneOrderBuilder() {
             )}
 
             {/* Customer */}
-            <div className="rounded-3xl p-5 space-y-3" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
-              <p className="text-xs font-black uppercase tracking-widest" style={{ color: GC.brown, opacity: 0.55 }}>Cliente</p>
+            <div className="rounded-3xl p-5 space-y-3" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Cliente</p>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-white"
-                  style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+                  style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
                   {effectiveName.slice(0, 1).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-bold" style={{ color: GC.dark }}>{effectiveName}</p>
-                  <p className="text-xs" style={{ color: GC.brown, opacity: 0.6 }}>{effectivePhone || "Sem contato"}</p>
+                  <p className="font-bold" style={{ color: "var(--text)" }}>{effectiveName}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>{effectivePhone || "Sem contato"}</p>
                 </div>
               </div>
             </div>
 
             {/* Items */}
-            <div className="rounded-3xl p-5 space-y-2" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
-              <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: GC.brown, opacity: 0.55 }}>Itens</p>
+            <div className="rounded-3xl p-5 space-y-2" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+              <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>Itens</p>
               {cart.map((item) => (
                 <div key={item.key} className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="font-semibold" style={{ color: GC.dark }}>{item.qty}× {item.product.name}</span>
-                    <span className="font-bold" style={{ color: GC.dark }}>{formatCents(itemUnitPriceCents(item) * item.qty)}</span>
+                    <span className="font-semibold" style={{ color: "var(--text)" }}>{item.qty}× {item.product.name}</span>
+                    <span className="font-bold" style={{ color: "var(--text)" }}>{formatCents(itemUnitPriceCents(item) * item.qty)}</span>
                   </div>
                   {item.addons.map((a) => (
-                    <div key={a.id} className="flex justify-between text-xs pl-3" style={{ color: GC.caramel }}>
+                    <div key={a.id} className="flex justify-between text-xs pl-3" style={{ color: "var(--brand-accent)" }}>
                       <span>+ {a.name}</span><span>+{formatCents(a.priceCents)}</span>
                     </div>
                   ))}
@@ -965,22 +964,22 @@ export default function PhoneOrderBuilder() {
             </div>
 
             {/* Payment summary */}
-            <div className="rounded-3xl p-5 space-y-2" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
-              <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: GC.brown, opacity: 0.55 }}>Pagamento</p>
-              <div className="flex justify-between text-sm" style={{ color: GC.brown }}>
+            <div className="rounded-3xl p-5 space-y-2" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+              <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>Pagamento</p>
+              <div className="flex justify-between text-sm" style={{ color: "var(--text-muted)" }}>
                 <span>Forma</span><span>{paymentMethodLabel(paymentMethod)}</span>
               </div>
-              <div className="flex justify-between pt-2 font-black" style={{ borderTop: `1px solid rgba(107,79,58,0.12)`, color: GC.dark }}>
-                <span>Total</span><span style={{ color: GC.caramel, fontSize: "1.1rem" }}>{formatCents(total)}</span>
+              <div className="flex justify-between pt-2 font-black" style={{ borderTop: "1px solid var(--border)", color: "var(--text)" }}>
+                <span>Total</span><span style={{ color: "var(--brand-accent)", fontSize: "1.1rem" }}>{formatCents(total)}</span>
               </div>
             </div>
 
             {mustConfirmCpf && (
-              <div className="rounded-3xl p-5 space-y-3" style={{ background: "#fff", boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
-                <p className="text-xs font-black uppercase tracking-widest" style={{ color: GC.brown, opacity: 0.55 }}>
+              <div className="rounded-3xl p-5 space-y-3" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
                   Confirmar fidelidade
                 </p>
-                <p className="text-sm" style={{ color: GC.brown, opacity: 0.8 }}>
+                <p className="text-sm" style={{ color: "var(--text-muted)", opacity: 0.8 }}>
                   Informe o CPF do cliente para validar o acúmulo de pontos neste pedido.
                 </p>
                 <input
@@ -994,7 +993,7 @@ export default function PhoneOrderBuilder() {
                   }}
                   placeholder="000.000.000-00"
                   className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
-                  style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }}
+                  style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
                 />
                 {cpfConfirmationError && (
                   <p className="text-xs" style={{ color: "#dc2626" }}>{cpfConfirmationError}</p>
@@ -1012,14 +1011,14 @@ export default function PhoneOrderBuilder() {
             <div className="flex gap-3">
               <button onClick={() => navigate("/app/atendimento")}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition active:scale-[0.98]"
-                style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+                style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--surface-2)" }}>
                 Cancelar
               </button>
               <button
                 disabled={(paymentMethod === "CASH" && cashGivenCents < total) || confirmMut.isPending}
                 onClick={() => { setSubmitError(null); confirmMut.mutate(); }}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white disabled:opacity-50 transition active:scale-[0.98] flex items-center justify-center gap-2"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 18px rgba(28,18,9,0.3)" }}>
+                style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 18px rgba(0,0,0,0.22)" }}>
                 {confirmMut.isPending && <Loader2 size={16} className="animate-spin" />}
                 Confirmar pedido
               </button>
@@ -1030,11 +1029,11 @@ export default function PhoneOrderBuilder() {
         {/* â”€â”€ Next button (steps 2-4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {step === "cart" && (
           <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-3"
-            style={{ background: `linear-gradient(to top, ${GC.bg} 70%, transparent)` }}>
+            style={{ background: "linear-gradient(to top, var(--bg) 70%, transparent)" }}>
             <div className="mx-auto max-w-4xl">
               <button onClick={goNext} disabled={!canProceed[step]}
                 className="w-full py-4 rounded-2xl font-black text-white text-base disabled:opacity-40 transition active:scale-[0.98] flex items-center justify-center gap-2"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 18px rgba(28,18,9,0.3)" }}>
+                style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 18px rgba(0,0,0,0.22)" }}>
                 Ir para pagamento <ArrowRight size={18} />
               </button>
             </div>
@@ -1076,15 +1075,15 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
   onSave: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(28,18,9,0.55)", backdropFilter: "blur(4px)" }}>
-      <div className="w-full max-w-lg rounded-3xl p-5 space-y-4" style={{ background: "#fff", boxShadow: "0 16px 48px rgba(28,18,9,0.25)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-lg rounded-3xl p-5 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 16px 48px rgba(0,0,0,0.18)" }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-black text-base" style={{ color: GC.dark }}>Editar cliente</p>
-            <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>Atualize nome, telefone e CPF.</p>
+            <p className="font-black text-base" style={{ color: "var(--text)" }}>Editar cliente</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Atualize nome, telefone e CPF.</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: GC.cream, color: GC.brown }}>
+            style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
             <X size={15} />
           </button>
         </div>
@@ -1095,7 +1094,7 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
             onChange={(e) => onChange({ ...form, name: e.target.value })}
             placeholder="Nome"
             className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
-            style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }}
+            style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
@@ -1103,14 +1102,14 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
               onChange={(e) => onChange({ ...form, phone: formatPhone(e.target.value) })}
               placeholder="Telefone"
               className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
-              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }}
+              style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
             />
             <input
               value={form.cpf}
               onChange={(e) => onChange({ ...form, cpf: formatCpf(e.target.value) })}
               placeholder="CPF"
               className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
-              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: GC.bg, color: GC.dark }}
+              style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
             />
           </div>
         </div>
@@ -1123,7 +1122,7 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
           <button
             onClick={onClose}
             className="py-3 rounded-2xl text-sm font-semibold transition active:scale-95"
-            style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}
+            style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--surface-2)" }}
           >
             Cancelar
           </button>
@@ -1131,7 +1130,7 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
             onClick={onSave}
             disabled={saving || !form.name.trim()}
             className="py-3 rounded-2xl text-sm font-black text-white disabled:opacity-50 transition active:scale-95"
-            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}
+            style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))` }}
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
@@ -1160,22 +1159,22 @@ function ProductConfigModal({ product, isLoading, promoPrice, qty, setQty, selec
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(28,18,9,0.55)", backdropFilter: "blur(4px)" }}>
-      <div className="w-full max-w-lg rounded-3xl p-5 space-y-4" style={{ background: "#fff", boxShadow: "0 16px 48px rgba(28,18,9,0.25)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-lg rounded-3xl p-5 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 16px 48px rgba(0,0,0,0.18)" }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-black text-base" style={{ color: GC.dark }}>{product?.name ?? "Carregando..."}</p>
-            <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>Escolha os adicionais</p>
+            <p className="font-black text-base" style={{ color: "var(--text)" }}>{product?.name ?? "Carregando..."}</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Escolha os adicionais</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: GC.cream, color: GC.brown }}>
+            style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
             <X size={15} />
           </button>
         </div>
 
         {isLoading ? (
           <div className="h-20 flex items-center justify-center">
-            <Loader2 className="animate-spin" size={20} style={{ color: GC.caramel }} />
+            <Loader2 className="animate-spin" size={20} style={{ color: "var(--brand-accent)" }} />
           </div>
         ) : (
           <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
@@ -1185,44 +1184,44 @@ function ProductConfigModal({ product, isLoading, promoPrice, qty, setQty, selec
               <button key={addon.id} onClick={() => toggle(addon.id)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition active:scale-[0.98]"
                 style={sel
-                  ? { background: `rgba(200,149,58,0.18)`, border: `2px solid ${GC.caramel}`, color: GC.dark }
-                  : { border: `1.5px solid rgba(107,79,58,0.15)`, color: GC.dark, background: GC.bg }}>
+                  ? { background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", border: "2px solid var(--brand-accent)", color: "var(--text)" }
+                  : { border: "1.5px solid var(--border)", color: "var(--text)", background: "var(--bg)" }}>
                 <div className="w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all"
-                  style={{ borderColor: sel ? GC.caramel : "rgba(107,79,58,0.3)", background: sel ? GC.caramel : "transparent" }}>
+                  style={{ borderColor: sel ? "var(--brand-accent)" : "var(--border)", background: sel ? "var(--brand-accent)" : "transparent" }}>
                   {sel && <span className="text-white text-[10px] font-black leading-none">✓</span>}
                 </div>
                 <span className="flex-1 font-medium text-left">{addon.name}</span>
-                <span className="font-black text-sm shrink-0" style={{ color: GC.caramel }}>+{formatCents(addon.priceCents)}</span>
+                <span className="font-black text-sm shrink-0" style={{ color: "var(--brand-accent)" }}>+{formatCents(addon.priceCents)}</span>
               </button>
               );
             }) : (
               <div className="rounded-2xl border-2 border-dashed p-4 text-sm text-center"
-                style={{ borderColor: "rgba(107,79,58,0.15)", color: GC.brown, opacity: 0.5 }}>
+                style={{ borderColor: "var(--border)", color: "var(--text-muted)", opacity: 0.5 }}>
                 Sem adicionais
               </div>
             )}
           </div>
         )}
 
-        <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: GC.bg }}>
-          <span className="text-sm font-semibold" style={{ color: GC.brown }}>Quantidade</span>
+        <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: "var(--bg)" }}>
+          <span className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>Quantidade</span>
           <div className="flex items-center gap-3">
             <button onClick={() => setQty(Math.max(1, qty - 1))}
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ border: `1.5px solid rgba(107,79,58,0.18)`, color: GC.brown }}>
+              style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
               <Minus size={13} />
             </button>
-            <span className="w-6 text-center font-black" style={{ color: GC.dark }}>{qty}</span>
+            <span className="w-6 text-center font-black" style={{ color: "var(--text)" }}>{qty}</span>
             <button onClick={() => setQty(qty + 1)}
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)` }}>
+              style={{ background: `linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))` }}>
               <Plus size={13} className="text-white" />
             </button>
           </div>
         </div>
 
-        <div className="rounded-2xl p-3 space-y-1.5" style={{ background: GC.bg }}>
-          <div className="flex justify-between text-sm" style={{ color: GC.brown }}>
+        <div className="rounded-2xl p-3 space-y-1.5" style={{ background: "var(--bg)" }}>
+          <div className="flex justify-between text-sm" style={{ color: "var(--text-muted)" }}>
             <span>Produto</span>
             <span className="flex items-center gap-1.5">
               {promoPrice !== null && product && (
@@ -1233,23 +1232,23 @@ function ProductConfigModal({ product, isLoading, promoPrice, qty, setQty, selec
               </span>
             </span>
           </div>
-          <div className="flex justify-between text-sm" style={{ color: GC.brown }}>
+          <div className="flex justify-between text-sm" style={{ color: "var(--text-muted)" }}>
             <span>Adicionais</span><span>{formatCents(addonTotal)}</span>
           </div>
-          <div className="flex justify-between font-black pt-1" style={{ borderTop: `1px solid rgba(107,79,58,0.1)`, color: GC.dark }}>
-            <span>Total unitário</span><span style={{ color: GC.caramel }}>{formatCents(totalUnit)}</span>
+          <div className="flex justify-between font-black pt-1" style={{ borderTop: "1px solid var(--border)", color: "var(--text)" }}>
+            <span>Total unitário</span><span style={{ color: "var(--brand-accent)" }}>{formatCents(totalUnit)}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={onClose}
             className="py-3 rounded-2xl text-sm font-semibold transition active:scale-95"
-            style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+            style={{ border: "1.5px solid var(--border)", color: "var(--text-muted)", background: "var(--surface-2)" }}>
             Cancelar
           </button>
           <button onClick={onConfirm}
             className="py-3 rounded-2xl text-sm font-black text-white transition active:scale-95"
-            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 14px rgba(28,18,9,0.25)" }}>
+            style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 14px rgba(0,0,0,0.18)" }}>
             Adicionar
           </button>
         </div>

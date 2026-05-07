@@ -13,7 +13,6 @@ import { useQuery } from "@tanstack/react-query";
 import { adminFetch } from "@/features/admin/auth/adminFetch";
 import { fetchTenantInfo, resolveTenantFromHost } from "@/utils/tenant";
 
-const GC = { caramel: "#C8953A", brown: "#6B4F3A", dark: "#1C1209" };
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -83,11 +82,11 @@ const PDV_STATUS_OPTIONS = [
 
 function pdvStatusBadge(status: string) {
   const map: Record<string, { label: string; bg: string; color: string }> = {
-    Open:      { label: "Aberta",    bg: "rgba(200,149,58,0.15)", color: GC.caramel },
+    Open:      { label: "Aberta",    bg: "color-mix(in srgb, var(--brand-accent) 15%, transparent)", color: "var(--brand-accent)" },
     Completed: { label: "Paga",      bg: "rgba(16,185,129,0.15)", color: "#10b981" },
     Cancelled: { label: "Cancelada", bg: "rgba(239,68,68,0.12)",  color: "#ef4444" },
   };
-  const s = map[status] ?? { label: status, bg: "rgba(107,79,58,0.12)", color: GC.brown };
+  const s = map[status] ?? { label: status, bg: "var(--surface-2)", color: "var(--text-muted)" };
   return (
     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
       style={{ background: s.bg, color: s.color }}>
@@ -195,7 +194,7 @@ export default function OrdersList() {
                 <button type="button"
                   onClick={() => navigate("/app/logistica/rotas/planner")}
                   className="flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
-                  style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+                  style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))` }}>
                   <Plus size={15} />
                   Criar rota
                 </button>
@@ -210,7 +209,7 @@ export default function OrdersList() {
           <button onClick={() => setTab("orders")}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
             style={tab === "orders"
-              ? { background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, color: "#fff" }
+              ? { background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, color: "#fff" }
               : { color: "var(--text-muted)" }}>
             <ShoppingBag size={14} />
             Delivery / Balcão
@@ -218,7 +217,7 @@ export default function OrdersList() {
           <button onClick={() => setTab("pdv")}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
             style={tab === "pdv"
-              ? { background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, color: "#fff" }
+              ? { background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, color: "#fff" }
               : { color: "var(--text-muted)" }}>
             <Monitor size={14} />
             Frente de Caixa
@@ -234,7 +233,7 @@ export default function OrdersList() {
             <input
               className="h-10 w-full rounded-xl border pl-9 pr-3.5 text-sm outline-none transition-all focus:ring-2"
               style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text)",
-                ["--tw-ring-color" as string]: `${GC.caramel}40` }}
+                ["--tw-ring-color" as string]: "color-mix(in srgb, var(--brand-accent) 40%, transparent)" }}
               placeholder={tab === "orders" ? "Buscar por número do pedido..." : "Buscar por número ou cliente..."}
               value={tab === "orders" ? search : pdvSearch}
               onChange={(e) => { tab === "orders" ? (setPage(1), setSearch(e.target.value)) : (setPdvPage(1), setPdvSearch(e.target.value)); }}
@@ -287,12 +286,12 @@ export default function OrdersList() {
                     <tr key={o.id} onClick={() => navigate(`/app/pedidos/${o.orderNumber}`)}
                       className="cursor-pointer transition-colors"
                       style={{ backgroundColor: i % 2 === 0 ? "var(--surface)" : "var(--surface-2)", borderBottom: "1px solid var(--border)" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = "rgba(200,149,58,0.07)")}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = "color-mix(in srgb, var(--brand) 7%, transparent)")}
                       onMouseLeave={(e) => ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = i % 2 === 0 ? "var(--surface)" : "var(--surface-2)")}>
                       <td className="px-4 py-3.5">
                         <span className="font-semibold" style={{ color: "var(--text)" }}>{o.orderNumber}</span>
                         {o.isTableOrder && (
-                          <div className="text-xs mt-0.5 font-semibold flex items-center gap-1" style={{ color: GC.caramel }}>
+                          <div className="text-xs mt-0.5 font-semibold flex items-center gap-1" style={{ color: "var(--brand-accent)" }}>
                             <Coffee size={11} />Mesa {o.tableNumber ?? "-"}{o.tableName ? ` - ${o.tableName}` : ""}
                           </div>
                         )}
@@ -344,12 +343,12 @@ export default function OrdersList() {
                     <tr key={o.id}
                       className="transition-colors"
                       style={{ backgroundColor: i % 2 === 0 ? "var(--surface)" : "var(--surface-2)", borderBottom: "1px solid var(--border)" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = "rgba(200,149,58,0.07)")}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = "color-mix(in srgb, var(--brand) 7%, transparent)")}
                       onMouseLeave={(e) => ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = i % 2 === 0 ? "var(--surface)" : "var(--surface-2)")}>
                       <td className="px-4 py-3.5">
                         <span className="font-semibold" style={{ color: "var(--text)" }}>{o.publicId}</span>
                         {o.fromDav && (
-                          <div className="text-xs mt-0.5 font-semibold" style={{ color: GC.caramel }}>via DAV</div>
+                          <div className="text-xs mt-0.5 font-semibold" style={{ color: "var(--brand-accent)" }}>via DAV</div>
                         )}
                         <div className="sm:hidden text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{o.customerName || "—"}</div>
                       </td>

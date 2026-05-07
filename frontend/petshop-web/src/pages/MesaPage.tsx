@@ -45,14 +45,6 @@ function fmtBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-// ── Design tokens Go Coffee ────────────────────────────────────────────────────
-const GC = {
-  bg:      "#FAF7F2",
-  cream:   "#F5EDE0",
-  brown:   "#6B4F3A",
-  dark:    "#1C1209",
-  caramel: "#C8953A",
-};
 
 function inferCategoryIcon(name: string | null): LucideIcon {
   if (!name) return LayoutGrid;
@@ -144,7 +136,7 @@ function StepName({ brand, tableNum, tableName, maxGuests, initialName, initialG
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: GC.bg }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <div className="flex flex-col items-center justify-center flex-1 px-5 py-10">
         <div className="w-full max-w-sm space-y-6">
 
@@ -154,15 +146,15 @@ function StepName({ brand, tableNum, tableName, maxGuests, initialName, initialG
               <img src={logoUrl} alt={brand} className="h-16 mx-auto object-contain" />
             ) : (
               <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 8px 32px rgba(28,18,9,0.25)" }}>
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
                 <span className="text-3xl font-black text-white">{brand.charAt(0)}</span>
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-black" style={{ color: GC.dark }}>{brand}</h1>
+              <h1 className="text-2xl font-black" style={{ color: "var(--brand)" }}>{brand}</h1>
               {tableNum && (
                 <div className="inline-flex items-center gap-1.5 mt-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                  style={{ background: `${GC.caramel}18`, color: GC.caramel }}>
+                  style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
                   Mesa {tableNum}{tableName ? ` · ${tableName}` : ""} · Auto-atendimento
                 </div>
               )}
@@ -170,60 +162,60 @@ function StepName({ brand, tableNum, tableName, maxGuests, initialName, initialG
           </div>
 
           {/* Tabs */}
-          <div className="p-1 rounded-2xl flex gap-1" style={{ background: GC.cream }}>
+          <div className="p-1 rounded-2xl flex gap-1" style={{ background: "var(--surface-2)" }}>
             {(["new", "login"] as const).map(t => (
               <button key={t} onClick={() => { setTab(t); setErr(null); setFound(null); }}
                 className="flex-1 h-10 rounded-xl text-sm font-bold transition-all duration-200"
                 style={tab === t ? {
-                  background: GC.dark, color: "#fff",
-                  boxShadow: "0 2px 10px rgba(28,18,9,0.2)",
-                } : { color: GC.brown }}>
+                  background: "var(--brand)", color: "#fff",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.16)",
+                } : { color: "var(--text-muted)" }}>
                 {t === "new" ? "Sou novo aqui" : "Já tenho cadastro"}
               </button>
             ))}
           </div>
 
           {/* Card */}
-          <div className="bg-white rounded-3xl p-6 space-y-4"
-            style={{ boxShadow: "0 4px 24px rgba(28,18,9,0.08)" }}>
+          <div className="rounded-3xl p-6 space-y-4" style={{ background: "var(--surface)" }}
+            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
 
             {tab === "new" ? (
               <>
                 <div>
-                  <h2 className="text-lg font-black" style={{ color: GC.dark }}>Olá! Qual é o seu nome?</h2>
-                  <p className="text-sm mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>Pagamento no caixa ao finalizar a mesa.</p>
+                  <h2 className="text-lg font-black" style={{ color: "var(--brand)" }}>Olá! Qual é o seu nome?</h2>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.6 }}>Pagamento no caixa ao finalizar a mesa.</p>
                 </div>
                 <input autoFocus value={name} onChange={e => setName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && name.trim()) onNext(name.trim(), guests); }}
                   placeholder="Seu nome"
                   className="w-full rounded-2xl px-4 text-base focus:outline-none focus:ring-2 transition"
-                  style={{ height: 52, border: `1.5px solid rgba(107,79,58,0.15)`, color: GC.dark, ["--tw-ring-color" as string]: GC.caramel + "40" }}
+                  style={{ height: 52, border: `1.5px solid var(--border)`, color: "var(--brand)", ["--tw-ring-color" as string]: "var(--brand-accent)" + "40" }}
                 />
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: GC.brown, opacity: 0.6 }}>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
                     Quantas pessoas? (max {maxGuests})
                   </label>
-                  <div className="flex items-center gap-3 px-4 rounded-2xl" style={{ height: 52, border: `1.5px solid rgba(107,79,58,0.15)` }}>
+                  <div className="flex items-center gap-3 px-4 rounded-2xl" style={{ height: 52, border: `1.5px solid var(--border)` }}>
                     <button onClick={() => setGuests(g => Math.max(1, g - 1))}
                       className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition"
-                      style={{ background: GC.cream, color: GC.brown }}>−</button>
-                    <span className="flex-1 text-center font-black text-lg" style={{ color: GC.dark }}>{guests}</span>
+                      style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>−</button>
+                    <span className="flex-1 text-center font-black text-lg" style={{ color: "var(--brand)" }}>{guests}</span>
                     <button onClick={() => setGuests(g => Math.min(maxGuests, g + 1))}
                       className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition"
-                      style={{ background: GC.cream, color: GC.brown }}>+</button>
+                      style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>+</button>
                   </div>
                 </div>
                 <button onClick={() => name.trim() && onNext(name.trim(), guests)} disabled={!name.trim()}
                   className="w-full h-13 rounded-2xl font-bold text-white text-base disabled:opacity-40 transition active:scale-[0.98] flex items-center justify-center gap-2"
-                  style={{ height: 52, background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 16px rgba(28,18,9,0.25)" }}>
+                  style={{ height: 52, background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}>
                   Continuar <ChevronRight size={16} />
                 </button>
               </>
             ) : (
               <>
                 <div>
-                  <h2 className="text-lg font-black" style={{ color: GC.dark }}>Bem-vindo de volta!</h2>
-                  <p className="text-sm mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>Digite seu telefone para entrar e pontuar.</p>
+                  <h2 className="text-lg font-black" style={{ color: "var(--brand)" }}>Bem-vindo de volta!</h2>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.6 }}>Digite seu telefone para entrar e pontuar.</p>
                 </div>
 
                 {!found ? (
@@ -232,42 +224,42 @@ function StepName({ brand, tableNum, tableName, maxGuests, initialName, initialG
                       onKeyDown={e => { if (e.key === "Enter") handleLogin(); }}
                       placeholder="(11) 99999-9999"
                       className="w-full rounded-2xl px-4 text-base focus:outline-none focus:ring-2 transition"
-                      style={{ height: 52, border: `1.5px solid rgba(107,79,58,0.15)`, color: GC.dark, ["--tw-ring-color" as string]: GC.caramel + "40" }}
+                      style={{ height: 52, border: `1.5px solid var(--border)`, color: "var(--brand)", ["--tw-ring-color" as string]: "var(--brand-accent)" + "40" }}
                     />
                     {err && <p className="text-sm text-red-500 font-medium">{err}</p>}
                     <button onClick={handleLogin} disabled={phone.replace(/\D/g, "").length < 10 || loading}
                       className="w-full h-13 rounded-2xl font-bold text-white text-base disabled:opacity-40 transition active:scale-[0.98]"
-                      style={{ height: 52, background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 16px rgba(28,18,9,0.25)" }}>
+                      style={{ height: 52, background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}>
                       {loading ? "Buscando…" : "Entrar"}
                     </button>
                     <button onClick={() => { setTab("new"); setErr(null); }}
                       className="w-full text-sm font-medium text-center transition"
-                      style={{ color: GC.brown, opacity: 0.6 }}>
+                      style={{ color: "var(--text-muted)", opacity: 0.6 }}>
                       Primeiro acesso? Cadastre-se →
                     </button>
                   </>
                 ) : (
                   <div className="space-y-4">
                     <div className="rounded-2xl px-5 py-4 text-center"
-                      style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+                      style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
                       <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Olá,</p>
                       <p className="text-white text-2xl font-black mt-0.5">{found.name.split(" ")[0]}</p>
                       {found.points > 0 && (
                         <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full"
-                          style={{ background: `${GC.caramel}30` }}>
-                          <Star className="w-3 h-3 fill-current" style={{ color: GC.caramel }} />
-                          <span className="text-xs font-bold" style={{ color: GC.caramel }}>{found.points} pontos</span>
+                          style={{ background: "color-mix(in srgb, var(--brand-accent) 30%, transparent)" }}>
+                          <Star className="w-3 h-3 fill-current" style={{ color: "var(--brand-accent)" }} />
+                          <span className="text-xs font-bold" style={{ color: "var(--brand-accent)" }}>{found.points} pontos</span>
                         </div>
                       )}
                     </div>
                     <button onClick={confirmLogin}
                       className="w-full h-12 rounded-2xl font-bold text-white transition active:scale-[0.98]"
-                      style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)`, boxShadow: `0 4px 16px ${GC.caramel}44` }}>
+                      style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))", boxShadow: "0 4px 16px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }}>
                       Entrar no cardápio
                     </button>
                     <button onClick={() => setFound(null)}
                       className="w-full text-sm font-medium text-center"
-                      style={{ color: GC.brown, opacity: 0.5 }}>
+                      style={{ color: "var(--text-muted)", opacity: 0.5 }}>
                       Não sou eu
                     </button>
                   </div>
@@ -291,7 +283,7 @@ function StepRegister({ name, tableId, primaryColor, onSkip, onRegister }: {
   const [cpf,     setCpf]     = useState("");
   const [loading, setLoading] = useState(false);
   const [err,     setErr]     = useState<string | null>(null);
-  const color = primaryColor || GC.caramel;
+  const color = primaryColor || "var(--brand-accent)";
 
   async function handleRegister() {
     const digits = phone.replace(/\D/g, "");
@@ -342,7 +334,7 @@ function StepRegister({ name, tableId, primaryColor, onSkip, onRegister }: {
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div className="rounded-3xl border shadow-sm p-6 space-y-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
           <div>
             <p className="font-bold text-gray-900 text-base">
               Quer participar, {name.split(" ")[0]}?
@@ -408,7 +400,7 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
   onAddToCart: (product: Product, variant: ProductVariant | null, addons: ProductAddon[], qty: number) => void;
   onAddSynthetic: (synthetic: Product, qty: number) => void;
 }) {
-  const color = primaryColor || GC.caramel;
+  const color = primaryColor || "var(--brand-accent)";
   const hasVariants = product.variants.length > 0;
   const hasAddons   = product.addons.length > 0;
   const hasGroups   = (product.addonGroups?.length ?? 0) > 0;
@@ -450,21 +442,21 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
         <div
           className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh]"
-          style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}
+          style={{ background: "var(--bg)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}
         >
           <div className="flex justify-center pt-3 pb-1 shrink-0">
-            <div className="w-10 h-1 rounded-full" style={{ background: "rgba(107,79,58,0.2)" }} />
+            <div className="w-10 h-1 rounded-full" style={{ background: "var(--border)" }} />
           </div>
-          <div className="px-5 pt-2 pb-3 border-b" style={{ borderColor: "rgba(107,79,58,0.1)" }}>
+          <div className="px-5 pt-2 pb-3 border-b" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black leading-tight" style={{ color: GC.dark }}>{product.name}</h2>
-                <p className="text-xs mt-1" style={{ color: GC.brown, opacity: 0.7 }}>
+                <h2 className="text-lg font-black leading-tight" style={{ color: "var(--brand)" }}>{product.name}</h2>
+                <p className="text-xs mt-1" style={{ color: "var(--text-muted)", opacity: 0.7 }}>
                   a partir de <span className="font-bold" style={{ color }}>{fmtBRL(product.priceCents)}</span>
                 </p>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center" style={{ background: GC.cream }}>
-                <X size={14} style={{ color: GC.brown }} />
+              <button onClick={onClose} className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
+                <X size={14} style={{ color: "var(--text-muted)" }} />
               </button>
             </div>
           </div>
@@ -485,11 +477,11 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh]"
-        style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}>
+        style={{ background: "var(--bg)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full" style={{ background: "rgba(107,79,58,0.2)" }} />
+          <div className="w-10 h-1 rounded-full" style={{ background: "var(--border)" }} />
         </div>
 
         {/* Image */}
@@ -506,32 +498,32 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
         <div className="overflow-y-auto flex-1 px-5 pb-2">
 
           {/* Title + description */}
-          <div className="pt-3 pb-4 border-b" style={{ borderColor: "rgba(107,79,58,0.1)" }}>
+          <div className="pt-3 pb-4 border-b" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 {product.isBestSeller && (
                   <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded-full mb-1.5"
-                    style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A87830)`, color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))", color: "#fff" }}>
                     ★ Favorito
                   </span>
                 )}
-                <h2 className="text-xl font-black leading-tight" style={{ color: GC.dark }}>{product.name}</h2>
+                <h2 className="text-xl font-black leading-tight" style={{ color: "var(--brand)" }}>{product.name}</h2>
                 {product.description && (
-                  <p className="text-sm mt-1 leading-relaxed" style={{ color: GC.brown, opacity: 0.8 }}>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: "var(--text-muted)", opacity: 0.8 }}>
                     {product.description}
                   </p>
                 )}
               </div>
               <button onClick={onClose}
                 className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-0.5"
-                style={{ background: GC.cream }}>
-                <X size={14} style={{ color: GC.brown }} />
+                style={{ background: "var(--surface-2)" }}>
+                <X size={14} style={{ color: "var(--text-muted)" }} />
               </button>
             </div>
             <p className="text-2xl font-black mt-3" style={{ color }}>
               {fmtBRL(basePrice)}
               {addonsTotal > 0 && (
-                <span className="text-sm font-medium ml-1.5" style={{ color: GC.brown, opacity: 0.6 }}>
+                <span className="text-sm font-medium ml-1.5" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
                   + {fmtBRL(addonsTotal)} extras
                 </span>
               )}
@@ -540,9 +532,9 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
 
           {/* Variants */}
           {Object.entries(variantGroups).map(([key, variants]) => (
-            <div key={key} className="py-4 border-b" style={{ borderColor: "rgba(107,79,58,0.1)" }}>
+            <div key={key} className="py-4 border-b" style={{ borderColor: "var(--border)" }}>
               <p className="text-xs font-black uppercase tracking-widest mb-3"
-                style={{ color: GC.brown, opacity: 0.5 }}>{key}</p>
+                style={{ color: "var(--text-muted)", opacity: 0.5 }}>{key}</p>
               <div className="flex flex-wrap gap-2">
                 {variants.map(v => {
                   const active = selectedVariant?.id === v.id;
@@ -550,13 +542,13 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
                     <button key={v.id} onClick={() => setSelectedVariant(v)}
                       className="px-4 py-2 rounded-2xl text-sm font-bold transition-all duration-150"
                       style={active ? {
-                        background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`,
+                        background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))",
                         color: "#fff",
-                        boxShadow: "0 4px 14px rgba(28,18,9,0.25)",
+                        boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
                       } : {
-                        background: GC.cream,
-                        color: GC.brown,
-                        border: `1.5px solid rgba(200,149,58,0.2)`,
+                        background: "var(--surface-2)",
+                        color: "var(--text-muted)",
+                        border: `1.5px solid color-mix(in srgb, var(--brand-accent) 20%, transparent)`,
                       }}>
                       {v.variantValue}
                       {v.priceCents != null && v.priceCents !== product.priceCents && (
@@ -573,7 +565,7 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
           {hasAddons && (
             <div className="py-4">
               <p className="text-xs font-black uppercase tracking-widest mb-3"
-                style={{ color: GC.brown, opacity: 0.5 }}>Adicionais</p>
+                style={{ color: "var(--text-muted)", opacity: 0.5 }}>Adicionais</p>
               <div className="space-y-2">
                 {product.addons.map(a => {
                   const checked = selectedAddons.has(a.id);
@@ -581,24 +573,24 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
                     <button key={a.id} onClick={() => toggleAddon(a.id)}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-150 text-left"
                       style={checked ? {
-                        background: `linear-gradient(135deg, ${GC.dark}08, ${GC.dark}12)`,
-                        border: `1.5px solid ${GC.dark}22`,
+                        background: "linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, transparent), color-mix(in srgb, var(--brand) 12%, transparent))",
+                        border: "1.5px solid color-mix(in srgb, var(--brand) 22%, transparent)",
                       } : {
-                        background: GC.cream,
+                        background: "var(--surface-2)",
                         border: `1.5px solid transparent`,
                       }}>
                       <div className="w-5 h-5 rounded-md shrink-0 flex items-center justify-center transition-all"
                         style={checked ? {
-                          background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`,
+                          background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))",
                         } : {
-                          border: `2px solid rgba(107,79,58,0.25)`,
+                          border: `2px solid var(--border)`,
                           background: "transparent",
                         }}>
                         {checked && <span className="text-white text-[10px] font-black">✓</span>}
                       </div>
-                      <span className="flex-1 text-sm font-semibold" style={{ color: GC.dark }}>{a.name}</span>
+                      <span className="flex-1 text-sm font-semibold" style={{ color: "var(--brand)" }}>{a.name}</span>
                       <span className="text-sm font-bold shrink-0"
-                        style={{ color: a.priceCents === 0 ? GC.brown : color, opacity: a.priceCents === 0 ? 0.5 : 1 }}>
+                        style={{ color: a.priceCents === 0 ? "var(--text-muted)" : color, opacity: a.priceCents === 0 ? 0.5 : 1 }}>
                         {a.priceCents === 0 ? "Grátis" : `+${fmtBRL(a.priceCents)}`}
                       </span>
                     </button>
@@ -611,20 +603,20 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
 
         {/* Footer: qty + add */}
         <div className="px-5 pt-4 pb-8 shrink-0"
-          style={{ borderTop: "1px solid rgba(107,79,58,0.08)", background: GC.bg }}>
+          style={{ borderTop: "1px solid var(--border)", background: "var(--bg)" }}>
           <div className="flex items-center gap-3">
             {/* Qty */}
             <div className="flex items-center gap-2 px-2 py-1.5 rounded-2xl"
-              style={{ background: GC.cream }}>
+              style={{ background: "var(--surface-2)" }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))}
                 className="w-8 h-8 rounded-full flex items-center justify-center transition active:scale-90"
-                style={{ background: qty <= 1 ? "rgba(107,79,58,0.1)" : GC.dark, color: qty <= 1 ? GC.brown : "#fff" }}>
+                style={{ background: qty <= 1 ? "var(--border)" : "var(--brand)", color: qty <= 1 ? "var(--text-muted)" : "#fff" }}>
                 <Minus size={13} />
               </button>
-              <span className="w-6 text-center font-black text-base" style={{ color: GC.dark }}>{qty}</span>
+              <span className="w-6 text-center font-black text-base" style={{ color: "var(--brand)" }}>{qty}</span>
               <button onClick={() => setQty(q => q + 1)}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white transition active:scale-90"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
                 <Plus size={13} />
               </button>
             </div>
@@ -633,8 +625,8 @@ function ProductDetailSheet({ product, primaryColor, onClose, onAddToCart, onAdd
             <button onClick={handleAdd}
               className="flex-1 h-12 rounded-2xl font-black text-white text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]"
               style={{
-                background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`,
-                boxShadow: "0 4px 16px rgba(28,18,9,0.30)",
+                background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.22)",
               }}>
               <ShoppingCart size={16} />
               Adicionar · {fmtBRL(total)}
@@ -651,7 +643,7 @@ function MesaProductCard({ product, qty, primaryColor, onOpen, onInc, onDec }: {
   product: Product; qty: number; primaryColor?: string;
   onOpen: () => void; onInc: () => void; onDec: () => void;
 }) {
-  const color = primaryColor || GC.caramel;
+  const color = primaryColor || "var(--brand-accent)";
   const discount = product.discountPercent;
   const original = discount ? Math.round(product.priceCents / (1 - discount / 100)) : null;
   const hasOptions = product.variants.length > 0 || product.addons.length > 0;
@@ -659,20 +651,20 @@ function MesaProductCard({ product, qty, primaryColor, onOpen, onInc, onDec }: {
   return (
     <button onClick={onOpen} className="w-full text-left"
       style={{ WebkitTapHighlightColor: "transparent" }}>
-      <div className="bg-white rounded-2xl overflow-hidden flex gap-0 transition-all duration-200 active:scale-[0.98]"
-        style={{ boxShadow: "0 2px 12px rgba(28,18,9,0.07), 0 1px 3px rgba(28,18,9,0.04)" }}>
+      <div className="rounded-2xl overflow-hidden flex gap-0 transition-all duration-200 active:scale-[0.98]" style={{ background: "var(--surface)" }}
+        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}>
 
         {/* Text side */}
         <div className="flex-1 p-3.5 flex flex-col gap-1 min-w-0">
           {product.isBestSeller && (
             <span className="text-[9px] font-black uppercase tracking-wider w-fit px-1.5 py-0.5 rounded-full"
-              style={{ background: `${GC.caramel}20`, color: GC.caramel }}>★ Top</span>
+              style={{ background: "color-mix(in srgb, var(--brand-accent) 20%, transparent)", color: "var(--brand-accent)" }}>★ Top</span>
           )}
-          <p className="text-[13px] font-bold leading-snug line-clamp-2" style={{ color: GC.dark }}>
+          <p className="text-[13px] font-bold leading-snug line-clamp-2" style={{ color: "var(--brand)" }}>
             {product.name}
           </p>
           {product.description && (
-            <p className="text-[11px] leading-snug line-clamp-2 mt-0.5" style={{ color: GC.brown, opacity: 0.65 }}>
+            <p className="text-[11px] leading-snug line-clamp-2 mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.65 }}>
               {product.description}
             </p>
           )}
@@ -680,45 +672,45 @@ function MesaProductCard({ product, qty, primaryColor, onOpen, onInc, onDec }: {
             <div>
               <p className="text-[14px] font-black" style={{ color }}>{fmtBRL(product.priceCents)}</p>
               {original && (
-                <p className="text-[10px] line-through" style={{ color: GC.brown, opacity: 0.35 }}>{fmtBRL(original)}</p>
+                <p className="text-[10px] line-through" style={{ color: "var(--text-muted)", opacity: 0.35 }}>{fmtBRL(original)}</p>
               )}
             </div>
             {qty === 0 ? (
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-white transition"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 3px 10px rgba(28,18,9,0.25)" }}>
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 3px 10px rgba(0,0,0,0.18)" }}>
                 <Plus size={15} />
               </div>
             ) : (
               <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                 <button onClick={onDec}
                   className="w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"
-                  style={{ background: GC.cream, color: GC.brown }}>
+                  style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
                   <Minus size={11} />
                 </button>
-                <span className="w-5 text-center text-sm font-black" style={{ color: GC.dark }}>{qty}</span>
+                <span className="w-5 text-center text-sm font-black" style={{ color: "var(--brand)" }}>{qty}</span>
                 <button onClick={e => { e.stopPropagation(); onInc(); }}
                   className="w-7 h-7 rounded-full flex items-center justify-center text-white transition active:scale-90"
-                  style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+                  style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
                   <Plus size={11} />
                 </button>
               </div>
             )}
           </div>
           {hasOptions && qty === 0 && (
-            <p className="text-[10px] font-medium mt-0.5" style={{ color: GC.caramel, opacity: 0.8 }}>
+            <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--brand-accent)", opacity: 0.8 }}>
               Toque para personalizar →
             </p>
           )}
         </div>
 
         {/* Image side */}
-        <div className="w-28 shrink-0 relative self-stretch" style={{ backgroundColor: GC.cream }}>
+        <div className="w-28 shrink-0 relative self-stretch" style={{ backgroundColor: "var(--surface-2)" }}>
           {product.imageUrl ? (
             <img src={product.imageUrl} alt={product.name}
               className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="w-full h-full flex items-center justify-center"
-              style={{ background: `linear-gradient(135deg, ${GC.cream}, #EDE0CE)` }}>
+              style={{ background: "linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 80%, #ccc))" }}>
               <span style={{ fontSize: 28, opacity: 0.3 }}>☕</span>
             </div>
           )}
@@ -736,7 +728,7 @@ function MesaModernProductCard({ product, qty, primaryColor, onOpen, onInc, onDe
   product: Product; qty: number; primaryColor?: string;
   onOpen: () => void; onInc: () => void; onDec: () => void;
 }) {
-  const color = primaryColor || GC.caramel;
+  const color = primaryColor || "var(--brand-accent)";
   const hasOptions = product.variants.length > 0 || product.addons.length > 0 || (product.addonGroups?.length ?? 0) > 0;
   const isBestSeller = Boolean((product as any).isBestSeller);
   const promotionPriceCents = (product as any).promotionPriceCents as number | null | undefined;
@@ -747,8 +739,8 @@ function MesaModernProductCard({ product, qty, primaryColor, onOpen, onInc, onDe
       onClick={onOpen}
       className="relative flex flex-col items-center gap-1 p-2 rounded-2xl transition active:scale-95 text-left hover:shadow-md"
       style={{
-        background: "#fff",
-        border: `1.5px solid ${isBestSeller ? `${color}55` : "rgba(107,79,58,0.1)"}`,
+        background: "var(--surface)",
+        border: `1.5px solid ${isBestSeller ? `${color}55` : "var(--border)"}`,
       }}
     >
       {isBestSeller && (
@@ -757,32 +749,32 @@ function MesaModernProductCard({ product, qty, primaryColor, onOpen, onInc, onDe
         </span>
       )}
       {hasOptions && (
-        <span className="absolute top-1 right-1 text-[8px] font-bold text-white rounded-full px-1 py-px leading-none" style={{ background: GC.brown }}>
+        <span className="absolute top-1 right-1 text-[8px] font-bold text-white rounded-full px-1 py-px leading-none" style={{ background: "var(--text-muted)" }}>
           +
         </span>
       )}
 
-      <div className="w-full aspect-square rounded-xl overflow-hidden flex items-center justify-center" style={{ background: GC.cream }}>
+      <div className="w-full aspect-square rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <span className="text-[9px] font-bold" style={{ color: GC.brown, opacity: 0.35 }}>SEM IMAGEM</span>
+          <span className="text-[9px] font-bold" style={{ color: "var(--text-muted)", opacity: 0.35 }}>SEM IMAGEM</span>
         )}
       </div>
 
-      <span className="text-[11px] font-medium leading-tight text-center line-clamp-2 w-full" style={{ color: GC.dark }}>
+      <span className="text-[11px] font-medium leading-tight text-center line-clamp-2 w-full" style={{ color: "var(--brand)" }}>
         {product.name}
       </span>
       {promotionPriceCents != null ? (
         <span className="flex flex-col items-center leading-tight">
-          <span className="text-[9px] line-through opacity-50" style={{ color: GC.brown }}>{fmtBRL(product.priceCents)}</span>
+          <span className="text-[9px] line-through opacity-50" style={{ color: "var(--text-muted)" }}>{fmtBRL(product.priceCents)}</span>
           <span className="text-[11px] font-black text-emerald-600">{fmtBRL(promotionPriceCents)}</span>
         </span>
       ) : (
         <span className="text-[11px] font-black" style={{ color }}>{fmtBRL(product.priceCents)}</span>
       )}
 
-      {qty > 0 && <span className="text-[10px] opacity-60" style={{ color: GC.brown }}>{qty} no carrinho</span>}
+      {qty > 0 && <span className="text-[10px] opacity-60" style={{ color: "var(--text-muted)" }}>{qty} no carrinho</span>}
 
       {!hasOptions && qty > 0 && (
         <div className="mt-1 hidden items-center gap-1.5 md:flex" onClick={(e) => e.stopPropagation()}>
@@ -790,7 +782,7 @@ function MesaModernProductCard({ product, qty, primaryColor, onOpen, onInc, onDe
             type="button"
             onClick={onDec}
             className="flex h-7 w-7 items-center justify-center rounded-full"
-            style={{ background: GC.cream, color: GC.brown }}
+            style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}
             aria-label="Diminuir"
           >
             {qty === 1 ? <Trash2 size={12} /> : <Minus size={12} />}
@@ -800,7 +792,7 @@ function MesaModernProductCard({ product, qty, primaryColor, onOpen, onInc, onDe
             type="button"
             onClick={onInc}
             className="flex h-7 w-7 items-center justify-center rounded-full text-white"
-            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}
+            style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}
             aria-label="Aumentar"
           >
             <Plus size={12} />
@@ -824,7 +816,7 @@ function CartSheet({ items, totalCents, tableId, tableLabel, guests, name, phone
 }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const color = primaryColor || GC.caramel;
+  const color = primaryColor || "var(--brand-accent)";
 
   async function handleOrder() {
     setLoading(true); setErr(null);
@@ -852,47 +844,47 @@ function CartSheet({ items, totalCents, tableId, tableLabel, guests, name, phone
       <div className="relative rounded-t-3xl max-h-[88vh] flex flex-col shadow-2xl" style={{ background: "#F7F2E9" }}>
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1 rounded-full" style={{ background: `rgba(107,79,58,0.2)` }} />
+          <div className="w-12 h-1 rounded-full" style={{ background: `var(--border)` }} />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-4" style={{ borderBottom: `1px solid rgba(107,79,58,0.12)` }}>
+        <div className="flex items-center justify-between px-5 pb-4" style={{ borderBottom: `1px solid var(--border)` }}>
           <div>
-            <h2 className="font-black text-lg" style={{ color: GC.dark }}>Seu pedido</h2>
-            <p className="text-xs" style={{ color: GC.brown, opacity: 0.6 }}>
+            <h2 className="font-black text-lg" style={{ color: "var(--brand)" }}>Seu pedido</h2>
+            <p className="text-xs" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
               {tableLabel ? `${tableLabel} · ` : ""}{items.length} iten{items.length !== 1 ? "s" : ""}
             </p>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center transition active:scale-90"
-            style={{ background: GC.cream }}>
-            <X size={15} style={{ color: GC.brown }} />
+            style={{ background: "var(--surface-2)" }}>
+            <X size={15} style={{ color: "var(--text-muted)" }} />
           </button>
         </div>
 
         {/* Items */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {items.map(({ product, qty }) => (
-            <div key={product.id} className="flex items-center gap-3 rounded-2xl p-3" style={{ background: "#fff", border: "1px solid rgba(107,79,58,0.08)" }}>
-              <div className="w-14 h-14 rounded-2xl object-cover shrink-0 shadow-sm overflow-hidden" style={{ background: GC.cream }}>
+            <div key={product.id} className="flex items-center gap-3 rounded-2xl p-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div className="w-14 h-14 rounded-2xl object-cover shrink-0 shadow-sm overflow-hidden" style={{ background: "var(--surface-2)" }}>
                 {product.imageUrl ? (
                   <img src={product.imageUrl} alt={product.name}
                     className="w-14 h-14 rounded-2xl object-cover shrink-0 shadow-sm"
-                    style={{ background: GC.cream }} />
+                    style={{ background: "var(--surface-2)" }} />
                 ) : (
                   <div className="w-14 h-14 flex items-center justify-center text-xl opacity-30">☕</div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: GC.dark }}>{product.name}</p>
-                <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.65 }}>{fmtBRL(product.priceCents)} · un.</p>
+                <p className="text-sm font-semibold truncate" style={{ color: "var(--brand)" }}>{product.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.65 }}>{fmtBRL(product.priceCents)} · un.</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button onClick={() => onDec(product.id)}
                   className="w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"
-                  style={{ border: `1.5px solid rgba(107,79,58,0.18)`, color: GC.brown }}>
+                  style={{ border: `1.5px solid var(--border)`, color: "var(--text-muted)" }}>
                   <Minus size={11} />
                 </button>
-                <span className="w-6 text-center text-sm font-black" style={{ color: GC.dark }}>{qty}</span>
+                <span className="w-6 text-center text-sm font-black" style={{ color: "var(--brand)" }}>{qty}</span>
                 <button onClick={() => onInc(product.id)}
                   className="w-7 h-7 rounded-full flex items-center justify-center text-white transition active:scale-90"
                   style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)` }}>
@@ -909,12 +901,12 @@ function CartSheet({ items, totalCents, tableId, tableLabel, guests, name, phone
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-10 pt-4 space-y-4" style={{ borderTop: `1px solid rgba(107,79,58,0.12)`, background: "#F7F2E9" }}>
+        <div className="px-5 pb-10 pt-4 space-y-4" style={{ borderTop: `1px solid var(--border)`, background: "#F7F2E9" }}>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium" style={{ color: GC.brown }}>Total</span>
-            <span className="text-2xl font-black" style={{ color: GC.dark }}>{fmtBRL(totalCents)}</span>
+            <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>Total</span>
+            <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>{fmtBRL(totalCents)}</span>
           </div>
-          <p className="text-xs text-center -mt-2" style={{ color: GC.brown, opacity: 0.5 }}>
+          <p className="text-xs text-center -mt-2" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
             Pagamento no caixa ao finalizar a mesa · Sem taxa de entrega
           </p>
           {err && <p className="text-sm text-red-500 text-center font-medium">{err}</p>}
@@ -922,8 +914,8 @@ function CartSheet({ items, totalCents, tableId, tableLabel, guests, name, phone
             onClick={handleOrder}
             disabled={loading}
             className="w-full h-14 rounded-2xl font-black text-base text-white disabled:opacity-50 transition active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`,
-              boxShadow: `0 8px 24px rgba(28,18,9,0.3)` }}
+            style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))",
+              boxShadow: `0 8px 24px rgba(0,0,0,0.22)` }}
           >
             {loading ? "Enviando…" : "Confirmar pedido"}
           </button>
@@ -938,22 +930,22 @@ function Confirmation({ orderNum, davCode, name, onNewOrder }: {
   orderNum: string; davCode?: string | null; name: string; primaryColor?: string; onNewOrder: () => void;
 }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center" style={{ background: GC.bg }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center" style={{ background: "var(--bg)" }}>
       <div className="w-full max-w-xs space-y-6">
         <div
           className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-lg"
-          style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 8px 32px rgba(28,18,9,0.25)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
         >
-          <CheckCircle2 className="w-12 h-12" style={{ color: GC.caramel }} />
+          <CheckCircle2 className="w-12 h-12" style={{ color: "var(--brand-accent)" }} />
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-3xl font-black" style={{ color: GC.dark }}>Pedido enviado!</h2>
-          <p style={{ color: GC.brown, opacity: 0.7 }}>
-            Obrigado, <strong style={{ color: GC.dark, opacity: 1 }}>{name.split(" ")[0]}</strong>!
+          <h2 className="text-3xl font-black" style={{ color: "var(--brand)" }}>Pedido enviado!</h2>
+          <p style={{ color: "var(--text-muted)", opacity: 0.7 }}>
+            Obrigado, <strong style={{ color: "var(--brand)", opacity: 1 }}>{name.split(" ")[0]}</strong>!
           </p>
           <div className="inline-block px-4 py-2 rounded-2xl mt-2"
-            style={{ background: `${GC.caramel}18`, color: GC.caramel }}>
+            style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
             <span className="text-xs font-semibold">Pedido</span>
             <span className="text-lg font-black ml-2">#{orderNum}</span>
           </div>
@@ -966,7 +958,7 @@ function Confirmation({ orderNum, davCode, name, onNewOrder }: {
           )}
         </div>
 
-        <p className="text-sm leading-relaxed" style={{ color: GC.brown, opacity: 0.55 }}>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)", opacity: 0.55 }}>
           Seu pedido foi recebido e está sendo preparado.{" "}
           {davCode ? "Mostre o código DAV no caixa para importar e pagar." : "O pagamento será no caixa quando finalizar a mesa."}
         </p>
@@ -974,7 +966,7 @@ function Confirmation({ orderNum, davCode, name, onNewOrder }: {
         <button
           onClick={onNewOrder}
           className="w-full h-12 rounded-2xl font-bold text-sm text-white transition active:scale-[0.98]"
-          style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 16px rgba(28,18,9,0.25)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}
         >
           Fazer mais um pedido
         </button>
@@ -1124,33 +1116,33 @@ export default function MesaPage() {
   // ── Catalog ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen" style={{
-      backgroundColor: GC.bg,
-      backgroundImage: `radial-gradient(ellipse 700px 400px at 100% -80px, rgba(200,149,58,0.07), transparent),
+      backgroundColor: "var(--bg)",
+      backgroundImage: `radial-gradient(ellipse 700px 400px at 100% -80px, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent),
                         radial-gradient(ellipse 500px 300px at 0% 100%, rgba(61,35,20,0.05), transparent)`,
     }}>
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md"
-        style={{ boxShadow: "0 1px 0 rgba(28,18,9,0.06), 0 4px 20px rgba(28,18,9,0.04)" }}>
+      <div className="sticky top-0 z-30 backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--surface) 95%, transparent)" }}
+        style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.04)" }}>
 
         {/* Brand + cart */}
         <div className="max-w-2xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium" style={{ color: GC.brown }}>
+            <p className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
               {tableNum ? `Mesa ${tableNum}` : "Auto-atendimento"} · {safeGuests} pessoa{safeGuests > 1 ? "s" : ""}
-              {name ? <> · Olá, <span className="font-bold" style={{ color: GC.dark }}>{name.split(" ")[0]}</span></> : null}
+              {name ? <> · Olá, <span className="font-bold" style={{ color: "var(--brand)" }}>{name.split(" ")[0]}</span></> : null}
             </p>
-            <p className="text-[15px] font-black truncate" style={{ color: GC.dark }}>{brand}</p>
+            <p className="text-[15px] font-black truncate" style={{ color: "var(--brand)" }}>{brand}</p>
           </div>
           <button
             onClick={() => setCartOpen(true)}
             className="relative h-10 rounded-2xl flex items-center gap-2 px-4 text-white text-sm font-bold shrink-0 transition active:scale-95"
             style={{
               background: cart.totalItems > 0
-                ? `linear-gradient(135deg, ${GC.dark}, #3D2314)`
+                ? "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))"
                 : `linear-gradient(135deg, ${primaryColor}, ${primaryColor}bb)`,
               boxShadow: cart.totalItems > 0
-                ? "0 4px 16px rgba(28,18,9,0.35)"
+                ? "0 4px 16px rgba(0,0,0,0.25)"
                 : `0 4px 16px ${primaryColor}44`,
             }}
           >
@@ -1169,18 +1161,18 @@ export default function MesaPage() {
         {/* Search */}
         <div className="max-w-2xl mx-auto px-4 pb-2.5">
           <div className="flex items-center gap-2 rounded-2xl px-3 h-10"
-            style={{ background: GC.cream, border: `1.5px solid rgba(107,79,58,0.12)` }}>
-            <Search size={14} style={{ color: GC.brown, opacity: 0.5 }} className="shrink-0" />
+            style={{ background: "var(--surface-2)", border: `1.5px solid var(--border)` }}>
+            <Search size={14} style={{ color: "var(--text-muted)", opacity: 0.5 }} className="shrink-0" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nome, código ou código de barras"
               className="flex-1 bg-transparent text-sm focus:outline-none"
-              style={{ color: GC.dark }}
+              style={{ color: "var(--brand)" }}
             />
             {search && (
               <button onClick={() => setSearch("")} className="transition hover:opacity-70">
-                <X size={13} style={{ color: GC.brown }} />
+                <X size={13} style={{ color: "var(--text-muted)" }} />
               </button>
             )}
           </div>
@@ -1199,8 +1191,8 @@ export default function MesaPage() {
                     onClick={() => setCatSlug(c.slug)}
                     className="shrink-0 min-w-[150px] rounded-2xl px-3 py-2 flex items-center gap-2 text-xs font-bold"
                     style={active
-                      ? { background: GC.caramel, color: "#fff", boxShadow: `0 4px 12px ${GC.caramel}44` }
-                      : { background: "#fff", color: GC.brown, border: "1px solid rgba(107,79,58,0.12)" }}
+                      ? { background: "var(--brand-accent)", color: "#fff", boxShadow: "0 4px 12px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }
+                      : { background: "var(--surface-2)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
                   >
                     <Icon size={15} />
                     <span className="text-left whitespace-normal break-words leading-tight">{c.name}</span>
@@ -1216,7 +1208,7 @@ export default function MesaPage() {
       <div className={`${modernCatalogEnabled ? "max-w-6xl lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-4" : "max-w-2xl"} mx-auto px-4 py-5 pb-36`}>
         {modernCatalogEnabled && categories.length > 0 && (
           <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-3xl p-2 border h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ background: "#fff", borderColor: "rgba(107,79,58,0.12)" }}>
+            <div className="sticky top-24 rounded-3xl p-2 border h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
               {categoryItems.map((c) => {
                 const active = catSlug === c.slug;
                 const Icon = c.icon;
@@ -1227,11 +1219,11 @@ export default function MesaPage() {
                     onClick={() => setCatSlug(c.slug)}
                     className="w-full rounded-2xl px-1.5 py-2.5 transition-all"
                     style={active
-                      ? { background: GC.caramel, color: "#fff", boxShadow: `0 10px 24px ${GC.caramel}44` }
-                      : { background: GC.cream, color: GC.dark, border: "1px solid rgba(107,79,58,0.1)" }}
+                      ? { background: "var(--brand-accent)", color: "#fff", boxShadow: "0 10px 24px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }
+                      : { background: "var(--surface-2)", color: "var(--brand)", border: "1px solid var(--border)" }}
                   >
                     <span className="flex flex-col items-center gap-1">
-                      <span className="w-7 h-7 rounded-xl grid place-items-center" style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "rgba(200,149,58,0.18)", color: GC.caramel }}>
+                      <span className="w-7 h-7 rounded-xl grid place-items-center" style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
                         <Icon size={15} />
                       </span>
                       <span className="text-[10px] font-extrabold leading-tight text-center line-clamp-2 w-full px-0.5">{c.name}</span>
@@ -1247,14 +1239,14 @@ export default function MesaPage() {
         {productsLoading || !slug ? (
           <div className={`grid gap-2 ${modernCatalogEnabled ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" : "grid-cols-2 sm:grid-cols-3"}`}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded-2xl animate-pulse" style={{ background: GC.cream }} />
+              <div key={i} className="aspect-square rounded-2xl animate-pulse" style={{ background: "var(--surface-2)" }} />
             ))}
           </div>
         ) : (products as Product[]).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-              style={{ background: GC.cream }}>🔍</div>
-            <p className="text-sm font-medium" style={{ color: GC.brown }}>Nenhum produto encontrado</p>
+              style={{ background: "var(--surface-2)" }}>🔍</div>
+            <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>Nenhum produto encontrado</p>
           </div>
         ) : modernCatalogEnabled ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
@@ -1310,12 +1302,12 @@ export default function MesaPage() {
             onClick={() => setCartOpen(true)}
             className="flex items-center gap-3 h-14 px-6 rounded-2xl text-white font-bold text-sm transition active:scale-95"
             style={{
-              background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`,
-              boxShadow: "0 8px 32px rgba(28,18,9,0.40), 0 2px 8px rgba(28,18,9,0.20)",
+              background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.16)",
             }}
           >
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black"
-              style={{ background: GC.caramel }}>
+              style={{ background: "var(--brand-accent)" }}>
               {cart.totalItems}
             </div>
             Ver pedido

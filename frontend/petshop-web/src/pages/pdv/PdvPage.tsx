@@ -3,14 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, X, Menu, LayoutGrid, ShoppingBag, Coffee, Headphones, ChevronRight, Printer, Smartphone, Ban, CheckCircle2, ArrowRight, User, Snowflake, Sandwich, CupSoda, type LucideIcon } from "lucide-react";
 import { usePdv } from "@/features/pdv/PdvContext";
 
-// â”€â”€ Design tokens (Go Coffee palette) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const GC = {
-  bg:      "#FAF7F2",
-  cream:   "#F5EDE0",
-  brown:   "#6B4F3A",
-  dark:    "#1C1209",
-  caramel: "#C8953A",
-};
+
 import {
   createSale, scanBarcode, removeItem, paySale, cancelSale, patchSaleCustomer,
   closeSession, getSessionReport, addMovement, importDav, addItem,
@@ -156,10 +149,10 @@ function MovementModal({ sessionId, defaultType, onClose }: MovementModalProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ backgroundColor: "rgba(28,18,9,0.65)" }}>
+      style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
       <div className="rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-4"
-        style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}>
-        <h2 className="font-black text-base" style={{ color: GC.dark }}>Movimento de Caixa</h2>
+        style={{ background: "var(--bg)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
+        <h2 className="font-black text-base" style={{ color: "var(--text)" }}>Movimento de Caixa</h2>
 
         <div className="flex gap-2">
           {(["Sangria", "Suprimento"] as const).map((t) => (
@@ -169,7 +162,7 @@ function MovementModal({ sessionId, defaultType, onClose }: MovementModalProps) 
               className="flex-1 py-2 rounded-xl text-sm font-bold transition"
               style={type === t
                 ? { background: t === "Sangria" ? "#dc2626" : "#059669", color: "#fff" }
-                : { border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}
+                : { border: `1.5px solid var(--border)`, color: "var(--text-muted)", background: "var(--surface-2)" }}
             >
               {t}
             </button>
@@ -178,21 +171,21 @@ function MovementModal({ sessionId, defaultType, onClose }: MovementModalProps) 
 
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] font-bold" style={{ color: GC.brown, opacity: 0.7 }}>Valor (R$)</label>
+            <label className="text-[11px] font-bold" style={{ color: "var(--text-muted)", opacity: 0.7 }}>Valor (R$)</label>
             <input
               type="number" min={0} step={0.01} autoFocus
               className="mt-1.5 w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+              style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0,00"
             />
           </div>
           <div>
-            <label className="text-[11px] font-bold" style={{ color: GC.brown, opacity: 0.7 }}>Descricao (opcional)</label>
+            <label className="text-[11px] font-bold" style={{ color: "var(--text-muted)", opacity: 0.7 }}>Descricao (opcional)</label>
             <input
               className="mt-1.5 w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+              style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               placeholder={type === "Sangria" ? "Ex: Recolhimento parcial" : "Ex: Reforco de troco"}
@@ -205,7 +198,7 @@ function MovementModal({ sessionId, defaultType, onClose }: MovementModalProps) 
         <div className="flex gap-3">
           <button onClick={onClose}
             className="flex-1 py-2.5 text-sm rounded-xl font-medium transition hover:opacity-80"
-            style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+            style={{ border: `1.5px solid var(--border)`, color: "var(--text-muted)", background: "var(--surface-2)" }}>
             Cancelar
           </button>
           <button
@@ -263,24 +256,24 @@ function CloseSessionModal({ sessionId, onClose, onConfirmed }: CloseModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overflow-y-auto"
-      style={{ backgroundColor: "rgba(28,18,9,0.65)" }}>
+      style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
       <div className="rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5"
-        style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}>
-        <h2 className="text-lg font-black" style={{ color: GC.dark }}>Fechamento de Caixa</h2>
+        style={{ background: "var(--bg)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
+        <h2 className="text-lg font-black" style={{ color: "var(--text)" }}>Fechamento de Caixa</h2>
 
         {loadingRpt ? (
-          <p className="text-center py-8 text-sm" style={{ color: GC.brown }}>Carregando...</p>
+          <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</p>
         ) : report && (
           <>
             {/* Resumo vendas */}
-            <div className="rounded-2xl p-4 space-y-2" style={{ background: GC.cream }}>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: GC.brown }}>Resumo de Vendas</p>
-              <div className="flex justify-between text-sm" style={{ color: GC.dark }}>
-                <span style={{ color: GC.brown }}>{report.totalSalesCount} venda(s)</span>
+            <div className="rounded-2xl p-4 space-y-2" style={{ background: "var(--surface-2)" }}>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Resumo de Vendas</p>
+              <div className="flex justify-between text-sm" style={{ color: "var(--text)" }}>
+                <span style={{ color: "var(--text-muted)" }}>{report.totalSalesCount} venda(s)</span>
                 <span className="font-bold">{brl(report.totalSalesCents)}</span>
               </div>
               {report.byPaymentMethod.map((b) => (
-                <div key={b.paymentMethod} className="flex justify-between text-sm" style={{ color: GC.brown, opacity: 0.75 }}>
+                <div key={b.paymentMethod} className="flex justify-between text-sm" style={{ color: "var(--text-muted)", opacity: 0.75 }}>
                   <span>{payMethodLabel(b.paymentMethod)}</span>
                   <span>{brl(b.totalCents)}</span>
                 </div>
@@ -292,8 +285,8 @@ function CloseSessionModal({ sessionId, onClose, onConfirmed }: CloseModalProps)
 
             {/* Movimentos */}
             {(report.totalSangriaCents > 0 || report.totalSuprimentoCents > 0) && (
-              <div className="rounded-2xl p-4 space-y-2" style={{ background: GC.cream }}>
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: GC.brown }}>Movimentos</p>
+              <div className="rounded-2xl p-4 space-y-2" style={{ background: "var(--surface-2)" }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Movimentos</p>
                 {report.totalSuprimentoCents > 0 && (
                   <div className="flex justify-between text-sm text-green-700">
                     <span>Suprimentos</span>
@@ -311,18 +304,18 @@ function CloseSessionModal({ sessionId, onClose, onConfirmed }: CloseModalProps)
 
             {/* Conferencia */}
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: GC.brown }}>Conferencia de Caixa</p>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Conferencia de Caixa</p>
               <div className="flex justify-between text-sm rounded-2xl px-4 py-3"
-                style={{ background: `${GC.caramel}18`, color: GC.caramel }}>
+                style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
                 <span className="font-medium">Saldo esperado</span>
                 <span className="font-bold">{brl(expectedCash)}</span>
               </div>
               <div>
-                <label className="text-[11px] font-bold" style={{ color: GC.brown, opacity: 0.7 }}>Contagem fisica (R$)</label>
+                <label className="text-[11px] font-bold" style={{ color: "var(--text-muted)", opacity: 0.7 }}>Contagem fisica (R$)</label>
                 <input
                   type="number" min={0} step={0.01}
                   className="mt-1.5 w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                  style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+                  style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
                   value={closing}
                   onChange={(e) => setClosing(e.target.value)}
                   placeholder="0,00"
@@ -342,10 +335,10 @@ function CloseSessionModal({ sessionId, onClose, onConfirmed }: CloseModalProps)
 
             {/* Observacoes */}
             <div>
-              <label className="text-[11px] font-bold" style={{ color: GC.brown, opacity: 0.7 }}>Observacoes (opcional)</label>
+              <label className="text-[11px] font-bold" style={{ color: "var(--text-muted)", opacity: 0.7 }}>Observacoes (opcional)</label>
               <textarea
                 className="mt-1.5 w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-none"
-                style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+                style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -359,7 +352,7 @@ function CloseSessionModal({ sessionId, onClose, onConfirmed }: CloseModalProps)
         <div className="flex gap-3">
           <button onClick={onClose} disabled={submitting}
             className="flex-1 py-2.5 text-sm rounded-xl font-medium transition hover:opacity-80"
-            style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+            style={{ border: `1.5px solid var(--border)`, color: "var(--text-muted)", background: "var(--surface-2)" }}>
             Cancelar
           </button>
           <button
@@ -383,8 +376,8 @@ type PayMethod = { method: string; label: string; color: string };
 const PAY_METHODS: PayMethod[] = [
   { method: "PIX",            label: "PIX",           color: "#0891b2" },
   { method: "DINHEIRO",       label: "Dinheiro",       color: "#059669" },
-  { method: "CARTAO_CREDITO", label: "Credito",        color: GC.caramel },
-  { method: "CARTAO_DEBITO",  label: "Debito",         color: GC.brown },
+  { method: "CARTAO_CREDITO", label: "Credito",        color: "var(--brand-accent)" },
+  { method: "CARTAO_DEBITO",  label: "Debito",         color: "var(--text-muted)" },
 ];
 
 // â”€â”€ SaleCompleteModal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -462,7 +455,7 @@ function SaleCompleteModal({
       icon: <Printer size={22} />,
       title: "Imprimir comprovante",
       desc: "Imprime o cupom fiscal na impressora configurada",
-      accent: GC.caramel,
+      accent: "var(--brand-accent)",
       highlighted: true,
     },
     {
@@ -483,20 +476,20 @@ function SaleCompleteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(28,18,9,0.72)", backdropFilter: "blur(4px)" }}>
+      style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
-        style={{ background: GC.bg, border: `1.5px solid ${GC.caramel}33` }}>
+        style={{ background: "var(--bg)", border: "1.5px solid color-mix(in srgb, var(--brand-accent) 33%, transparent)" }}>
 
         {/* Header */}
         <div className="px-6 pt-6 pb-4 text-center"
-          style={{ background: `linear-gradient(160deg, ${GC.dark} 0%, #2A1A0E 100%)` }}>
+          style={{ background: "linear-gradient(160deg, var(--brand) 0%, color-mix(in srgb, var(--brand) 72%, #000) 100%)" }}>
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg"
-            style={{ background: `linear-gradient(135deg, ${GC.caramel}, #A07230)` }}>
-            <CheckCircle2 size={28} className="text-[#1C1209]" />
+            style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}>
+            <CheckCircle2 size={28} className="text-white" />
           </div>
           <p className="text-lg font-black text-white tracking-tight">Venda concluida!</p>
           <p className="text-xs mt-0.5" style={{ color: "rgba(245,237,224,0.6)" }}>#{publicId}</p>
-          <p className="text-3xl font-black mt-2" style={{ color: GC.caramel }}>{brl(totalCents)}</p>
+          <p className="text-3xl font-black mt-2" style={{ color: "var(--brand-accent)" }}>{brl(totalCents)}</p>
           {changeCents > 0 && (
             <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
               style={{ background: "#16a34a22", color: "#4ade80" }}>
@@ -511,7 +504,7 @@ function SaleCompleteModal({
           {chosen !== "whatsapp" ? (
             <>
               <p className="text-xs font-bold uppercase tracking-widest text-center mb-1"
-                style={{ color: GC.brown }}>O que deseja fazer?</p>
+                style={{ color: "var(--text-muted)" }}>O que deseja fazer?</p>
 
               {CARDS.map((card) => (
                 <button
@@ -528,16 +521,16 @@ function SaleCompleteModal({
                   className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition active:scale-[0.98] hover:brightness-95"
                   style={card.highlighted
                     ? { background: `linear-gradient(135deg, ${card.accent}, #A07230)`, boxShadow: `0 4px 18px ${card.accent}44` }
-                    : { background: GC.cream, border: `1.5px solid rgba(107,79,58,0.14)` }}
+                    : { background: "var(--surface-2)", border: `1.5px solid var(--border)` }}
                 >
                   <span className="text-2xl flex-shrink-0">{card.icon}</span>
                   <span className="flex-1 min-w-0">
                     <span className={`block text-sm font-bold ${card.highlighted ? "text-white" : ""}`}
-                      style={card.highlighted ? undefined : { color: GC.dark }}>
+                      style={card.highlighted ? undefined : { color: "var(--text)" }}>
                       {card.title}
                     </span>
                     <span className={`block text-xs mt-0.5 truncate ${card.highlighted ? "text-white/70" : ""}`}
-                      style={card.highlighted ? undefined : { color: GC.brown }}>
+                      style={card.highlighted ? undefined : { color: "var(--text-muted)" }}>
                       {card.desc}
                     </span>
                   </span>
@@ -549,7 +542,7 @@ function SaleCompleteModal({
 
               {/* Inline sending feedback when dispatching directly */}
               {waStatus === "saving" && (
-                <p className="text-center text-xs" style={{ color: GC.brown }}>Registrando numero...</p>
+                <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>Registrando numero...</p>
               )}
               {waStatus === "ok" && (
                 <div className="rounded-2xl p-3 text-center" style={{ background: "#dcfce7" }}>
@@ -562,14 +555,14 @@ function SaleCompleteModal({
             <div className="space-y-3">
               <button type="button" onClick={() => setChosen(null)}
                 className="flex items-center gap-1 text-xs font-medium transition hover:opacity-70"
-                style={{ color: GC.brown }}>
+                style={{ color: "var(--text-muted)" }}>
                 Voltar
               </button>
 
-              <p className="text-sm font-bold" style={{ color: GC.dark }}>
+              <p className="text-sm font-bold" style={{ color: "var(--text)" }}>
                 Enviar NFC-e por WhatsApp
               </p>
-              <p className="text-xs" style={{ color: GC.brown }}>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                 O comprovante em PDF sera enviado apos autorizacao da nota fiscal.
               </p>
 
@@ -581,7 +574,7 @@ function SaleCompleteModal({
               ) : (
                 <>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold" style={{ color: GC.brown }}>
+                    <label className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
                       Telefone do cliente (com DDD)
                     </label>
                     <input
@@ -591,7 +584,7 @@ function SaleCompleteModal({
                       placeholder="(11) 99999-0000"
                       autoFocus
                       className="w-full h-11 rounded-xl px-4 text-sm focus:outline-none"
-                      style={{ border: `1.5px solid rgba(107,79,58,0.2)`, background: "#fff", color: GC.dark }}
+                      style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
                     />
                     {phoneErr && <p className="text-xs text-red-500">{phoneErr}</p>}
                     {waStatus === "err" && <p className="text-xs text-red-500">Erro ao salvar. Tente novamente.</p>}
@@ -729,8 +722,8 @@ function PayPanel({
   return (
     <div className="space-y-4">
       <div className="rounded-2xl p-3 space-y-2.5"
-        style={{ background: "#fff", border: `1.5px solid rgba(107,79,58,0.15)` }}>
-        <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GC.brown }}>Cupom de desconto</p>
+        style={{ background: "var(--surface)", border: `1.5px solid var(--border)` }}>
+        <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Cupom de desconto</p>
 
         {!appliedCoupon ? (
           <>
@@ -743,14 +736,14 @@ function PayPanel({
                 }}
                 placeholder="Ex: BEMVINDO10"
                 className="flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none uppercase"
-                style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+                style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
               />
               <button
                 type="button"
                 disabled={couponLoading || paying || !saleId}
                 onClick={handleApplyCoupon}
                 className="px-4 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 disabled:opacity-40"
-                style={{ background: `linear-gradient(135deg, ${GC.caramel}, #b9822d)` }}
+                style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
               >
                 {couponLoading ? "..." : "Aplicar"}
               </button>
@@ -759,7 +752,7 @@ function PayPanel({
           </>
         ) : (
           <div className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
-            style={{ background: `${GC.caramel}18`, color: GC.dark }}>
+            style={{ background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--text)" }}>
             <div className="min-w-0">
               <p className="text-xs font-black truncate">Cupom {appliedCoupon.code}</p>
               <p className="text-[11px] truncate opacity-75">
@@ -771,7 +764,7 @@ function PayPanel({
               onClick={onRemoveCoupon}
               disabled={paying}
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition hover:opacity-85 disabled:opacity-40"
-              style={{ background: "#fff", color: GC.brown, border: `1px solid rgba(107,79,58,0.2)` }}
+              style={{ background: "var(--surface-2)", color: "var(--text-muted)", border: `1px solid var(--border)` }}
             >
               Remover
             </button>
@@ -780,8 +773,8 @@ function PayPanel({
       </div>
 
       <div className="rounded-2xl p-3 space-y-1.5"
-        style={{ background: "#fff", border: `1.5px solid rgba(107,79,58,0.12)` }}>
-        <div className="flex justify-between text-xs" style={{ color: GC.brown }}>
+        style={{ background: "var(--surface)", border: `1.5px solid var(--border)` }}>
+        <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
           <span>Subtotal</span>
           <span>{brl(subtotalCents)}</span>
         </div>
@@ -793,11 +786,11 @@ function PayPanel({
         )}
       </div>
 
-      <p className="text-center text-2xl font-black" style={{ color: GC.dark }}>{brl(totalCents)}</p>
+      <p className="text-center text-2xl font-black" style={{ color: "var(--text)" }}>{brl(totalCents)}</p>
 
       {suggestedPayMethod && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: `${GC.caramel}15`, color: GC.caramel }}>
+          style={{ background: "color-mix(in srgb, var(--brand-accent) 15%, transparent)", color: "var(--brand-accent)" }}>
           <span className="opacity-70">Sugestao do atendimento:</span>
           <span className="font-black">{suggestedPayMethod.label}</span>
         </div>
@@ -841,7 +834,7 @@ function PayPanel({
           type="number"
           placeholder="Dinheiro recebido (R$)"
           className="flex-1 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-          style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+          style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
           value={cash}
           onChange={(e) => setCash(e.target.value)}
         />
@@ -857,8 +850,8 @@ function PayPanel({
 
       {pendingPayment && (
         <div className="rounded-2xl p-4 space-y-3"
-          style={{ background: GC.cream, border: `1.5px solid rgba(200,149,58,0.2)` }}>
-          <p className="text-sm font-bold" style={{ color: GC.dark }}>Incluir CPF/CNPJ na nota fiscal?</p>
+          style={{ background: "var(--surface-2)", border: `1.5px solid color-mix(in srgb, var(--brand-accent) 20%, transparent)` }}>
+          <p className="text-sm font-bold" style={{ color: "var(--text)" }}>Incluir CPF/CNPJ na nota fiscal?</p>
           <div className="grid grid-cols-3 gap-2">
             {(["none", "cpf", "cnpj"] as const).map((t) => (
               <button
@@ -867,8 +860,8 @@ function PayPanel({
                 onClick={() => { setDocType(t); setDocError(null); }}
                 className="py-2 rounded-xl text-xs font-bold transition"
                 style={docType === t
-                  ? { background: GC.caramel, color: "#fff" }
-                  : { border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: "#fff" }}
+                  ? { background: "var(--brand-accent)", color: "#fff" }
+                  : { border: `1.5px solid var(--border)`, color: "var(--text-muted)", background: "var(--surface-2)" }}
               >
                 {t === "none" ? "Não informar" : t.toUpperCase()}
               </button>
@@ -880,11 +873,11 @@ function PayPanel({
               onChange={(e) => setDocValue(e.target.value)}
               placeholder={docType === "cpf" ? "Digite o CPF" : "Digite o CNPJ"}
               className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+              style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
             />
           )}
           {docType === "cpf" && (
-            <p className="text-[11px]" style={{ color: GC.brown, opacity: 0.75 }}>
+            <p className="text-[11px]" style={{ color: "var(--text-muted)", opacity: 0.75 }}>
               Este CPF tambem confirma o acumulo de pontos de fidelidade para cliente identificado.
             </p>
           )}
@@ -892,12 +885,12 @@ function PayPanel({
           <div className="flex gap-2">
             <button type="button" onClick={closeDocPrompt}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
-              style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: "#fff" }}>
+              style={{ border: `1.5px solid var(--border)`, color: "var(--text-muted)", background: "var(--surface-2)" }}>
               Voltar
             </button>
             <button type="button" onClick={confirmPay}
               className="flex-1 py-2.5 rounded-xl text-sm text-white font-bold transition hover:opacity-90"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+              style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
               Confirmar pagamento
             </button>
           </div>
@@ -941,42 +934,42 @@ function DavSearchModal({ onSelect, onClose }: { onSelect: (code: string) => voi
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pb-3 sm:pb-0"
-      style={{ backgroundColor: "rgba(28,18,9,0.65)" }}>
+      style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
       <div className="rounded-3xl shadow-2xl w-full max-w-sm flex flex-col max-h-[70vh]"
-        style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}>
+        style={{ background: "var(--bg)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4"
-          style={{ borderBottom: `1px solid rgba(107,79,58,0.1)` }}>
-          <h3 className="font-black text-sm" style={{ color: GC.dark }}>Buscar Orcamento (DAV)</h3>
+          style={{ borderBottom: `1px solid var(--border)` }}>
+          <h3 className="font-black text-sm" style={{ color: "var(--text)" }}>Buscar Orcamento (DAV)</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: GC.cream }}>
-            <X size={13} style={{ color: GC.brown }} />
+            style={{ background: "var(--surface-2)" }}>
+            <X size={13} style={{ color: "var(--text-muted)" }} />
           </button>
         </div>
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-            style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff" }}>
-            <Search size={14} style={{ color: GC.brown, opacity: 0.5 }} />
+            style={{ border: `1.5px solid var(--border)`, background: "var(--bg)" }}>
+            <Search size={14} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)}
               placeholder="Codigo ou nome do cliente..."
               className="flex-1 text-sm bg-transparent outline-none placeholder-opacity-50"
-              style={{ color: GC.dark }} />
+              style={{ color: "var(--text)" }} />
           </div>
         </div>
         <div className="overflow-y-auto flex-1 px-2 pb-3">
-          {loading && <p className="text-center py-6 text-sm" style={{ color: GC.brown }}>Carregando...</p>}
-          {!loading && filtered.length === 0 && <p className="text-center py-6 text-sm" style={{ color: GC.brown, opacity: 0.6 }}>Nenhum orcamento encontrado.</p>}
+          {loading && <p className="text-center py-6 text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</p>}
+          {!loading && filtered.length === 0 && <p className="text-center py-6 text-sm" style={{ color: "var(--text-muted)", opacity: 0.6 }}>Nenhum orcamento encontrado.</p>}
           {filtered.map((d) => (
             <button key={d.id} type="button"
               onClick={() => { onSelect(d.publicId); onClose(); }}
               className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left transition hover:bg-amber-50/60"
             >
               <div>
-                <p className="text-sm font-bold" style={{ color: GC.caramel }}>{d.publicId}</p>
-                <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.65 }}>
+                <p className="text-sm font-bold" style={{ color: "var(--brand-accent)" }}>{d.publicId}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.65 }}>
                   {d.customerName || "-"} · {d.itemCount} item{d.itemCount !== 1 ? "s" : ""}
                 </p>
               </div>
-              <p className="text-sm font-black" style={{ color: GC.dark }}>{fmt(d.totalCents)}</p>
+              <p className="text-sm font-black" style={{ color: "var(--text)" }}>{fmt(d.totalCents)}</p>
             </button>
           ))}
         </div>
@@ -1184,42 +1177,42 @@ function AddonModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      style={{ backgroundColor: "rgba(28,18,9,0.65)" }}>
+      style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
       <div
         className="rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative flex flex-col"
         style={{
-          background: GC.bg,
-          boxShadow: "0 24px 80px rgba(28,18,9,0.35)",
+          background: "var(--bg)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.25)",
           maxHeight: "85vh",
         }}
       >
         <button type="button" onClick={onClose}
           className="absolute top-4 right-4 w-7 h-7 rounded-xl flex items-center justify-center z-10"
-          style={{ background: GC.cream }}>
-          <X size={13} style={{ color: GC.brown }} />
+          style={{ background: "var(--surface-2)" }}>
+          <X size={13} style={{ color: "var(--text-muted)" }} />
         </button>
 
         {/* Header */}
         <div className="px-5 pt-5 pb-3 shrink-0">
-          <h2 className="font-black text-base pr-8" style={{ color: GC.dark }}>{product.name}</h2>
+          <h2 className="font-black text-base pr-8" style={{ color: "var(--text)" }}>{product.name}</h2>
           {hasGroups ? (
-            <p className="text-xs mt-0.5 font-medium" style={{ color: GC.brown, opacity: 0.65 }}>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--text-muted)", opacity: 0.65 }}>
               a partir de {brl(product.promotionPriceCents ?? product.priceCents)}
             </p>
           ) : (
-            <p className="text-xs mt-0.5 font-medium" style={{ color: GC.brown, opacity: 0.65 }}>Escolha os adicionais</p>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--text-muted)", opacity: 0.65 }}>Escolha os adicionais</p>
           )}
         </div>
 
         {loading ? (
           <div className="px-5 pb-5">
-            <p className="text-sm py-4 text-center" style={{ color: GC.brown }}>Carregando...</p>
+            <p className="text-sm py-4 text-center" style={{ color: "var(--text-muted)" }}>Carregando...</p>
           </div>
         ) : hasGroups ? (
           /* ── Modo stepper ─── */
           <div
             className="flex-1 min-h-0 overflow-hidden"
-            style={{ "--brand": GC.caramel } as React.CSSProperties}
+            style={{ "--brand": "var(--brand-accent)" } as React.CSSProperties}
           >
             <ProductAddonStepper
               product={stepperProduct}
@@ -1231,57 +1224,57 @@ function AddonModal({
           /* ── Modo lista plana ─── */
           <div className="px-5 pb-5 space-y-4">
             {addons.length === 0 ? (
-              <p className="text-sm py-2" style={{ color: GC.brown, opacity: 0.6 }}>Nenhum adicional disponivel.</p>
+              <p className="text-sm py-2" style={{ color: "var(--text-muted)", opacity: 0.6 }}>Nenhum adicional disponivel.</p>
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {addons.map((a) => (
                   <button key={a.id} type="button" onClick={() => toggle(a.id)}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all text-left"
                     style={{
-                      border: `1.5px solid ${selected.has(a.id) ? GC.caramel : "rgba(107,79,58,0.15)"}`,
-                      background: selected.has(a.id) ? `${GC.caramel}12` : "#fff",
+                      border: `1.5px solid ${selected.has(a.id) ? "var(--brand-accent)" : "var(--border)"}`,
+                      background: selected.has(a.id) ? "color-mix(in srgb, var(--brand-accent) 12%, transparent)" : "var(--bg)",
                     }}>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
                       style={{
-                        borderColor: selected.has(a.id) ? GC.caramel : "rgba(107,79,58,0.3)",
-                        background: selected.has(a.id) ? GC.caramel : "transparent",
+                        borderColor: selected.has(a.id) ? "var(--brand-accent)" : "var(--border)",
+                        background: selected.has(a.id) ? "var(--brand-accent)" : "transparent",
                       }}>
                       {selected.has(a.id) && <span className="text-white text-[10px] font-black">OK</span>}
                     </div>
-                    <span className="flex-1 text-sm font-medium" style={{ color: GC.dark }}>{a.name}</span>
-                    <span className="text-sm font-bold" style={{ color: GC.caramel }}>+{brl(a.priceCents)}</span>
+                    <span className="flex-1 text-sm font-medium" style={{ color: "var(--text)" }}>{a.name}</span>
+                    <span className="text-sm font-bold" style={{ color: "var(--brand-accent)" }}>+{brl(a.priceCents)}</span>
                   </button>
                 ))}
               </div>
             )}
 
             <div className="flex justify-between text-sm px-1">
-              <span style={{ color: GC.brown }}>Produto</span>
+              <span style={{ color: "var(--text-muted)" }}>Produto</span>
               <span className="flex items-center gap-1.5">
                 {product.promotionPriceCents != null && (
-                  <span className="text-xs line-through opacity-50" style={{ color: GC.brown }}>{brl(product.priceCents)}</span>
+                  <span className="text-xs line-through opacity-50" style={{ color: "var(--text-muted)" }}>{brl(product.priceCents)}</span>
                 )}
-                <span className="font-bold" style={{ color: product.promotionPriceCents != null ? "#059669" : GC.brown }}>
+                <span className="font-bold" style={{ color: product.promotionPriceCents != null ? "#059669" : "var(--text-muted)" }}>
                   {brl(product.promotionPriceCents ?? product.priceCents)}
                 </span>
               </span>
             </div>
             {extraCents > 0 && (
               <div className="flex justify-between text-sm px-1">
-                <span style={{ color: GC.brown }}>Total com adicionais</span>
-                <span className="font-black" style={{ color: GC.dark }}>{brl((product.promotionPriceCents ?? product.priceCents) + extraCents)}</span>
+                <span style={{ color: "var(--text-muted)" }}>Total com adicionais</span>
+                <span className="font-black" style={{ color: "var(--text)" }}>{brl((product.promotionPriceCents ?? product.priceCents) + extraCents)}</span>
               </div>
             )}
 
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={() => handleFlatConfirm([])} disabled={adding}
                 className="flex-1 py-2.5 text-sm rounded-2xl font-medium transition hover:opacity-80 disabled:opacity-40"
-                style={{ border: `1.5px solid rgba(107,79,58,0.2)`, color: GC.brown, background: GC.cream }}>
+                style={{ border: `1.5px solid var(--border)`, color: "var(--text-muted)", background: "var(--surface-2)" }}>
                 Sem adicionais
               </button>
               <button type="button" disabled={adding} onClick={() => handleFlatConfirm([...selected])}
                 className="flex-1 py-2.5 text-sm font-bold text-white rounded-2xl transition hover:opacity-90 disabled:opacity-40"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
                 {adding ? "Adicionando..." : selected.size > 0 ? `Adicionar (${selected.size})` : "Adicionar"}
               </button>
             </div>
@@ -1428,19 +1421,19 @@ function QuickProducts({
           onClose={() => setAddonTarget(null)}
         />
       )}
-      <div className="h-full flex flex-col p-3 gap-2 overflow-hidden" style={{ background: GC.bg }}>
+      <div className="h-full flex flex-col p-3 gap-2 overflow-hidden" style={{ background: "var(--bg)" }}>
         {/* Search bar */}
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: GC.brown, opacity: 0.5 }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)", opacity: 0.5 }} />
           <input
             value={searchInput}
             onChange={(e) => { setSearchInput(e.target.value); }}
             placeholder="Buscar por nome, código ou código de barras"
             className="w-full h-9 rounded-xl pl-8 pr-3 text-xs focus:outline-none"
-            style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+            style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
           />
           {loadingInitial && (
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px]" style={{ color: GC.brown, opacity: 0.5 }}>
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px]" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
               carregando...
             </span>
           )}
@@ -1449,7 +1442,7 @@ function QuickProducts({
         <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-3 flex-1 min-h-0">
           {categories.length > 0 && (
             <aside className="hidden lg:flex lg:flex-col lg:min-h-0">
-              <div className="rounded-3xl p-2 border h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ background: "#fff", borderColor: "rgba(107,79,58,0.12)" }}>
+              <div className="rounded-3xl p-2 border h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                 {categoryItems.map((item) => {
                   const Icon = item.icon;
                   const active = item.key === activeCategory;
@@ -1460,12 +1453,12 @@ function QuickProducts({
                       onClick={() => setActiveCategory(item.key)}
                       className="w-full rounded-2xl px-1.5 py-2.5 transition-all"
                       style={active
-                        ? { background: GC.caramel, color: "#fff", boxShadow: `0 10px 24px ${GC.caramel}44` }
-                        : { background: GC.cream, color: GC.dark, border: "1px solid rgba(107,79,58,0.1)" }}
+                        ? { background: "var(--brand-accent)", color: "#fff", boxShadow: "0 10px 24px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }
+                        : { background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)" }}
                     >
                       <span className="flex flex-col items-center gap-1">
                         <span className="w-7 h-7 rounded-xl grid place-items-center"
-                          style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "rgba(200,149,58,0.18)", color: GC.caramel }}>
+                          style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "color-mix(in srgb, var(--brand-accent) 18%, transparent)", color: "var(--brand-accent)" }}>
                           <Icon size={15} />
                         </span>
                         <span className="text-[10px] font-extrabold leading-tight text-center line-clamp-2 w-full px-0.5">{item.label}</span>
@@ -1489,8 +1482,8 @@ function QuickProducts({
                       onClick={() => setActiveCategory(item.key)}
                       className="shrink-0 min-w-[150px] rounded-2xl px-3 py-2 flex items-center gap-2 text-xs font-bold"
                       style={active
-                        ? { background: GC.caramel, color: "#fff", boxShadow: `0 4px 12px ${GC.caramel}44` }
-                        : { background: "#fff", color: GC.brown, border: "1px solid rgba(107,79,58,0.12)" }}
+                        ? { background: "var(--brand-accent)", color: "#fff", boxShadow: "0 4px 12px color-mix(in srgb, var(--brand-accent) 44%, transparent)" }
+                        : { background: "var(--surface-2)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
                     >
                       <Icon size={15} />
                       <span className="text-left whitespace-normal break-words leading-tight">{item.label}</span>
@@ -1501,7 +1494,7 @@ function QuickProducts({
             )}
             <div className="flex-1 overflow-y-auto min-h-0">
             {filteredProducts.length === 0 && !loadingInitial ? (
-              <div className="h-full min-h-[220px] flex items-center justify-center text-sm" style={{ color: GC.brown, opacity: 0.4 }}>
+              <div className="h-full min-h-[220px] flex items-center justify-center text-sm" style={{ color: "var(--text-muted)", opacity: 0.4 }}>
                 Nenhum produto encontrado
               </div>
             ) : (
@@ -1514,41 +1507,41 @@ function QuickProducts({
                     onClick={() => handleAdd(p)}
                     className="flex flex-col items-center gap-1 p-2 rounded-2xl transition active:scale-95 text-left disabled:opacity-50 relative hover:shadow-md"
                     style={{
-                      background: "#fff",
-                      border: `1.5px solid ${p.isBestSeller ? `${GC.caramel}55` : "rgba(107,79,58,0.1)"}`,
+                      background: "var(--surface)",
+                      border: `1.5px solid ${p.isBestSeller ? "color-mix(in srgb, var(--brand-accent) 55%, transparent)" : "var(--border)"}`,
                     }}
                   >
                     {p.isBestSeller && (
                       <span className="absolute top-1 left-1 text-[8px] font-bold text-white rounded-full px-1.5 py-px leading-none"
-                        style={{ background: GC.caramel }}>
+                        style={{ background: "var(--brand-accent)" }}>
                         Top
                       </span>
                     )}
                     {p.hasAddons && (
                       <span className="absolute top-1 right-1 text-[8px] font-bold text-white rounded-full px-1 py-px leading-none"
-                        style={{ background: GC.brown }}>+</span>
+                        style={{ background: "var(--text-muted)" }}>+</span>
                     )}
                     <div className="w-full aspect-square rounded-xl overflow-hidden flex items-center justify-center"
-                      style={{ background: GC.cream }}>
+                      style={{ background: "var(--surface-2)" }}>
                       {p.imageUrl ? (
                         <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-[9px] font-bold" style={{ color: GC.brown, opacity: 0.35 }}>SEM IMAGEM</span>
+                        <span className="text-[9px] font-bold" style={{ color: "var(--text-muted)", opacity: 0.35 }}>SEM IMAGEM</span>
                       )}
                     </div>
-                    <span className="text-[11px] font-medium leading-tight text-center line-clamp-2 w-full" style={{ color: GC.dark }}>
+                    <span className="text-[11px] font-medium leading-tight text-center line-clamp-2 w-full" style={{ color: "var(--text)" }}>
                       {p.name}
                     </span>
                     {p.promotionPriceCents != null ? (
                       <span className="flex flex-col items-center leading-tight">
-                        <span className="text-[9px] line-through opacity-50" style={{ color: GC.brown }}>{brl(p.priceCents)}</span>
+                        <span className="text-[9px] line-through opacity-50" style={{ color: "var(--text-muted)" }}>{brl(p.priceCents)}</span>
                         <span className="text-[11px] font-black" style={{ color: "#059669" }}>{brl(p.promotionPriceCents)}</span>
                       </span>
                     ) : (
-                      <span className="text-[11px] font-black" style={{ color: GC.caramel }}>{brl(p.priceCents)}</span>
+                      <span className="text-[11px] font-black" style={{ color: "var(--brand-accent)" }}>{brl(p.priceCents)}</span>
                     )}
                     {(p.internalCode || p.barcode) && (
-                      <span className="text-[10px] leading-tight text-center" style={{ color: GC.brown, opacity: 0.5 }}>
+                      <span className="text-[10px] leading-tight text-center" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
                         {p.internalCode || p.barcode}
                       </span>
                     )}
@@ -1572,44 +1565,44 @@ function CartTable({
   onRemove: (itemId: string) => void;
 }) {
   return (
-    <div className="overflow-auto h-full" style={{ background: GC.bg }}>
+    <div className="overflow-auto h-full" style={{ background: "var(--bg)" }}>
       <table className="w-full text-sm table-auto">
-        <thead className="sticky top-0 z-10" style={{ background: GC.cream, borderBottom: `1px solid rgba(107,79,58,0.1)` }}>
+        <thead className="sticky top-0 z-10" style={{ background: "var(--surface-2)", borderBottom: `1px solid var(--border)` }}>
           <tr className="text-left">
-            <th className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest" style={{ color: GC.brown }}>Produto</th>
-            <th className="px-3 py-2.5 text-right text-[10px] font-black uppercase tracking-widest hidden sm:table-cell" style={{ color: GC.brown }}>Qtd</th>
-            <th className="px-3 py-2.5 text-right text-[10px] font-black uppercase tracking-widest hidden sm:table-cell" style={{ color: GC.brown }}>Unit</th>
-            <th className="px-3 py-2.5 text-right text-[10px] font-black uppercase tracking-widest" style={{ color: GC.brown }}>Total</th>
+            <th className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Produto</th>
+            <th className="px-3 py-2.5 text-right text-[10px] font-black uppercase tracking-widest hidden sm:table-cell" style={{ color: "var(--text-muted)" }}>Qtd</th>
+            <th className="px-3 py-2.5 text-right text-[10px] font-black uppercase tracking-widest hidden sm:table-cell" style={{ color: "var(--text-muted)" }}>Unit</th>
+            <th className="px-3 py-2.5 text-right text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Total</th>
             <th className="px-3 py-2.5 w-8" />
           </tr>
         </thead>
         <tbody>
           {!sale || sale.items.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-10 text-center text-sm" style={{ color: GC.brown, opacity: 0.4 }}>
+              <td colSpan={5} className="px-4 py-10 text-center text-sm" style={{ color: "var(--text-muted)", opacity: 0.4 }}>
                 Nenhum item no carrinho
               </td>
             </tr>
           ) : sale.items.map((item) => (
-            <tr key={item.id} className="transition hover:bg-amber-50/40" style={{ borderBottom: `1px solid rgba(107,79,58,0.07)` }}>
-              <td className="px-4 py-2.5 font-medium align-top" style={{ color: GC.dark }}>
+            <tr key={item.id} className="transition hover:bg-amber-50/40" style={{ borderBottom: `1px solid var(--border)` }}>
+              <td className="px-4 py-2.5 font-medium align-top" style={{ color: "var(--text)" }}>
                 <span className="block break-words leading-tight">{item.productNameSnapshot}</span>
-                <span className="sm:hidden text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>
+                <span className="sm:hidden text-xs mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
                   {item.isSoldByWeight ? `${item.weightKg?.toFixed(3)} kg` : `${item.qty}x`} · {brl(item.unitPriceCentsSnapshot)}
                 </span>
                 {item.addons && item.addons.length > 0 && (
-                  <span className="block mt-0.5 text-[11px]" style={{ color: GC.caramel }}>
+                  <span className="block mt-0.5 text-[11px]" style={{ color: "var(--brand-accent)" }}>
                     + {item.addons.map((a) => a.nameSnapshot).join(", ")}
                   </span>
                 )}
               </td>
-              <td className="px-3 py-2.5 text-right hidden sm:table-cell" style={{ color: GC.brown }}>
+              <td className="px-3 py-2.5 text-right hidden sm:table-cell" style={{ color: "var(--text-muted)" }}>
                 {item.isSoldByWeight ? `${item.weightKg?.toFixed(3)} kg` : item.qty}
               </td>
-              <td className="px-3 py-2.5 text-right hidden sm:table-cell" style={{ color: GC.brown, opacity: 0.7 }}>
+              <td className="px-3 py-2.5 text-right hidden sm:table-cell" style={{ color: "var(--text-muted)", opacity: 0.7 }}>
                 {brl(item.unitPriceCentsSnapshot)}{item.isSoldByWeight && <span className="text-xs">/kg</span>}
               </td>
-              <td className="px-3 py-2.5 text-right font-black whitespace-nowrap" style={{ color: GC.dark }}>{brl(item.totalCents)}</td>
+              <td className="px-3 py-2.5 text-right font-black whitespace-nowrap" style={{ color: "var(--text)" }}>{brl(item.totalCents)}</td>
               <td className="px-3 py-2.5">
                 <button onClick={() => onRemove(item.id)}
                   className="w-6 h-6 rounded-lg flex items-center justify-center transition hover:opacity-80"
@@ -1647,22 +1640,22 @@ function NavDrawer({ onClose }: { onClose: () => void }) {
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[90]"
-        style={{ background: "rgba(28,18,9,0.55)" }}
+        style={{ background: "rgba(0,0,0,0.6)" }}
         onClick={onClose}
       />
 
       {/* Drawer */}
       <div
         className="fixed left-0 top-0 bottom-0 z-[91] flex flex-col w-72 shadow-2xl"
-        style={{ background: GC.bg }}
+        style={{ background: "var(--bg)" }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4 shrink-0"
-          style={{ background: GC.dark }}
+          style={{ background: "var(--text)" }}
         >
           <div>
-            <span className="font-black text-base tracking-tight" style={{ color: GC.caramel }}>
+            <span className="font-black text-base tracking-tight" style={{ color: "var(--brand-accent)" }}>
               PDV
             </span>
             <span className="text-xs ml-2" style={{ color: "rgba(255,255,255,0.45)" }}>
@@ -1681,7 +1674,7 @@ function NavDrawer({ onClose }: { onClose: () => void }) {
         {/* Section label */}
         <p
           className="px-5 pt-5 pb-2 text-[10px] font-black uppercase tracking-widest"
-          style={{ color: GC.brown, opacity: 0.5 }}
+          style={{ color: "var(--text-muted)", opacity: 0.5 }}
         >
           Ir para
         </p>
@@ -1693,19 +1686,19 @@ function NavDrawer({ onClose }: { onClose: () => void }) {
               key={route}
               onClick={() => go(route)}
               className="flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
-              style={{ background: GC.cream, border: `1.5px solid rgba(200,149,58,0.15)` }}
+              style={{ background: "var(--surface-2)", border: `1.5px solid color-mix(in srgb, var(--brand-accent) 15%, transparent)` }}
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `rgba(200,149,58,0.12)` }}
+                style={{ background: `color-mix(in srgb, var(--brand-accent) 12%, transparent)` }}
               >
-                <Icon size={18} style={{ color: GC.caramel }} />
+                <Icon size={18} style={{ color: "var(--brand-accent)" }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold" style={{ color: GC.dark }}>{label}</p>
-                <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.6 }}>{desc}</p>
+                <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{label}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.6 }}>{desc}</p>
               </div>
-              <ChevronRight size={14} style={{ color: GC.caramel, opacity: 0.5 }} />
+              <ChevronRight size={14} style={{ color: "var(--brand-accent)", opacity: 0.5 }} />
             </button>
           ))}
         </nav>
@@ -1713,9 +1706,9 @@ function NavDrawer({ onClose }: { onClose: () => void }) {
         {/* Footer hint */}
         <div
           className="px-5 py-4 shrink-0 border-t text-center"
-          style={{ borderColor: `rgba(107,79,58,0.12)` }}
+          style={{ borderColor: `var(--border)` }}
         >
-          <p className="text-[11px]" style={{ color: GC.brown, opacity: 0.4 }}>
+          <p className="text-[11px]" style={{ color: "var(--text-muted)", opacity: 0.4 }}>
             O caixa permanece aberto ao navegar.
           </p>
         </div>
@@ -1757,33 +1750,33 @@ function LoyaltyRewardsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" style={{ background: GC.bg }}>
+      <div className="w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" style={{ background: "var(--bg)" }}>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: GC.caramel }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--brand-accent)" }}>
             Programa de Fidelidade
           </p>
-          <p className="text-lg font-black mt-0.5" style={{ color: GC.dark }}>{customer.name}</p>
-          <p className="text-3xl font-black leading-none mt-1" style={{ color: GC.caramel }}>
+          <p className="text-lg font-black mt-0.5" style={{ color: "var(--text)" }}>{customer.name}</p>
+          <p className="text-3xl font-black leading-none mt-1" style={{ color: "var(--brand-accent)" }}>
             {customer.pointsBalance.toLocaleString("pt-BR")}
-            <span className="text-base font-semibold ml-1" style={{ color: GC.brown }}>pontos</span>
+            <span className="text-base font-semibold ml-1" style={{ color: "var(--text-muted)" }}>pontos</span>
           </p>
         </div>
 
         <div>
-          <p className="text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: GC.brown }}>
+          <p className="text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
             {rewards.length} recompensa{rewards.length !== 1 ? "s" : ""} disponível{rewards.length !== 1 ? "is" : ""}
           </p>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {rewards.map(r => (
               <div key={r.id} className="rounded-xl px-3 py-2.5 flex items-center gap-3"
-                style={{ background: GC.cream, border: `1px solid rgba(200,149,58,0.3)` }}>
+                style={{ background: "var(--surface-2)", border: `1px solid color-mix(in srgb, var(--brand-accent) 30%, transparent)` }}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate" style={{ color: GC.dark }}>{r.name}</p>
-                  <p className="text-xs" style={{ color: GC.brown }}>
+                  <p className="text-sm font-bold truncate" style={{ color: "var(--text)" }}>{r.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                     {fmtDiscount(r)}
                     {r.couponCode && <span className="ml-1.5 font-mono font-bold">[{r.couponCode}]</span>}
                   </p>
-                  <p className="text-[11px]" style={{ color: GC.caramel }}>
+                  <p className="text-[11px]" style={{ color: "var(--brand-accent)" }}>
                     Custo: {r.loyaltyPointsCost.toLocaleString("pt-BR")} pts
                   </p>
                 </div>
@@ -1791,7 +1784,7 @@ function LoyaltyRewardsModal({
                   type="button"
                   onClick={() => onApply(r)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shrink-0 transition active:scale-95"
-                  style={{ background: `linear-gradient(135deg, ${GC.caramel}, #b9822d)` }}
+                  style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
                 >
                   Usar
                 </button>
@@ -1804,7 +1797,7 @@ function LoyaltyRewardsModal({
           type="button"
           onClick={onClose}
           className="w-full py-2.5 rounded-xl text-sm font-semibold transition hover:bg-black/5"
-          style={{ color: GC.brown, border: `1px solid rgba(107,79,58,0.2)` }}
+          style={{ color: "var(--text-muted)", border: `1px solid var(--border)` }}
         >
           Fechar
         </button>
@@ -1835,16 +1828,16 @@ function CouponRevealModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-xs rounded-3xl p-5 space-y-4 shadow-2xl text-center" style={{ background: GC.bg }}>
+      <div className="w-full max-w-xs rounded-3xl p-5 space-y-4 shadow-2xl text-center" style={{ background: "var(--bg)" }}>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: GC.caramel }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--brand-accent)" }}>
             Cupom Resgatado
           </p>
-          <p className="text-base font-bold mt-0.5" style={{ color: GC.dark }}>{sanitizeUiText(promotionName)}</p>
+          <p className="text-base font-bold mt-0.5" style={{ color: "var(--text)" }}>{sanitizeUiText(promotionName)}</p>
         </div>
 
-        <div className="rounded-2xl px-4 py-4 space-y-3" style={{ background: GC.cream, border: `1px solid rgba(200,149,58,0.3)` }}>
-          <p className="text-3xl font-black tracking-widest font-mono" style={{ color: GC.caramel }}>
+        <div className="rounded-2xl px-4 py-4 space-y-3" style={{ background: "var(--surface-2)", border: `1px solid color-mix(in srgb, var(--brand-accent) 30%, transparent)` }}>
+          <p className="text-3xl font-black tracking-widest font-mono" style={{ color: "var(--brand-accent)" }}>
             {couponCode}
           </p>
           <button
@@ -1853,8 +1846,8 @@ function CouponRevealModal({
             className="w-full py-2 rounded-xl text-sm font-bold transition active:scale-95"
             style={{
               background: copied ? "#d1fae5" : "white",
-              color: copied ? "#065f46" : GC.brown,
-              border: `1px solid rgba(107,79,58,0.2)`,
+              color: copied ? "#065f46" : "var(--text-muted)",
+              border: `1px solid var(--border)`,
             }}
           >
             {copied ? "✓ Copiado!" : "Copiar código"}
@@ -1866,7 +1859,7 @@ function CouponRevealModal({
             type="button"
             onClick={onClose}
             className="py-2.5 rounded-xl text-sm font-semibold transition hover:bg-black/5"
-            style={{ color: GC.brown, border: `1px solid rgba(107,79,58,0.2)` }}
+            style={{ color: "var(--text-muted)", border: `1px solid var(--border)` }}
           >
             Fechar
           </button>
@@ -1874,7 +1867,7 @@ function CouponRevealModal({
             type="button"
             onClick={() => onApplyNow(couponCode)}
             className="py-2.5 rounded-xl text-sm font-bold text-white transition active:scale-95"
-            style={{ background: `linear-gradient(135deg, ${GC.caramel}, #b9822d)` }}
+            style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
           >
             Aplicar agora
           </button>
@@ -1924,22 +1917,22 @@ function CustomerSearchModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4"
-        style={{ background: "#FAF7F2" }}
+        style={{ background: "var(--bg)" }}
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <p className="font-bold text-base" style={{ color: "#1C1209" }}>Identificar Cliente</p>
+          <p className="font-bold text-base" style={{ color: "var(--text)" }}>Identificar Cliente</p>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
         </div>
 
         {/* toggle Telefone / CPF */}
-        <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: "rgba(107,79,58,0.2)" }}>
+        <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: "var(--border)" }}>
           {(["phone", "cpf"] as const).map((m) => (
             <button key={m} type="button"
               onClick={() => handleModeChange(m)}
               className="flex-1 py-1.5 text-xs font-medium transition"
               style={mode === m
-                ? { background: "#C8953A", color: "#fff" }
-                : { background: "#fff", color: "#6B4F3A" }}>
+                ? { background: "var(--brand-accent)", color: "#fff" }
+                : { background: "var(--surface-2)", color: "var(--text-muted)" }}>
               {m === "phone" ? "Telefone" : "CPF"}
             </button>
           ))}
@@ -1952,11 +1945,11 @@ function CustomerSearchModal({
             placeholder={mode === "cpf" ? "000.000.000-00" : "(11) 99999-9999"}
             inputMode="numeric"
             className="flex-1 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-            style={{ border: "1.5px solid rgba(107,79,58,0.2)", background: "#fff", color: "#1C1209" }}
+            style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
           />
           <button type="submit" disabled={loading || value.replace(/\D/g,"").length < (mode === "cpf" ? 11 : 10)}
             className="px-4 py-2.5 rounded-xl text-white text-sm font-bold transition active:scale-95 disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #1C1209, #3D2314)" }}>
+            style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
             {loading ? "..." : "Buscar"}
           </button>
         </form>
@@ -1966,11 +1959,11 @@ function CustomerSearchModal({
         )}
 
         {result && result !== "notfound" && (
-          <div className="rounded-xl p-3 space-y-1" style={{ background: "rgba(107,79,58,0.08)" }}>
-            <p className="font-semibold text-sm" style={{ color: "#1C1209" }}>{result.name}</p>
-            <p className="text-xs" style={{ color: "#6B4F3A" }}>{result.phone}</p>
+          <div className="rounded-xl p-3 space-y-1" style={{ background: "color-mix(in srgb, var(--border) 60%, transparent)" }}>
+            <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{result.name}</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>{result.phone}</p>
             {result.pointsBalance > 0 && (
-              <p className="text-xs font-medium" style={{ color: "#C8953A" }}>
+              <p className="text-xs font-medium" style={{ color: "var(--brand-accent)" }}>
                 {result.pointsBalance} pontos de fidelidade
               </p>
             )}
@@ -1986,7 +1979,7 @@ function CustomerSearchModal({
         <button
           onClick={onSkip}
           className="w-full py-2 rounded-xl text-sm transition hover:bg-black/5"
-          style={{ color: "#6B4F3A" }}>
+          style={{ color: "var(--text-muted)" }}>
           Pular identificação
         </button>
       </div>
@@ -2252,8 +2245,8 @@ export default function PdvPage() {
 
   if (!initialized || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: GC.bg }}>
-        <p className="text-sm" style={{ color: GC.brown }}>Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</p>
       </div>
     );
   }
@@ -2267,7 +2260,7 @@ export default function PdvPage() {
   const effectiveTotalCents = Math.max(0, (currentSale?.subtotalCents ?? 0) - effectiveDiscountCents);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: GC.bg }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       {/* Modals */}
       {showCloseModal && (
         <CloseSessionModal
@@ -2320,7 +2313,7 @@ export default function PdvPage() {
 
       {/* Top Bar */}
       <div className="px-4 py-3 flex items-center gap-3 flex-wrap min-h-[56px]"
-        style={{ background: GC.dark, boxShadow: "0 2px 12px rgba(28,18,9,0.25)" }}>
+        style={{ background: "var(--text)", boxShadow: "0 2px 12px rgba(0,0,0,0.18)" }}>
         {/* Menu button */}
         <button
           onClick={() => setNavOpen(true)}
@@ -2331,7 +2324,7 @@ export default function PdvPage() {
           <Menu size={17} style={{ color: "rgba(255,255,255,0.75)" }} />
         </button>
         <div>
-          <span className="font-black text-base tracking-tight" style={{ color: GC.caramel }}>PDV</span>
+          <span className="font-black text-base tracking-tight" style={{ color: "var(--brand-accent)" }}>PDV</span>
           <span className="text-sm ml-2 font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>{session.registerName}</span>
           <span className="hidden sm:inline text-xs ml-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>
             · {session.openedByUserName}
@@ -2419,13 +2412,13 @@ export default function PdvPage() {
       {/* Mobile: Payment panel overlay */}
       {showPay && (
         <div className="lg:hidden fixed inset-0 z-30 flex items-end" onClick={() => setShowPay(false)}
-          style={{ backgroundColor: "rgba(28,18,9,0.65)" }}>
+          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
           <div className="w-full rounded-t-3xl p-5 pb-8 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
-            style={{ background: GC.bg }}
+            style={{ background: "var(--bg)" }}
             onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: GC.cream }} />
+            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: "var(--surface-2)" }} />
             <div className="space-y-1">
-              <div className="flex justify-between text-sm" style={{ color: GC.brown }}>
+              <div className="flex justify-between text-sm" style={{ color: "var(--text-muted)" }}>
                 <span>Subtotal</span><span>{brl(currentSale?.subtotalCents ?? 0)}</span>
               </div>
               {effectiveDiscountCents > 0 && (
@@ -2434,7 +2427,7 @@ export default function PdvPage() {
                 </div>
               )}
               <div className="flex justify-between text-xl font-black pt-2 mt-1"
-                style={{ color: GC.dark, borderTop: `1px solid rgba(107,79,58,0.12)` }}>
+                style={{ color: "var(--text)", borderTop: `1px solid var(--border)` }}>
                 <span>Total</span><span>{brl(effectiveTotalCents)}</span>
               </div>
             </div>
@@ -2462,12 +2455,12 @@ export default function PdvPage() {
           {/* Cliente identificado */}
           {pendingCustomer && (
             <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
-              style={{ background: "rgba(107,79,58,0.08)", border: `1px solid rgba(107,79,58,0.15)` }}>
+              style={{ background: "color-mix(in srgb, var(--border) 60%, transparent)", border: `1px solid var(--border)` }}>
               <span className="text-lg"><User size={16} /></span>
-              <span className="flex-1 font-medium truncate" style={{ color: GC.dark }}>
+              <span className="flex-1 font-medium truncate" style={{ color: "var(--text)" }}>
                 {pendingCustomer.name}
                 {pendingCustomer.pointsBalance > 0 && (
-                  <span className="ml-2 text-xs font-normal" style={{ color: GC.caramel }}>
+                  <span className="ml-2 text-xs font-normal" style={{ color: "var(--brand-accent)" }}>
                     {pendingCustomer.pointsBalance} pts
                   </span>
                 )}
@@ -2476,7 +2469,7 @@ export default function PdvPage() {
                 type="button"
                 onClick={() => setPendingCustomer(null)}
                 className="text-xs px-2 py-0.5 rounded-lg transition hover:bg-white/50"
-                style={{ color: GC.brown }}
+                style={{ color: "var(--text-muted)" }}
               >
                 Remover
               </button>
@@ -2491,11 +2484,11 @@ export default function PdvPage() {
               onChange={(e) => setBarcode(e.target.value)}
               placeholder="Codigo de barras..."
               className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-              style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark }}
+              style={{ border: `1.5px solid var(--border)`, background: "var(--bg)", color: "var(--text)" }}
             />
             <button type="submit" disabled={scanning || !barcode.trim()}
               className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition active:scale-95 disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}>
+              style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))" }}>
               {scanning ? "..." : "Ler"}
             </button>
             <button
@@ -2503,7 +2496,7 @@ export default function PdvPage() {
               title="Identificar cliente"
               onClick={() => setShowCustomerSearch(true)}
               className="px-3 py-2.5 rounded-xl text-sm font-bold transition active:scale-95"
-              style={{ background: "rgba(107,79,58,0.1)", color: GC.brown }}
+              style={{ background: "var(--border)", color: "var(--text-muted)" }}
             >
               <User size={15} />
             </button>
@@ -2512,14 +2505,14 @@ export default function PdvPage() {
           {/* DAV Import */}
           <form onSubmit={handleImportDav} className="flex gap-2 items-center">
             <div className="flex-1 flex items-center rounded-xl overflow-hidden"
-              style={{ border: `1.5px solid rgba(200,149,58,0.35)`, background: "#fff" }}>
-              <span className="pl-3 pr-1 text-xs font-black select-none whitespace-nowrap" style={{ color: GC.caramel }}>DAV-</span>
+              style={{ border: `1.5px solid color-mix(in srgb, var(--brand-accent) 35%, transparent)`, background: "var(--bg)" }}>
+              <span className="pl-3 pr-1 text-xs font-black select-none whitespace-nowrap" style={{ color: "var(--brand-accent)" }}>DAV-</span>
               <input
                 value={davCode}
                 onChange={(e) => setDavCode(e.target.value.replace(/^DAV-/i, ""))}
                 placeholder="código ou escaneie..."
                 className="flex-1 py-2.5 pr-3 text-sm bg-transparent focus:outline-none"
-                style={{ color: GC.dark }}
+                style={{ color: "var(--text)" }}
               />
             </div>
             <button type="submit" disabled={importingDav || !davCode.trim()}
@@ -2529,12 +2522,12 @@ export default function PdvPage() {
             </button>
             <button type="button" title="Buscar orcamento" onClick={() => setShowDavSearch(true)}
               className="p-2.5 rounded-xl transition hover:opacity-80"
-              style={{ border: `1.5px solid rgba(200,149,58,0.35)`, color: GC.caramel, background: `${GC.caramel}10` }}>
+              style={{ border: `1.5px solid color-mix(in srgb, var(--brand-accent) 35%, transparent)`, color: "var(--brand-accent)", background: "color-mix(in srgb, var(--brand-accent) 10%, transparent)" }}>
               <Search size={16} />
             </button>
           </form>
 
-          <div className="rounded-2xl overflow-hidden flex flex-col shadow-sm" style={{ minHeight: 200, flex: "1 1 0", border: `1px solid rgba(107,79,58,0.1)` }}>
+          <div className="rounded-2xl overflow-hidden flex flex-col shadow-sm" style={{ minHeight: 200, flex: "1 1 0", border: `1px solid var(--border)` }}>
             <QuickProducts
               saleId={currentSale?.id ?? ""}
               onAdded={async (name) => {
@@ -2546,26 +2539,26 @@ export default function PdvPage() {
           </div>
 
           <div className="lg:hidden rounded-2xl overflow-hidden shadow-sm max-h-[320px]"
-            style={{ minHeight: 180, border: `1px solid rgba(107,79,58,0.1)` }}>
+            style={{ minHeight: 180, border: `1px solid var(--border)` }}>
             <CartTable sale={currentSale} onRemove={handleRemoveItem} />
           </div>
 
           {/* Mobile: sticky cobrar bar */}
           <div className="lg:hidden">
             <div className="rounded-2xl p-4 flex items-center gap-4 shadow-sm"
-              style={{ background: GC.cream, border: `1px solid rgba(107,79,58,0.12)` }}>
+              style={{ background: "var(--surface-2)", border: `1px solid var(--border)` }}>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: GC.brown }}>Total</div>
-                <div className="text-2xl font-black" style={{ color: GC.dark }}>{brl(effectiveTotalCents)}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Total</div>
+                <div className="text-2xl font-black" style={{ color: "var(--text)" }}>{brl(effectiveTotalCents)}</div>
                 {currentSale?.publicId && (
-                  <div className="text-[10px] mt-0.5" style={{ color: GC.brown, opacity: 0.5 }}>{currentSale.publicId}</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.5 }}>{currentSale.publicId}</div>
                 )}
               </div>
               <button
                 disabled={!currentSale || currentSale.items.length === 0}
                 onClick={() => setShowPay(true)}
                 className="shrink-0 px-6 py-3 rounded-2xl text-white font-bold transition active:scale-95 disabled:opacity-40 text-base"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 14px rgba(28,18,9,0.25)" }}
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 4px 14px rgba(0,0,0,0.18)" }}
               >
                 Cobrar
               </button>
@@ -2576,9 +2569,9 @@ export default function PdvPage() {
         {/* Right: Totals + Payment (desktop) */}
         <div className="hidden lg:flex w-[420px] xl:w-[460px] flex-col gap-3 shrink-0">
           <div className="rounded-2xl p-5 space-y-3 shadow-sm"
-            style={{ background: GC.cream, border: `1px solid rgba(107,79,58,0.1)` }}>
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: GC.brown }}>Resumo da venda</p>
-            <div className="flex justify-between text-sm" style={{ color: GC.brown }}>
+            style={{ background: "var(--surface-2)", border: `1px solid var(--border)` }}>
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Resumo da venda</p>
+            <div className="flex justify-between text-sm" style={{ color: "var(--text-muted)" }}>
               <span>Subtotal</span>
               <span>{brl(currentSale?.subtotalCents ?? 0)}</span>
             </div>
@@ -2589,7 +2582,7 @@ export default function PdvPage() {
               </div>
             )}
             <div className="flex justify-between text-2xl font-black pt-2"
-              style={{ color: GC.dark, borderTop: `1px solid rgba(107,79,58,0.12)` }}>
+              style={{ color: "var(--text)", borderTop: `1px solid var(--border)` }}>
               <span>Total</span>
               <span>{brl(effectiveTotalCents)}</span>
             </div>
@@ -2599,7 +2592,7 @@ export default function PdvPage() {
                 disabled={!currentSale || currentSale.items.length === 0}
                 onClick={() => setShowPay(true)}
                 className="w-full py-4 rounded-2xl text-white font-bold text-lg transition active:scale-95 disabled:opacity-40"
-                style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 18px rgba(28,18,9,0.3)" }}
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))", boxShadow: "0 4px 18px rgba(0,0,0,0.22)" }}
               >
                 Cobrar
               </button>
@@ -2620,12 +2613,12 @@ export default function PdvPage() {
               />
             )}
             {currentSale?.publicId && (
-              <p className="text-center text-[10px]" style={{ color: GC.brown, opacity: 0.5 }}>{currentSale.publicId}</p>
+              <p className="text-center text-[10px]" style={{ color: "var(--text-muted)", opacity: 0.5 }}>{currentSale.publicId}</p>
             )}
           </div>
 
           <div className="rounded-2xl overflow-hidden shadow-sm flex-1 min-h-[340px]"
-            style={{ border: `1px solid rgba(107,79,58,0.1)` }}>
+            style={{ border: `1px solid var(--border)` }}>
             <CartTable sale={currentSale} onRemove={handleRemoveItem} />
           </div>
         </div>

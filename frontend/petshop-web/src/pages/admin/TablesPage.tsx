@@ -6,14 +6,6 @@ import {
   ShoppingBag, BarChart2, Users, ClipboardList, CircleCheck, ExternalLink,
 } from "lucide-react";
 
-// ── Design tokens (Go Coffee palette) ─────────────────────────────────────────
-const GC = {
-  bg:      "#FAF7F2",
-  cream:   "#F5EDE0",
-  brown:   "#6B4F3A",
-  dark:    "#1C1209",
-  caramel: "#C8953A",
-};
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
   fetchTablesOverview, fetchTableMetrics,
@@ -59,87 +51,87 @@ function QuickOrderModal({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(28,18,9,0.65)" }}
+      style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
       onClick={onClose}
     >
       <div
         className="rounded-3xl shadow-2xl w-full max-w-lg max-h-[88vh] overflow-hidden"
-        style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}
+        style={{ background: "var(--surface)", boxShadow: "0 24px 80px rgba(0,0,0,0.2)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: `1px solid rgba(107,79,58,0.1)` }}>
+          style={{ borderBottom: "1px solid var(--border)" }}>
           <div>
-            <h3 className="text-base font-black" style={{ color: GC.dark }}>{orderNumber}</h3>
-            <p className="text-xs mt-0.5 font-medium" style={{ color: GC.brown, opacity: 0.6 }}>Resumo do pedido</p>
+            <h3 className="text-base font-black" style={{ color: "var(--text)" }}>{orderNumber}</h3>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--text-muted)" }}>Resumo do pedido</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { onClose(); navigate(`/admin/orders?q=${orderNumber}`); }}
               className="flex items-center gap-1.5 h-8 px-3 rounded-xl text-xs font-bold transition hover:opacity-80"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, color: "#fff" }}
+              style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, color: "#fff" }}
             >
               <ExternalLink size={11} /> Ver pedido
             </button>
             <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: GC.cream }}>
-              <X size={14} style={{ color: GC.brown }} />
+              style={{ background: "var(--surface-2)" }}>
+              <X size={14} style={{ color: "var(--text-muted)" }} />
             </button>
           </div>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(88vh-72px)] space-y-4">
           {orderQ.isLoading && (
-            <p className="text-sm font-medium" style={{ color: GC.brown }}>Carregando...</p>
+            <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>Carregando...</p>
           )}
           {!orderQ.isLoading && !order && (
-            <p className="text-sm" style={{ color: GC.brown }}>Pedido não encontrado.</p>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Pedido não encontrado.</p>
           )}
           {order && (
             <>
               {/* Cliente */}
               <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
-                style={{ background: GC.cream }}>
+                style={{ background: "var(--surface-2)" }}>
                 <div>
-                  <p className="text-sm font-bold" style={{ color: GC.dark }}>{order.name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.7 }}>
+                  <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{order.name}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                     {order.phone || "Sem telefone"}
                   </p>
                 </div>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                  style={{ background: `${GC.caramel}20`, color: GC.caramel }}>
+                  style={{ background: "color-mix(in srgb, var(--brand-accent) 20%, transparent)", color: "var(--brand-accent)" }}>
                   {orderStatusLabel(order.status)}
                 </span>
               </div>
 
               {/* Itens */}
-              <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid rgba(107,79,58,0.1)` }}>
+              <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
                 <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest"
-                  style={{ background: GC.cream, color: GC.brown, opacity: 1 }}>
+                  style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
                   Itens do pedido
                 </div>
                 {order.items.map((i) => (
                   <div key={`${i.productId}-${i.productName}`}
                     className="px-4 py-3 flex items-center justify-between gap-3"
-                    style={{ borderTop: `1px solid rgba(107,79,58,0.07)` }}>
-                    <p className="text-sm" style={{ color: GC.dark }}>{i.qty}× {i.productName}</p>
-                    <p className="text-sm font-bold" style={{ color: GC.dark }}>{fmtCurrency(i.totalPriceCents)}</p>
+                    style={{ borderTop: "1px solid var(--border)" }}>
+                    <p className="text-sm" style={{ color: "var(--text)" }}>{i.qty}× {i.productName}</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{fmtCurrency(i.totalPriceCents)}</p>
                   </div>
                 ))}
               </div>
 
               {/* Totais */}
               <div className="rounded-2xl px-4 py-3 space-y-2"
-                style={{ background: GC.cream }}>
-                <div className="flex justify-between text-sm" style={{ color: GC.brown }}>
+                style={{ background: "var(--surface-2)" }}>
+                <div className="flex justify-between text-sm" style={{ color: "var(--text-muted)" }}>
                   <span>Subtotal</span><span>{fmtCurrency(order.subtotalCents)}</span>
                 </div>
                 <div className="flex justify-between text-[13px] font-black pt-1"
-                  style={{ color: GC.dark, borderTop: `1px solid rgba(107,79,58,0.12)` }}>
+                  style={{ color: "var(--text)", borderTop: "1px solid var(--border)" }}>
                   <span>Total</span><span>{fmtCurrency(order.totalCents)}</span>
                 </div>
-                <div className="flex justify-between text-xs" style={{ color: GC.brown, opacity: 0.6 }}>
+                <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
                   <span>Pagamento</span><span>{paymentLabel(order.paymentMethodStr)}</span>
                 </div>
               </div>
@@ -407,28 +399,28 @@ function ServiceModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(28,18,9,0.65)" }}
+      style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
       onClick={onClose}
     >
       <div
         className="rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
-        style={{ background: GC.bg, boxShadow: "0 24px 80px rgba(28,18,9,0.35)" }}
+        style={{ background: "var(--surface)", boxShadow: "0 24px 80px rgba(0,0,0,0.2)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5"
-          style={{ borderBottom: `1px solid rgba(107,79,58,0.1)` }}>
+          style={{ borderBottom: "1px solid var(--border)" }}>
           <div>
-            <h3 className="text-lg font-black" style={{ color: GC.dark }}>
+            <h3 className="text-lg font-black" style={{ color: "var(--text)" }}>
               Mesa {table.number}{table.name ? ` · ${table.name}` : ""}
             </h3>
-            <p className="text-xs mt-0.5 font-medium" style={{ color: GC.brown, opacity: 0.6 }}>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--text-muted)" }}>
               Gerencie a comanda e libere a mesa ao finalizar.
             </p>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: GC.cream }}>
-            <X size={15} style={{ color: GC.brown }} />
+            style={{ background: "var(--surface-2)" }}>
+            <X size={15} style={{ color: "var(--text-muted)" }} />
           </button>
         </div>
 
@@ -437,10 +429,10 @@ function ServiceModal({
           {/* DAV result banner */}
           {davResult && (
             <div className="rounded-2xl p-4 flex items-start gap-3"
-              style={{ background: davResult.davPublicId ? `linear-gradient(135deg, #059669, #047857)` : GC.cream }}>
+              style={{ background: davResult.davPublicId ? `linear-gradient(135deg, #059669, #047857)` : "var(--surface-2)" }}>
               <CircleCheck size={18} className="mt-0.5 shrink-0" style={{ color: davResult.davPublicId ? "#fff" : "#059669" }} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold" style={{ color: davResult.davPublicId ? "#fff" : GC.dark }}>
+                <p className="text-sm font-bold" style={{ color: davResult.davPublicId ? "#fff" : "var(--text)" }}>
                   {davResult.davPublicId ? `Mesa finalizada · DAV gerado` : "Mesa finalizada"}
                 </p>
                 {davResult.davPublicId && (
@@ -448,7 +440,7 @@ function ServiceModal({
                     {davResult.davPublicId}
                   </p>
                 )}
-                <p className="text-xs mt-1 font-medium" style={{ color: davResult.davPublicId ? "rgba(255,255,255,0.75)" : GC.brown }}>
+                <p className="text-xs mt-1 font-medium" style={{ color: davResult.davPublicId ? "rgba(255,255,255,0.75)" : "var(--text-muted)" }}>
                   {davResult.davPublicId
                     ? "Informe este código no caixa (PDV → DAV) para cobrar."
                     : davResult.message}
@@ -457,7 +449,7 @@ function ServiceModal({
               <button onClick={() => setDavResult(null)}
                 className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: "rgba(255,255,255,0.2)" }}>
-                <X size={11} style={{ color: davResult.davPublicId ? "#fff" : GC.brown }} />
+                <X size={11} style={{ color: davResult.davPublicId ? "#fff" : "var(--text-muted)" }} />
               </button>
             </div>
           )}
@@ -470,62 +462,62 @@ function ServiceModal({
               { label: "Valor em aberto", value: fmtCurrency(service?.totals.amountCents ?? 0), icon: <BarChart2 size={14} />, highlight: true },
             ].map(({ label, value, icon, highlight }) => (
               <div key={label} className="rounded-2xl p-4 flex flex-col gap-1"
-                style={{ background: highlight ? `linear-gradient(135deg, ${GC.dark}, #3D2314)` : GC.cream }}>
-                <div className="flex items-center gap-1.5" style={{ color: highlight ? "rgba(255,255,255,0.5)" : GC.brown }}>
+                style={{ background: highlight ? `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))` : "var(--surface-2)" }}>
+                <div className="flex items-center gap-1.5" style={{ color: highlight ? "rgba(255,255,255,0.5)" : "var(--text-muted)" }}>
                   {icon}
                   <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
                 </div>
-                <p className="text-xl font-black" style={{ color: highlight ? "#fff" : GC.dark }}>{value}</p>
+                <p className="text-xl font-black" style={{ color: highlight ? "#fff" : "var(--text)" }}>{value}</p>
               </div>
             ))}
           </div>
 
           {/* Abrir comanda */}
           <div className="rounded-2xl p-5 space-y-4"
-            style={{ background: GC.cream, border: `1.5px solid rgba(200,149,58,0.18)` }}>
+            style={{ background: "var(--surface-2)", border: "1.5px solid color-mix(in srgb, var(--brand-accent) 18%, transparent)" }}>
             <div className="flex items-center gap-2">
-              <ClipboardList size={14} style={{ color: GC.caramel }} />
-              <p className="text-sm font-bold" style={{ color: GC.dark }}>Abrir comanda para atendimento rápido</p>
+              <ClipboardList size={14} style={{ color: "var(--brand-accent)" }} />
+              <p className="text-sm font-bold" style={{ color: "var(--text)" }}>Abrir comanda para atendimento rápido</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-bold mb-1.5" style={{ color: GC.brown, opacity: 0.7 }}>Nome do responsável</label>
+                <label className="block text-[11px] font-bold mb-1.5" style={{ color: "var(--text-muted)" }}>Nome do responsável</label>
                 <input value={hostName} onChange={(e) => setHostName(e.target.value)}
                   placeholder="Ex: João"
                   className="w-full h-10 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 transition"
-                  style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark, ["--tw-ring-color" as string]: GC.caramel + "40" }}
+                  style={{ border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", ["--tw-ring-color" as string]: "color-mix(in srgb, var(--brand-accent) 40%, transparent)" }}
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold mb-1.5" style={{ color: GC.brown, opacity: 0.7 }}>
+                <label className="block text-[11px] font-bold mb-1.5" style={{ color: "var(--text-muted)" }}>
                   Pessoas (max {maxGuests})
                 </label>
                 <input type="number" min={1} max={maxGuests} value={guests}
                   onChange={(e) => setGuests(e.target.value)}
                   className="w-full h-10 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 transition"
-                  style={{ border: `1.5px solid rgba(107,79,58,0.15)`, background: "#fff", color: GC.dark, ["--tw-ring-color" as string]: GC.caramel + "40" }}
+                  style={{ border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", ["--tw-ring-color" as string]: "color-mix(in srgb, var(--brand-accent) 40%, transparent)" }}
                 />
               </div>
             </div>
             <button onClick={handleOpenComanda}
               className="w-full h-10 rounded-xl text-sm font-bold text-white transition active:scale-[0.98]"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 14px rgba(28,18,9,0.25)" }}>
+              style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 14px color-mix(in srgb, var(--brand) 25%, transparent)" }}>
               Abrir comanda da mesa
             </button>
           </div>
 
           {/* Lista de pedidos */}
           <div className="rounded-2xl overflow-hidden"
-            style={{ border: `1px solid rgba(107,79,58,0.1)` }}>
+            style={{ border: "1px solid var(--border)" }}>
             <div className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest"
-              style={{ background: GC.cream, color: GC.brown }}>
+              style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
               Pedidos da mesa
             </div>
-            <div className="max-h-56 overflow-y-auto divide-y" style={{ divideColor: "rgba(107,79,58,0.07)" } as React.CSSProperties}>
+            <div className="max-h-56 overflow-y-auto divide-y divide-[var(--border)]">
               {serviceQ.isLoading ? (
-                <div className="p-4 text-sm" style={{ color: GC.brown }}>Carregando...</div>
+                <div className="p-4 text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</div>
               ) : (service?.activeOrders.length ?? 0) === 0 ? (
-                <div className="p-4 text-sm" style={{ color: GC.brown, opacity: 0.6 }}>Nenhuma comanda ativa nesta mesa.</div>
+                <div className="p-4 text-sm" style={{ color: "var(--text-muted)" }}>Nenhuma comanda ativa nesta mesa.</div>
               ) : (
                 service!.activeOrders.map((o) => (
                   <button key={o.id} type="button"
@@ -533,14 +525,14 @@ function ServiceModal({
                     className="w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 transition hover:bg-amber-50/60"
                   >
                     <div>
-                      <p className="text-sm font-bold" style={{ color: GC.dark }}>{o.publicId}</p>
-                      <p className="text-xs mt-0.5" style={{ color: GC.brown, opacity: 0.65 }}>
+                      <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{o.publicId}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                         {o.customerName} · {orderStatusLabel(o.status)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-black" style={{ color: GC.dark }}>{fmtCurrency(o.totalCents)}</p>
-                      <ExternalLink size={12} style={{ color: GC.caramel }} />
+                      <p className="text-sm font-black" style={{ color: "var(--text)" }}>{fmtCurrency(o.totalCents)}</p>
+                      <ExternalLink size={12} style={{ color: "var(--brand-accent)" }} />
                     </div>
                   </button>
                 ))
@@ -602,14 +594,14 @@ function TableCard({
       <div
         className="rounded-2xl flex flex-col cursor-pointer transition-all duration-200 hover:scale-[1.01] overflow-hidden"
         style={{
-          background: `linear-gradient(145deg, ${GC.dark} 0%, #3D2314 100%)`,
-          boxShadow: "0 8px 28px rgba(28,18,9,0.3)",
+          background: `linear-gradient(145deg, var(--brand) 0%, color-mix(in srgb, var(--brand) 72%, #000) 100%)`,
+          boxShadow: "0 8px 28px rgba(0,0,0,0.2)",
           minHeight: 210,
         }}
         onClick={onManage}
       >
         {/* Status strip */}
-        <div className="h-1 w-full" style={{ background: GC.caramel }} />
+        <div className="h-1 w-full" style={{ background: "var(--brand-accent)" }} />
 
         <div className="flex flex-col gap-3 p-4 flex-1">
           {/* Header */}
@@ -626,8 +618,8 @@ function TableCard({
                 )}
               </div>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold mt-1.5"
-                style={{ background: `${GC.caramel}28`, color: GC.caramel }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: GC.caramel }} />
+                style={{ background: "color-mix(in srgb, var(--brand-accent) 28%, transparent)", color: "var(--brand-accent)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--brand-accent)" }} />
                 Ocupada · {openLabel}
               </span>
             </div>
@@ -653,7 +645,7 @@ function TableCard({
               <span className="font-medium">{table.capacity} lugares</span>
             </div>
             <div className="h-9 rounded-xl px-2.5 flex items-center gap-1.5"
-              style={{ background: `${GC.caramel}20`, color: GC.caramel }}>
+              style={{ background: "color-mix(in srgb, var(--brand-accent) 20%, transparent)", color: "var(--brand-accent)" }}>
               <ShoppingBag size={11} />
               <span className="font-bold">{openLabel}</span>
             </div>
@@ -677,8 +669,8 @@ function TableCard({
       className="rounded-2xl flex flex-col cursor-pointer transition-all duration-200 hover:scale-[1.01] overflow-hidden"
       style={{
         background: "var(--surface)",
-        border: `1.5px solid ${isInactive ? "var(--border)" : "rgba(200,149,58,0.22)"}`,
-        boxShadow: "0 2px 10px rgba(28,18,9,0.07)",
+        border: `1.5px solid ${isInactive ? "var(--border)" : "color-mix(in srgb, var(--brand-accent) 22%, transparent)"}`,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
         minHeight: 210,
         opacity: isInactive ? 0.65 : 1,
       }}
@@ -730,8 +722,8 @@ function TableCard({
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="h-9 rounded-xl px-2.5 flex items-center gap-1.5"
-            style={{ background: GC.cream, color: GC.brown }}>
-            <Users size={11} style={{ color: GC.caramel }} />
+            style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
+            <Users size={11} style={{ color: "var(--brand-accent)" }} />
             <span className="font-semibold">{table.capacity} lugares</span>
           </div>
           <div className="h-9 rounded-xl px-2.5 flex items-center gap-1.5"
@@ -745,11 +737,11 @@ function TableCard({
         <button onClick={(e) => { e.stopPropagation(); onQr(); }}
           className="mt-auto w-full flex items-center justify-center gap-2 h-9 rounded-xl text-xs font-semibold transition hover:opacity-80"
           style={{
-            background: GC.cream,
-            color: GC.brown,
-            border: `1.5px solid rgba(200,149,58,0.25)`,
+            background: "var(--surface-2)",
+            color: "var(--text-muted)",
+            border: "1.5px solid color-mix(in srgb, var(--brand-accent) 25%, transparent)",
           }}>
-          <QrCode size={13} style={{ color: GC.caramel }} />
+          <QrCode size={13} style={{ color: "var(--brand-accent)" }} />
           Ver QR Code
         </button>
       </div>
@@ -837,7 +829,7 @@ export default function TablesPage() {
               type="button"
               onClick={() => { setShowCreate(true); setMutErr(undefined); }}
               className="flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)`, boxShadow: "0 4px 14px rgba(28,18,9,0.25)" }}
+              style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, boxShadow: "0 4px 14px color-mix(in srgb, var(--brand) 25%, transparent)" }}
             >
               <Plus size={15} />
               Nova mesa
@@ -876,8 +868,8 @@ export default function TablesPage() {
             <div className="rounded-2xl p-4 flex items-center gap-3"
               style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: GC.cream }}>
-                <Users size={18} style={{ color: GC.caramel }} />
+                style={{ background: "var(--surface-2)" }}>
+                <Users size={18} style={{ color: "var(--brand-accent)" }} />
               </div>
               <div>
                 <p className="text-2xl font-black leading-none" style={{ color: "var(--text)" }}>{active.length}</p>
@@ -907,7 +899,7 @@ export default function TablesPage() {
             <button
               onClick={() => setShowCreate(true)}
               className="mt-4 inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: `linear-gradient(135deg, ${GC.dark}, #3D2314)` }}
+              style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))` }}
             >
               <Plus size={14} /> Criar primeira mesa
             </button>

@@ -51,10 +51,10 @@ function OrderToast({
       {/* Header */}
       <div
         className="flex items-center gap-2 px-4 py-2.5"
-        style={{ background: "linear-gradient(135deg, #C8953A22, #A0723022)" }}
+        style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--brand-accent) 13%, transparent), color-mix(in srgb, var(--brand-accent) 13%, transparent))" }}
       >
-        <ShoppingBag size={14} style={{ color: "#C8953A" }} />
-        <span className="text-xs font-bold uppercase tracking-wider flex-1" style={{ color: "#C8953A" }}>
+        <ShoppingBag size={14} style={{ color: "var(--brand-accent)" }} />
+        <span className="text-xs font-bold uppercase tracking-wider flex-1" style={{ color: "var(--brand-accent)" }}>
           Novo pedido
         </span>
         <button
@@ -82,7 +82,7 @@ function OrderToast({
             navigate(`/app/pedidos/${notif.orderPublicId}`);
           }}
           className="w-full h-8 rounded-xl text-xs font-semibold text-white transition hover:brightness-110 active:scale-95"
-          style={{ background: "linear-gradient(135deg, #C8953A, #A07230)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
         >
           Ver pedido →
         </button>
@@ -92,7 +92,7 @@ function OrderToast({
       <div className="h-0.5 w-full" style={{ backgroundColor: "var(--border)" }}>
         <div
           className="h-full transition-none"
-          style={{ width: `${progress}%`, backgroundColor: "#C8953A" }}
+          style={{ width: `${progress}%`, backgroundColor: "var(--brand-accent)" }}
         />
       </div>
     </div>
@@ -147,7 +147,7 @@ function SoundSettingsPanel({
           className={`relative w-10 h-5.5 rounded-full transition-colors`}
           style={{
             width: 40, height: 22,
-            backgroundColor: prefs.enabled ? "#C8953A" : "var(--border)",
+            backgroundColor: prefs.enabled ? "var(--brand-accent)" : "var(--border)",
           }}
         >
           <span
@@ -174,7 +174,7 @@ function SoundSettingsPanel({
             step={0.05}
             value={prefs.volume}
             onChange={(e) => set({ volume: parseFloat(e.target.value) })}
-            className="w-full accent-[#C8953A]"
+            className="w-full accent-[var(--brand-accent)]"
           />
         </div>
       )}
@@ -194,9 +194,9 @@ function SoundSettingsPanel({
                 }}
                 className="h-8 rounded-xl text-xs font-semibold transition border"
                 style={{
-                  backgroundColor: prefs.soundId === id ? "#C8953A" : "var(--surface-2)",
+                  backgroundColor: prefs.soundId === id ? "var(--brand-accent)" : "var(--surface-2)",
                   color:           prefs.soundId === id ? "#fff"    : "var(--text-muted)",
-                  borderColor:     prefs.soundId === id ? "#C8953A" : "var(--border)",
+                  borderColor:     prefs.soundId === id ? "var(--brand-accent)" : "var(--border)",
                 }}
               >
                 {SOUND_LABELS[id as SoundId]}

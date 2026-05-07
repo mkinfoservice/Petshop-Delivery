@@ -62,7 +62,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <button
         onClick={onAdd}
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-        style={{ background: "linear-gradient(135deg,#C8953A,#A07230)" }}
+        style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
       >
         <Plus size={15} />
         Conectar iFood
@@ -448,7 +448,7 @@ function IntegrationModal({
               type="submit"
               disabled={saving}
               className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg,#C8953A,#A07230)" }}
+              style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
             >
               {saving ? "Salvando..." : editing ? "Salvar alterações" : "Conectar"}
             </button>
@@ -488,7 +488,7 @@ function Field({
             color: var(--text);
           }
           label input:focus {
-            border-color: #C8953A;
+            border-color: var(--brand-accent);
           }
         `}</style>
         {children}
@@ -514,14 +514,14 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className="flex items-start gap-2.5 p-3 rounded-xl text-left border transition-colors"
       style={{
-        background: checked ? "rgba(200,149,58,0.08)" : "var(--surface-2)",
-        borderColor: checked ? "#C8953A" : "var(--border)",
+        background: checked ? "color-mix(in srgb, var(--brand-accent) 8%, transparent)" : "var(--surface-2)",
+        borderColor: checked ? "var(--brand-accent)" : "var(--border)",
       }}
     >
       <div
         className="w-8 h-4 rounded-full mt-0.5 shrink-0 flex items-center transition-all"
         style={{
-          background: checked ? "#C8953A" : "var(--border)",
+          background: checked ? "var(--brand-accent)" : "var(--border)",
           justifyContent: checked ? "flex-end" : "flex-start",
           padding: "2px",
         }}
@@ -584,7 +584,7 @@ export default function MarketplacePage() {
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "linear-gradient(135deg,#C8953A,#A07230)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
         >
           <Plus size={15} />
           Nova integração
