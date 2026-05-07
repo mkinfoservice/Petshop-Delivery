@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Mega Pet Faim</title>
+  <desc id="desc">Marca Mega Pet Faim com circulo laranja, pata azul e lettering amarelo.</desc>
+  <defs>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#07122f" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="238" fill="#ff4b25"/>
+  <g filter="url(#softShadow)">
+    <path d="M162 308c16-62 54-94 100-94s80 32 96 94c6 24-11 48-36 47-23-1-40-17-60-17s-37 16-60 17c-25 1-46-23-40-47Z" fill="#123f8c" stroke="#fff" stroke-width="20"/>
+    <ellipse cx="158" cy="225" rx="38" ry="50" transform="rotate(-26 158 225)" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+    <ellipse cx="229" cy="170" rx="38" ry="50" transform="rotate(-10 229 170)" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+    <ellipse cx="307" cy="170" rx="38" ry="50" transform="rotate(10 307 170)" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+    <ellipse cx="378" cy="225" rx="38" ry="50" transform="rotate(26 378 225)" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+    <path d="M115 374c0-24 19-43 43-43h196c24 0 43 19 43 43s-19 43-43 43H158c-24 0-43-19-43-43Z" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+    <circle cx="119" cy="374" r="43" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+    <circle cx="393" cy="374" r="43" fill="#123f8c" stroke="#fff" stroke-width="18"/>
+  </g>
+  <text x="256" y="96" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="56" font-weight="900" fill="#ffd22e" stroke="#123f8c" stroke-width="8" paint-order="stroke" transform="rotate(-9 256 96)">MEGA PET</text>
+  <text x="256" y="392" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="58" font-weight="900" fill="#ffd22e" stroke="#ff4b25" stroke-width="3" paint-order="stroke">FAIM</text>
+</svg>

@@ -7,6 +7,7 @@ import {
   getToken,
 } from "@/features/admin/auth/auth";
 import { usePrintStatus } from "@/features/admin/print/PrintContext";
+import { useStoreFrontConfig } from "@/features/admin/storefront/queries";
 import { APP_MODULES } from "@/config/modules";
 
 function useBreadcrumbLabel(): string | null {
@@ -22,10 +23,13 @@ export function AppHeader() {
   const navigate = useNavigate();
   const breadcrumb = useBreadcrumbLabel();
   const { connected, printStation } = usePrintStatus();
+  const { data: storeFront } = useStoreFrontConfig();
 
   const payload = decodeTokenPayload(getToken());
   const username = payload?.sub ?? "Usuário";
   const initials = username.slice(0, 2).toUpperCase();
+  const brandName = storeFront?.storeName?.trim() || "vendApps";
+  const logoUrl = storeFront?.logoUrl?.trim();
 
   function handleLogout() {
     clearToken();
@@ -47,12 +51,23 @@ export function AppHeader() {
             to="/app"
             className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity"
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "var(--brand)" }}>
-              <Coffee size={14} className="text-white" />
-            </div>
-            <span className="text-sm font-black hidden sm:block" style={{ color: "var(--brand)" }}>
-              vendApps
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={brandName}
+                className="w-8 h-8 rounded-full object-cover shrink-0 bg-white"
+                style={{ boxShadow: "0 0 0 1px var(--border)" }}
+              />
+            ) : (
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "var(--brand)" }}
+              >
+                <Coffee size={14} className="text-white" />
+              </div>
+            )}
+            <span className="text-sm font-black hidden sm:block truncate max-w-[160px]" style={{ color: "var(--brand)" }}>
+              {brandName}
             </span>
           </Link>
 
