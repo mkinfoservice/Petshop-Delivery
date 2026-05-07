@@ -430,7 +430,7 @@ export default function PhoneOrderBuilder() {
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
                   style={searchMode === m
                     ? { background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))`, color: "#fff" }
-                    : { color: "var(--text-muted)"5 }}>
+                    : { color: "var(--text-muted)" }}>
                   {m === "lookup" ? "Cliente cadastrado" : "Sem cadastro"}
                 </button>
               ))}
@@ -476,7 +476,7 @@ export default function PhoneOrderBuilder() {
                           </div>
                           <div>
                             <p className="font-bold" style={{ color: "var(--text)" }}>{foundCustomer.name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)"5 }}>{foundCustomer.phone || foundCustomer.cpf || "—"}</p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{foundCustomer.phone || foundCustomer.cpf || "—"}</p>
                             {foundCustomer.address && (
                               <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
                                 <MapPin size={11} />{foundCustomer.address}
@@ -499,7 +499,7 @@ export default function PhoneOrderBuilder() {
                       </>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2" style={{ color: "var(--text-muted)"5 }}>
+                        <div className="flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
                           <User size={16} />
                           <span className="text-sm">Cliente não encontrado. Cadastre abaixo:</span>
                         </div>
@@ -568,7 +568,7 @@ export default function PhoneOrderBuilder() {
                 </div>
                 <div>
                   <p className="font-black text-lg" style={{ color: "var(--text)" }}>{effectiveName}</p>
-                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)"5 }}>{effectivePhone || "Sem contato"}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>{effectivePhone || "Sem contato"}</p>
                   {(customer?.address || guestAddress) && (
                     <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
                       <MapPin size={11} />{customer?.address ?? guestAddress}
@@ -899,7 +899,7 @@ export default function PhoneOrderBuilder() {
                       Resumo rápido
                     </p>
                     <p className="mt-2 text-sm font-bold" style={{ color: "var(--text)" }}>{effectiveName || "Sem nome"}</p>
-                    {effectivePhone && <p className="text-xs" style={{ color: "var(--text-muted)"5 }}>{effectivePhone}</p>}
+                    {effectivePhone && <p className="text-xs" style={{ color: "var(--text-muted)" }}>{effectivePhone}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -910,7 +910,7 @@ export default function PhoneOrderBuilder() {
                       </div>
                     ))}
                     {cart.length > 4 && (
-                      <p className="text-xs" style={{ color: "var(--text-muted)"5 }}>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                         +{cart.length - 4} item(ns)
                       </p>
                     )}
