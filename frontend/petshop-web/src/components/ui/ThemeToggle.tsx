@@ -21,7 +21,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setDark((d) => !d)}
-      className="w-8 h-8 flex items-center justify-center rounded-lg text-[--text-muted] hover:text-[--text] hover:bg-[--surface-2] transition-colors"
+      className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
       title={dark ? "Modo claro" : "Modo escuro"}
     >
       {dark ? <Sun size={16} /> : <Moon size={16} />}

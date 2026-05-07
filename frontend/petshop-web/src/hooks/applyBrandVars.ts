@@ -9,17 +9,22 @@ type BrandPalette = {
   textMutedColor?: string | null;
 };
 
-export function applyBrandVars(storeFront: BrandPalette) {
+type ApplyBrandVarsOptions = {
+  respectDarkMode?: boolean;
+};
+
+export function applyBrandVars(storeFront: BrandPalette, options: ApplyBrandVarsOptions = {}) {
   const r = document.documentElement;
   const primary = storeFront.primaryColor ?? "#6366f1";
   const secondary = storeFront.secondaryColor ?? primary;
   const accent = storeFront.accentColor ?? "#f59e0b";
+  const respectDarkMode = options.respectDarkMode ?? true;
 
   r.style.setProperty("--brand", primary);
   r.style.setProperty("--brand-2", secondary);
   r.style.setProperty("--brand-accent", accent);
 
-  if (r.classList.contains("dark")) {
+  if (respectDarkMode && r.classList.contains("dark")) {
     r.style.setProperty("--bg", `color-mix(in srgb, ${secondary} 82%, #050816)`);
     r.style.setProperty("--surface", `color-mix(in srgb, ${secondary} 64%, #ffffff)`);
     r.style.setProperty("--surface-2", `color-mix(in srgb, ${secondary} 52%, #ffffff)`);

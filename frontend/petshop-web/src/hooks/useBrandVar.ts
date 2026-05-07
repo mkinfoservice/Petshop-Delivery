@@ -12,7 +12,7 @@ export function useBrandVar() {
 
   useEffect(() => {
     if (!storeFront) return;
-    const apply = () => applyBrandVars(storeFront);
+    const apply = () => applyBrandVars(storeFront, { respectDarkMode: false });
     apply();
     window.addEventListener("themechange", apply);
     return () => window.removeEventListener("themechange", apply);

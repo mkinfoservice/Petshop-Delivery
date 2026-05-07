@@ -35,7 +35,10 @@ export function AppHeader() {
   return (
     <header
       className="sticky top-0 z-40 border-b"
-      style={{ backgroundColor: "var(--brand-2)", borderColor: "color-mix(in srgb, var(--brand) 25%, transparent)" }}
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--surface) 90%, var(--brand-2) 10%)",
+        borderColor: "var(--border)",
+      }}
     >
       <div className="mx-auto max-w-[1600px] px-4 h-14 flex items-center gap-3">
         {/* Logo + breadcrumb */}
@@ -55,8 +58,8 @@ export function AppHeader() {
 
           {breadcrumb && (
             <>
-              <ChevronRight size={14} className="shrink-0" style={{ color: "color-mix(in srgb, var(--brand) 40%, transparent)" }} />
-              <span className="text-sm font-semibold truncate" style={{ color: "rgba(245,237,224,0.85)" }}>
+              <ChevronRight size={14} className="shrink-0" style={{ color: "color-mix(in srgb, var(--brand) 45%, transparent)" }} />
+              <span className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>
                 {breadcrumb}
               </span>
             </>
@@ -77,10 +80,10 @@ export function AppHeader() {
             style={{
               backgroundColor: printStation
                 ? connected ? "rgba(16,185,129,0.18)" : "rgba(239,68,68,0.15)"
-                : "rgba(255,255,255,0.08)",
+                : "var(--surface-2)",
               color: printStation
                 ? connected ? "#34d399" : "#f87171"
-                : "rgba(245,237,224,0.45)",
+                : "var(--text-muted)",
             }}
           >
             {printStation ? (
@@ -111,13 +114,13 @@ export function AppHeader() {
             type="button"
             onClick={handleLogout}
             className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-            style={{ color: "rgba(245,237,224,0.4)" }}
+            style={{ color: "var(--text-muted)" }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLButtonElement).style.color = "#f87171";
               (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(239,68,68,0.12)";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "rgba(245,237,224,0.4)";
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
               (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
             }}
             title="Sair"

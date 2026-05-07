@@ -18,6 +18,7 @@ import { ModernPublicCatalog } from "@/features/catalog/ModernPublicCatalog";
 import { TopBar } from "@/components/TopBar";
 import { ToastProvider } from "@/components/Toast";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { applyBrandVars } from "@/hooks/applyBrandVars";
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -69,15 +70,7 @@ export default function App() {
   // Propaga toda a paleta da tenant para o documento (Checkout, ProductDetail etc. herdam)
   useEffect(() => {
     if (!storeFront) return;
-    const r = document.documentElement;
-    r.style.setProperty("--brand",        storeFront.primaryColor   ?? "#6366f1");
-    r.style.setProperty("--brand-2",      storeFront.secondaryColor ?? "#6366f1");
-    r.style.setProperty("--brand-accent", storeFront.accentColor    ?? "#f59e0b");
-    r.style.setProperty("--bg",           storeFront.bgColor        ?? "#ffffff");
-    r.style.setProperty("--surface-2",    storeFront.surface2Color  ?? "#f3f4f6");
-    r.style.setProperty("--border",       storeFront.borderColor    ?? "rgba(0,0,0,0.08)");
-    r.style.setProperty("--text",         storeFront.textColor      ?? "#111827");
-    r.style.setProperty("--text-muted",   storeFront.textMutedColor ?? "#6b7280");
+    applyBrandVars(storeFront, { respectDarkMode: false });
   }, [storeFront]);
 
   const brandColor = storeFront?.primaryColor ?? "#6366f1";
@@ -152,7 +145,7 @@ export default function App() {
 
   const cart = useCart();
   const modernCatalogEnabled =
-    tenantQuery.data?.features?.["modern_catalog_experience"] !== false;
+    tenantQuery.data?.features?.["legacy_catalog_experience"] !== true;
 
   // Empresa suspensa → tela de aviso (não renderiza loja)
   if (effectiveTenantSlug && tenantQuery.isError && (tenantQuery.error as { status?: number })?.status === 403) {

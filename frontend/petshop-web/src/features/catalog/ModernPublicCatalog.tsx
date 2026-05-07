@@ -74,7 +74,7 @@ function ModernProductCard({ product, onRequestOpen }: { product: Product; onReq
       className="relative flex flex-col items-center gap-1 rounded-2xl p-1.5 text-left transition active:scale-95 product-card-brand"
       style={{
         background: "var(--surface)",
-        border: `1.5px solid ${isBestSeller ? "rgba(107,79,58,0.28)" : "rgba(107,79,58,0.1)"}`,
+        border: `1.5px solid ${isBestSeller ? "color-mix(in srgb, var(--brand) 28%, var(--border))" : "var(--border)"}`,
         borderTop: "2.5px solid var(--brand)",
       }}
     >
@@ -89,7 +89,7 @@ function ModernProductCard({ product, onRequestOpen }: { product: Product; onReq
       {options && (
         <span
           className="absolute top-1 right-1 text-[8px] font-bold text-white rounded-full px-1 py-px leading-none"
-          style={{ background: "#6B4F3A" }}
+          style={{ background: "var(--brand-2)" }}
         >
           +
         </span>
@@ -228,8 +228,7 @@ function ModernPublicCatalogContent() {
   return (
     <div className={`min-h-dvh${isPetshop ? " paw-bg" : ""}`} style={{ background: "var(--bg)", ["--brand" as string]: brandColor }}>
       {isPetshop ? (
-        /* ── Header escuro para tenants com tema configurado (ex: megapetfaim) ── */
-        <div className="sticky top-0 z-30" style={{ background: "var(--brand-2)", boxShadow: "0 2px 16px rgba(0,0,0,0.18)" }}>
+        <div className="sticky top-0 z-30 border-b backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface) 94%, var(--brand) 6%)", borderColor: "var(--border)" }}>
           {storefront?.announcements?.[0] && (
             <div
               className="text-center py-1 px-4 text-xs font-semibold tracking-wide"
@@ -240,8 +239,8 @@ function ModernPublicCatalogContent() {
           )}
           <div className="mx-auto flex w-full max-w-[1500px] items-center gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>Catálogo online</p>
-              <p className="truncate text-sm font-black" style={{ color: "#fff" }}>{brand}</p>
+              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>Catálogo online</p>
+              <p className="truncate text-sm font-black" style={{ color: "var(--text)" }}>{brand}</p>
             </div>
             <button
               type="button"
@@ -255,17 +254,17 @@ function ModernPublicCatalogContent() {
             </button>
           </div>
           <div className="mx-auto max-w-[1500px] px-4 pb-3">
-            <div className="flex h-11 items-center gap-2 rounded-2xl border px-3" style={{ background: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }}>
-              <Search size={15} style={{ color: "rgba(255,255,255,0.65)" }} className="shrink-0" />
+            <div className="flex h-11 items-center gap-2 rounded-2xl border px-3 shadow-sm" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+              <Search size={15} style={{ color: "var(--text-muted)" }} className="shrink-0" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome, código ou código de barras"
-                className="flex-1 bg-transparent text-sm outline-none search-navy"
-                style={{ color: "#fff" }}
+                className="flex-1 bg-transparent text-sm outline-none"
+                style={{ color: "var(--text)" }}
               />
               {search && (
-                <button type="button" onClick={() => setSearch("")} style={{ color: "rgba(255,255,255,0.6)" }} className="hover:opacity-100">
+                <button type="button" onClick={() => setSearch("")} style={{ color: "var(--text-muted)" }} className="hover:opacity-100">
                   <X size={14} />
                 </button>
               )}
@@ -312,7 +311,16 @@ function ModernPublicCatalogContent() {
 
       <div className="mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
-          <div className="rounded-3xl border p-2 h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ position: "sticky", top: stickyTop, background: "var(--surface)", borderColor: "var(--border)" }}>
+          <div
+            className="rounded-3xl border p-2 h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start shadow-sm"
+            style={{
+              position: "sticky",
+              top: stickyTop,
+              background: "color-mix(in srgb, var(--surface) 86%, var(--surface-2) 14%)",
+              borderColor: "var(--border)",
+              boxShadow: "inset -1px 0 0 var(--border)",
+            }}
+          >
             {categoriesLoading && <div className="h-16 rounded-2xl animate-pulse col-span-2" style={{ background: "var(--surface-2)" }} />}
             {!categoriesLoading &&
               categoryItems.map((c) => {
@@ -325,7 +333,7 @@ function ModernPublicCatalogContent() {
                     className="w-full rounded-2xl px-1.5 py-2.5 transition-all"
                     style={active
                       ? { background: "var(--brand)", color: "#fff", boxShadow: "0 10px 24px color-mix(in srgb, var(--brand) 28%, transparent)" }
-                      : { background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                      : { background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}
                   >
                     <span className="flex flex-col items-center gap-1">
                       <span className="w-7 h-7 rounded-xl grid place-items-center" style={active ? { background: "rgba(255,255,255,0.18)" } : { background: "color-mix(in srgb, var(--brand) 15%, transparent)", color: "var(--brand)" }}>
@@ -367,7 +375,7 @@ function ModernPublicCatalogContent() {
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-3xl border p-8 text-center text-sm opacity-60" style={{ background: "#fff", borderColor: "#ece3d7" }}>
+            <div className="rounded-3xl border p-8 text-center text-sm opacity-60" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
               Nenhum produto encontrado.
             </div>
           ) : (
@@ -386,7 +394,7 @@ function ModernPublicCatalogContent() {
       )}
 
       <div className={`fixed inset-0 z-50 items-end justify-center bg-black/45 p-3 ${mobileCartOpen ? "flex" : "hidden"}`}>
-        <div className="w-full max-w-md rounded-3xl bg-white p-3">
+        <div className="w-full max-w-md rounded-3xl p-3" style={{ background: "var(--surface)" }}>
           <div className="mb-2 flex justify-end">
             <button
               type="button"
