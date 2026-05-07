@@ -11,10 +11,26 @@ type BrandPalette = {
 
 export function applyBrandVars(storeFront: BrandPalette) {
   const r = document.documentElement;
-  r.style.setProperty("--brand", storeFront.primaryColor ?? "#6366f1");
-  r.style.setProperty("--brand-2", storeFront.secondaryColor ?? "#6366f1");
-  r.style.setProperty("--brand-accent", storeFront.accentColor ?? "#f59e0b");
+  const primary = storeFront.primaryColor ?? "#6366f1";
+  const secondary = storeFront.secondaryColor ?? primary;
+  const accent = storeFront.accentColor ?? "#f59e0b";
+
+  r.style.setProperty("--brand", primary);
+  r.style.setProperty("--brand-2", secondary);
+  r.style.setProperty("--brand-accent", accent);
+
+  if (r.classList.contains("dark")) {
+    r.style.setProperty("--bg", `color-mix(in srgb, ${secondary} 82%, #050816)`);
+    r.style.setProperty("--surface", `color-mix(in srgb, ${secondary} 64%, #ffffff)`);
+    r.style.setProperty("--surface-2", `color-mix(in srgb, ${secondary} 52%, #ffffff)`);
+    r.style.setProperty("--border", `color-mix(in srgb, ${secondary} 58%, #ffffff)`);
+    r.style.setProperty("--text", "#f8fafc");
+    r.style.setProperty("--text-muted", "rgba(248,250,252,0.68)");
+    return;
+  }
+
   r.style.setProperty("--bg", storeFront.bgColor ?? "#ffffff");
+  r.style.setProperty("--surface", "#ffffff");
   r.style.setProperty("--surface-2", storeFront.surface2Color ?? "#f3f4f6");
   r.style.setProperty("--border", storeFront.borderColor ?? "rgba(0,0,0,0.08)");
   r.style.setProperty("--text", storeFront.textColor ?? "#111827");

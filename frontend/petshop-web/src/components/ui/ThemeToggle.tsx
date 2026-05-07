@@ -14,6 +14,7 @@ export function ThemeToggle() {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
+    window.dispatchEvent(new CustomEvent("themechange"));
   }, [dark]);
 
   return (

@@ -7,6 +7,9 @@ export function useAdminBrandVars() {
 
   useEffect(() => {
     if (!storeFront) return;
-    applyBrandVars(storeFront);
+    const apply = () => applyBrandVars(storeFront);
+    apply();
+    window.addEventListener("themechange", apply);
+    return () => window.removeEventListener("themechange", apply);
   }, [storeFront]);
 }
