@@ -60,6 +60,8 @@ public class DeliveryManagementService
         if (orders.Count != orderIds.Distinct().Count())
             throw new InvalidOperationException("Um ou mais pedidos não foram encontrados no banco.");
 
+        var companyId = ResolveSingleCompanyId(orders);
+
         foreach (var o in orders)
         {
             if (o.Status != OrderStatus.PRONTO_PARA_ENTREGA)
@@ -80,10 +82,10 @@ public class DeliveryManagementService
             }
 
             // Validar raio de entrega
-            if (!_depot.IsWithinDeliveryRadius(order))
+            if (!_depot.IsWithinDeliveryRadius(order, companyId))
             {
-                var distanceKm = _depot.GetDistanceFromDepot(order.Latitude.Value, order.Longitude.Value);
-                throw new Exception($"Pedido {order.PublicId} está fora do raio de entrega ({distanceKm:F2}km > {_depot.GetDeliveryRadiusKm():F1}km)");
+                var distanceKm = _depot.GetDistanceFromDepot(order.Latitude.Value, order.Longitude.Value, companyId);
+                throw new Exception($"Pedido {order.PublicId} está fora do raio de entrega ({distanceKm:F2}km > {_depot.GetDeliveryRadiusKm(companyId):F1}km)");
             }
 
             // Validar zona de exclusão
@@ -102,7 +104,7 @@ public class DeliveryManagementService
         // Filtrar por RouteSide (A ou B) se fornecido
         if (!string.IsNullOrWhiteSpace(routeSide))
         {
-            var (sidedOrders, sideWarnings) = _routeSideValidator.FilterByRouteSide(validOrders, routeSide);
+            var (sidedOrders, sideWarnings) = _routeSideValidator.FilterByRouteSide(validOrders, routeSide, companyId);
 
             if (sidedOrders.Count == 0)
                 throw new InvalidOperationException($"Nenhum pedido classificado como Rota {routeSide} encontrado.");
@@ -125,7 +127,7 @@ public class DeliveryManagementService
         List<Order> optimized;
         if (!string.IsNullOrWhiteSpace(routeSide))
         {
-            var depot = _depot.GetDepotCoordinates();
+            var depot = _depot.GetDepotCoordinates(companyId);
             _logger.LogInformation("🗺️ Otimizando Rota {Side} com depot como ponto de partida", routeSide);
             optimized = await _optimizer.OptimizeWithDepotAsync(validOrders, depot, ct);
         }
@@ -183,5 +185,19 @@ public class DeliveryManagementService
                 s => s.NotifyOrderStatusAsync(o.Id, OrderStatus.SAIU_PARA_ENTREGA, CancellationToken.None));
 
         return route;
+    }
+
+    private static Guid? ResolveSingleCompanyId(List<Order> orders)
+    {
+        var companyIds = orders
+            .Where(o => o.CompanyId.HasValue)
+            .Select(o => o.CompanyId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (companyIds.Count > 1)
+            throw new InvalidOperationException("Os pedidos selecionados pertencem a empresas diferentes.");
+
+        return companyIds.Count == 0 ? null : companyIds[0];
     }
 }

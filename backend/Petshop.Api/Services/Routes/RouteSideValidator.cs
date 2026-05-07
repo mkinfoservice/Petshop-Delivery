@@ -24,7 +24,8 @@ public class RouteSideValidator
     /// <returns>Tupla: (pedidos filtrados, lista de warnings)</returns>
     public (List<Order> filtered, List<string> warnings) FilterByRouteSide(
         List<Order> orders,
-        string? routeSide)
+        string? routeSide,
+        Guid? companyId = null)
     {
         // Se RouteSide não especificado, retorna todos os pedidos
         if (string.IsNullOrWhiteSpace(routeSide))
@@ -39,7 +40,7 @@ public class RouteSideValidator
 
         foreach (var order in orders)
         {
-            var classification = _classification.ClassifyOrder(order);
+            var classification = _classification.ClassifyOrder(order, companyId);
 
             if (classification == sideUpper)
             {
@@ -71,7 +72,7 @@ public class RouteSideValidator
     /// <summary>
     /// Valida se todos os pedidos pertencem ao RouteSide especificado
     /// </summary>
-    public bool ValidateAllOrders(List<Order> orders, string routeSide)
+    public bool ValidateAllOrders(List<Order> orders, string routeSide, Guid? companyId = null)
     {
         if (string.IsNullOrWhiteSpace(routeSide))
             return true;
@@ -80,6 +81,6 @@ public class RouteSideValidator
         if (sideUpper != "A" && sideUpper != "B")
             return false;
 
-        return orders.All(o => _classification.ClassifyOrder(o) == sideUpper);
+        return orders.All(o => _classification.ClassifyOrder(o, companyId) == sideUpper);
     }
 }

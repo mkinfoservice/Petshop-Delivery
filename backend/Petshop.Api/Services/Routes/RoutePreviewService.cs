@@ -60,7 +60,8 @@ public class RoutePreviewService
         }
 
         // 2. Filtrar pedidos válidos
-        var (validOrders, warnings) = FilterOrders(orders);
+        var companyId = ResolveSingleCompanyId(orders);
+        var (validOrders, warnings) = FilterOrders(orders, companyId);
 
         if (validOrders.Count == 0)
         {
@@ -72,8 +73,8 @@ public class RoutePreviewService
                 {
                     TotalOrdersRequested = orderIds.Count,
                     TotalOrdersValid = 0,
-                    DepotAddress = _depot.GetDepotAddress(),
-                    DeliveryRadiusKm = _depot.GetDeliveryRadiusKm()
+                    DepotAddress = _depot.GetDepotAddress(companyId),
+                    DeliveryRadiusKm = _depot.GetDeliveryRadiusKm(companyId)
                 }
             };
         }
@@ -85,7 +86,7 @@ public class RoutePreviewService
 
         foreach (var order in validOrders)
         {
-            var classification = _classification.ClassifyOrder(order);
+            var classification = _classification.ClassifyOrder(order, companyId);
 
             if (classification == "A")
                 routeAOrders.Add(order);
@@ -100,7 +101,7 @@ public class RoutePreviewService
 
         // 4. Otimizar cada rota com depot como ponto de partida
         //    Cada rota é independente: se uma falhar, a outra continua
-        var depot = _depot.GetDepotCoordinates();
+        var depot = _depot.GetDepotCoordinates(companyId);
 
         PreviewRouteDto? routeAPreview = null;
         PreviewRouteDto? routeBPreview = null;
@@ -110,12 +111,12 @@ public class RoutePreviewService
             try
             {
                 var optimizedA = await _optimizer.OptimizeWithDepotAsync(routeAOrders, depot, ct);
-                routeAPreview = BuildRoutePreview("A", optimizedA);
+                routeAPreview = BuildRoutePreview("A", optimizedA, companyId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "⚠️ Falha ao otimizar Rota A, usando ordem por proximidade simples");
-                routeAPreview = BuildRoutePreview("A", routeAOrders);
+                routeAPreview = BuildRoutePreview("A", routeAOrders, companyId);
                 warnings.Add("⚠️ Rota A: otimização falhou, usando ordem simplificada");
             }
         }
@@ -131,19 +132,19 @@ public class RoutePreviewService
             try
             {
                 var optimizedB = await _optimizer.OptimizeWithDepotAsync(routeBOrders, depot, ct);
-                routeBPreview = BuildRoutePreview("B", optimizedB);
+                routeBPreview = BuildRoutePreview("B", optimizedB, companyId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "⚠️ Falha ao otimizar Rota B, usando ordem por proximidade simples");
-                routeBPreview = BuildRoutePreview("B", routeBOrders);
+                routeBPreview = BuildRoutePreview("B", routeBOrders, companyId);
                 warnings.Add("⚠️ Rota B: otimização falhou, usando ordem simplificada");
             }
         }
 
         // 5. Montar lista de pedidos desconhecidos
         var unknownDtos = unknownOrders
-            .Select((o, idx) => BuildOrderDto(o, idx + 1, "Unknown"))
+            .Select((o, idx) => BuildOrderDto(o, idx + 1, "Unknown", companyId))
             .ToList();
 
         // 6. Montar resposta
@@ -159,8 +160,8 @@ public class RoutePreviewService
                 TotalOrdersValid = validOrders.Count,
                 RouteAStops = routeAOrders.Count,
                 RouteBStops = routeBOrders.Count,
-                DepotAddress = _depot.GetDepotAddress(),
-                DeliveryRadiusKm = _depot.GetDeliveryRadiusKm()
+                DepotAddress = _depot.GetDepotAddress(companyId),
+                DeliveryRadiusKm = _depot.GetDeliveryRadiusKm(companyId)
             }
         };
     }
@@ -169,7 +170,7 @@ public class RoutePreviewService
     /// Filtra pedidos aplicando validações de status, coordenadas, raio e zona de exclusão.
     /// Retorna pedidos válidos e lista de warnings.
     /// </summary>
-    private (List<Order> valid, List<string> warnings) FilterOrders(List<Order> orders)
+    private (List<Order> valid, List<string> warnings) FilterOrders(List<Order> orders, Guid? companyId)
     {
         var valid = new List<Order>();
         var warnings = new List<string>();
@@ -195,10 +196,10 @@ public class RoutePreviewService
             }
 
             // Valida raio de entrega
-            if (!_depot.IsWithinDeliveryRadius(order))
+            if (!_depot.IsWithinDeliveryRadius(order, companyId))
             {
-                var distanceKm = _depot.GetDistanceFromDepot(order.Latitude.Value, order.Longitude.Value);
-                warnings.Add($"🚫 Pedido {order.PublicId} está FORA do raio de {_depot.GetDeliveryRadiusKm():F1}km (distância: {distanceKm:F2}km)");
+                var distanceKm = _depot.GetDistanceFromDepot(order.Latitude.Value, order.Longitude.Value, companyId);
+                warnings.Add($"🚫 Pedido {order.PublicId} está FORA do raio de {_depot.GetDeliveryRadiusKm(companyId):F1}km (distância: {distanceKm:F2}km)");
                 continue;
             }
 
@@ -222,15 +223,15 @@ public class RoutePreviewService
     /// <summary>
     /// Monta PreviewRouteDto a partir de lista de pedidos otimizados.
     /// </summary>
-    private PreviewRouteDto BuildRoutePreview(string side, List<Order> optimizedOrders)
+    private PreviewRouteDto BuildRoutePreview(string side, List<Order> optimizedOrders, Guid? companyId)
     {
         var orderDtos = optimizedOrders
-            .Select((o, idx) => BuildOrderDto(o, idx + 1, side))
+            .Select((o, idx) => BuildOrderDto(o, idx + 1, side, companyId))
             .ToList();
 
         // Calcular distância total estimada (soma das distâncias entre paradas)
         double totalDistanceKm = 0;
-        var depot = _depot.GetDepotCoordinates();
+        var depot = _depot.GetDepotCoordinates(companyId);
 
         if (optimizedOrders.Count > 0 && optimizedOrders[0].Latitude.HasValue)
         {
@@ -266,13 +267,13 @@ public class RoutePreviewService
     /// <summary>
     /// Monta PreviewOrderDto a partir de Order.
     /// </summary>
-    private PreviewOrderDto BuildOrderDto(Order order, int sequence, string classification)
+    private PreviewOrderDto BuildOrderDto(Order order, int sequence, string classification, Guid? companyId)
     {
         double distanceFromDepot = 0;
 
         if (order.Latitude.HasValue && order.Longitude.HasValue)
         {
-            var depot = _depot.GetDepotCoordinates();
+            var depot = _depot.GetDepotCoordinates(companyId);
             distanceFromDepot = HaversineKm(depot.lat, depot.lon, order.Latitude.Value, order.Longitude.Value);
         }
 
@@ -288,6 +289,20 @@ public class RoutePreviewService
             Classification = classification,
             DistanceFromDepotKm = distanceFromDepot
         };
+    }
+
+    private static Guid? ResolveSingleCompanyId(List<Order> orders)
+    {
+        var companyIds = orders
+            .Where(o => o.CompanyId.HasValue)
+            .Select(o => o.CompanyId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (companyIds.Count > 1)
+            throw new InvalidOperationException("Os pedidos selecionados pertencem a empresas diferentes.");
+
+        return companyIds.Count == 0 ? null : companyIds[0];
     }
 
     /// <summary>

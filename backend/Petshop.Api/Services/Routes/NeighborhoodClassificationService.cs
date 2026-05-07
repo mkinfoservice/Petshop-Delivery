@@ -26,7 +26,7 @@ public class NeighborhoodClassificationService
     /// Vila Kennedy é bloqueada pelo GeofencingService ANTES desta classificação.
     /// </summary>
     /// <returns>"A", "B" ou "Unknown"</returns>
-    public string ClassifyOrder(Order order)
+    public string ClassifyOrder(Order order, Guid? companyId = null)
     {
         if (!order.Latitude.HasValue || !order.Longitude.HasValue)
         {
@@ -35,7 +35,7 @@ public class NeighborhoodClassificationService
             return "Unknown";
         }
 
-        var depot = _depot.GetDepotCoordinates();
+        var depot = _depot.GetDepotCoordinates(companyId ?? order.CompanyId);
         var bearing = CalculateBearing(depot, (order.Latitude.Value, order.Longitude.Value));
 
         // Divisão simples: Leste (0-180°) = A, Oeste (180-360°) = B
@@ -96,9 +96,9 @@ public class NeighborhoodClassificationService
     /// <summary>
     /// Método auxiliar para testes: calcula bearing entre duas coordenadas quaisquer
     /// </summary>
-    public double CalculateBearingFromDepot(double destLat, double destLon)
+    public double CalculateBearingFromDepot(double destLat, double destLon, Guid? companyId = null)
     {
-        var depot = _depot.GetDepotCoordinates();
+        var depot = _depot.GetDepotCoordinates(companyId);
         return CalculateBearing(depot, (destLat, destLon));
     }
 }

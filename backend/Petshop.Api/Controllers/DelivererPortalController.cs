@@ -43,6 +43,7 @@ public class DelivererPortalController : ControllerBase
         var q = tracking ? _db.Routes.AsQueryable() : _db.Routes.AsNoTracking();
         return await q
             .Include(r => r.Stops)
+                .ThenInclude(s => s.Order)
             .FirstOrDefaultAsync(r => r.Id == routeId && r.DelivererId == delivererId, ct);
     }
 
@@ -117,7 +118,7 @@ public class DelivererPortalController : ControllerBase
             Depot = new DelivererDepotInfo
             {
                 Name = "Petshop Central",
-                Address = _depot.GetDepotAddress()
+                Address = _depot.GetDepotAddress(ResolveCompanyId(route))
             },
             Progress = new DelivererProgressInfo
             {
@@ -318,4 +319,11 @@ public class DelivererPortalController : ControllerBase
         DeliveredAtUtc = s.DeliveredAtUtc?.ToString("o"),
         FailureReason = s.FailureReason
     };
+
+    private static Guid? ResolveCompanyId(Route route)
+    {
+        return route.Stops
+            .Select(s => s.Order.CompanyId)
+            .FirstOrDefault(id => id.HasValue);
+    }
 }
