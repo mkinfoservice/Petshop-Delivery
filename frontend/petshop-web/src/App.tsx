@@ -152,7 +152,7 @@ export default function App() {
 
   const cart = useCart();
   const modernCatalogEnabled =
-    (tenantQuery.data?.features?.["modern_catalog_experience"] ?? false) === true;
+    tenantQuery.data?.features?.["modern_catalog_experience"] !== false;
 
   // Empresa suspensa → tela de aviso (não renderiza loja)
   if (effectiveTenantSlug && tenantQuery.isError && (tenantQuery.error as { status?: number })?.status === 403) {

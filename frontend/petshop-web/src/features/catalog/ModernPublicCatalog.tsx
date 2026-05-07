@@ -71,7 +71,7 @@ function ModernProductCard({ product, onRequestOpen }: { product: Product; onReq
     <button
       type="button"
       onClick={quickAdd}
-      className="relative flex flex-col items-center gap-1 rounded-2xl p-2 text-left transition active:scale-95 product-card-brand"
+      className="relative flex flex-col items-center gap-1 rounded-2xl p-1.5 text-left transition active:scale-95 product-card-brand"
       style={{
         background: "var(--surface)",
         border: `1.5px solid ${isBestSeller ? "rgba(107,79,58,0.28)" : "rgba(107,79,58,0.1)"}`,
@@ -238,7 +238,7 @@ function ModernPublicCatalogContent() {
               {storefront.announcements[0]}
             </div>
           )}
-          <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-[1500px] items-center gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>Catálogo online</p>
               <p className="truncate text-sm font-black" style={{ color: "#fff" }}>{brand}</p>
@@ -246,7 +246,7 @@ function ModernPublicCatalogContent() {
             <button
               type="button"
               onClick={() => setMobileCartOpen(true)}
-              className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white lg:hidden"
+              className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white"
               style={{ background: "var(--brand)" }}
             >
               <ShoppingCart size={14} />
@@ -254,7 +254,7 @@ function ModernPublicCatalogContent() {
               {cart.totalItems > 0 && <span className="rounded-full bg-white/20 px-1.5 text-xs">{cart.totalItems}</span>}
             </button>
           </div>
-          <div className="mx-auto max-w-7xl px-4 pb-3">
+          <div className="mx-auto max-w-[1500px] px-4 pb-3">
             <div className="flex h-11 items-center gap-2 rounded-2xl border px-3" style={{ background: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }}>
               <Search size={15} style={{ color: "rgba(255,255,255,0.65)" }} className="shrink-0" />
               <input
@@ -275,7 +275,7 @@ function ModernPublicCatalogContent() {
       ) : (
         /* ── Header claro padrão para demais tenants ── */
         <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur-sm">
-          <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-[1500px] items-center gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] opacity-60">Catálogo online</p>
               <p className="truncate text-sm font-black">{brand}</p>
@@ -283,7 +283,7 @@ function ModernPublicCatalogContent() {
             <button
               type="button"
               onClick={() => setMobileCartOpen(true)}
-              className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white lg:hidden"
+              className="flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-white"
               style={{ background: "linear-gradient(135deg, #1C1209, #3D2314)" }}
             >
               <ShoppingCart size={14} />
@@ -291,7 +291,7 @@ function ModernPublicCatalogContent() {
               {cart.totalItems > 0 && <span className="rounded-full bg-white/20 px-1.5 text-xs">{cart.totalItems}</span>}
             </button>
           </div>
-          <div className="mx-auto max-w-7xl px-4 pb-3">
+          <div className="mx-auto max-w-[1500px] px-4 pb-3">
             <div className="flex h-11 items-center gap-2 rounded-2xl border px-3" style={{ background: "#EEE8DD", borderColor: "#e6dccd" }}>
               <Search size={15} className="opacity-50 shrink-0" />
               <input
@@ -310,7 +310,7 @@ function ModernPublicCatalogContent() {
         </div>
       )}
 
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
+      <div className="mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <div className="rounded-3xl border p-2 h-full overflow-y-auto grid grid-cols-2 gap-1.5 content-start" style={{ position: "sticky", top: stickyTop, background: "var(--surface)", borderColor: "var(--border)" }}>
             {categoriesLoading && <div className="h-16 rounded-2xl animate-pulse col-span-2" style={{ background: "var(--surface-2)" }} />}
@@ -361,7 +361,7 @@ function ModernPublicCatalogContent() {
           </div>
 
           {productsLoading ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="aspect-square animate-pulse rounded-2xl" style={{ background: "#ece4d8" }} />
               ))}
@@ -371,17 +371,11 @@ function ModernPublicCatalogContent() {
               Nenhum produto encontrado.
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2">
               {products.map((p) => <ModernProductCard key={p.id} product={p} onRequestOpen={setQuickViewId} />)}
             </div>
           )}
         </main>
-
-        <aside className="hidden lg:block">
-          <div style={{ position: "sticky", top: stickyTop }}>
-            <CartPanel onCheckout={() => navigate("/checkout")} />
-          </div>
-        </aside>
       </div>
 
       {quickViewId && (
@@ -391,8 +385,8 @@ function ModernPublicCatalogContent() {
         />
       )}
 
-      <div className={`fixed inset-0 z-50 items-end bg-black/45 p-3 lg:hidden ${mobileCartOpen ? "flex" : "hidden"}`}>
-        <div className="w-full rounded-3xl bg-white p-3">
+      <div className={`fixed inset-0 z-50 items-end justify-center bg-black/45 p-3 ${mobileCartOpen ? "flex" : "hidden"}`}>
+        <div className="w-full max-w-md rounded-3xl bg-white p-3">
           <div className="mb-2 flex justify-end">
             <button
               type="button"
@@ -416,4 +410,3 @@ export function ModernPublicCatalog() {
     </ToastProvider>
   );
 }
-
