@@ -18,14 +18,14 @@ const items: HubItem[] = [
     iconColor: "#ffffff",
     iconBg: "rgba(255,255,255,0.2)",
     label: "Montar pedido",
-    description: "Atendimento por telefone — busca cliente, monta carrinho e confirma.",
+    description: "Atendimento por telefone - busca cliente, monta carrinho e confirma.",
     to: "/app/atendimento/pedido",
     highlight: true,
   },
   {
     icon: Users,
-    iconColor: "var(--brand-accent)",
-    iconBg: "color-mix(in srgb, var(--brand-accent) 14%, transparent)",
+    iconColor: "var(--brand-2)",
+    iconBg: "color-mix(in srgb, var(--brand-2) 14%, transparent)",
     label: "Clientes",
     description: "Lista e busca de clientes cadastrados.",
     to: "/app/atendimento/clientes",
@@ -137,7 +137,7 @@ export default function AtendimentoHub() {
       <div className="mx-auto max-w-2xl px-4 pb-12 pt-6">
         <PageHeader
           title="Atendimento"
-          subtitle="Central de atendimento ao cliente — pedidos e cadastros"
+          subtitle="Central de atendimento ao cliente - pedidos e cadastros"
         />
 
         <div className="space-y-3">

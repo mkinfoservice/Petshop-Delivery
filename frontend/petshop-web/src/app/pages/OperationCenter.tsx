@@ -299,7 +299,7 @@ export default function OperationCenter() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Mesas</p>
-                <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Auto-atendimento e QR Code</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Auto-atendimento via QR Code e gestão de mesas</p>
               </div>
               <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand)" }} />
             </button>
@@ -316,7 +316,7 @@ export default function OperationCenter() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Atendimento</p>
-                <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Pedidos por telefone e balcão</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Atendimento presencial e montagem de pedidos</p>
               </div>
               <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand)" }} />
             </button>
@@ -333,7 +333,7 @@ export default function OperationCenter() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Frente de Caixa</p>
-                <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Registrar vendas no PDV</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Abrir o PDV e registrar vendas no balcão</p>
               </div>
               <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand)" }} />
             </button>
@@ -342,7 +342,7 @@ export default function OperationCenter() {
             {(tenantFeatures?.dav_menu ?? true) && (
               <button
                 type="button"
-                onClick={() => { trackRecent("orcamento"); navigate("/app/dav"); }}
+                onClick={() => { trackRecent("orcamento"); navigate("/app/atendimento/pedido"); }}
                 className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[var(--brand-accent)]/40 hover:scale-[1.02] active:scale-[0.99]"
                 style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
               >
@@ -351,7 +351,7 @@ export default function OperationCenter() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Orçamento / DAV</p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Montar orçamento para o cliente</p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Montar orçamento para o cliente levar ao caixa</p>
                 </div>
                 <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand-accent)" }} />
               </button>
