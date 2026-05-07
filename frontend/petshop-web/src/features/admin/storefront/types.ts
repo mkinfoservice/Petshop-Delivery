@@ -25,6 +25,9 @@ export interface StoreFrontConfigResponse {
   borderColor: string;
   textColor: string;
   textMutedColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  catalogStyle: string;
 }
 
 export interface UpdateStoreFrontConfigRequest {
@@ -39,6 +42,9 @@ export interface UpdateStoreFrontConfigRequest {
   borderColor?: string;
   textColor?: string;
   textMutedColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  catalogStyle?: string;
 }
 
 export interface UpsertBannerSlideRequest {

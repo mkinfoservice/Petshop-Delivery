@@ -106,7 +106,7 @@ function ImageInput({
             onChange={(e) => onChange(e.target.value)}
             readOnly={isBase64}
             placeholder="Cole uma URL (https://...)"
-            className="w-full h-9 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] focus:border-[#7c5cf8] outline-none disabled:bg-gray-50"
+            className="w-full h-9 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)] outline-none disabled:bg-gray-50"
           />
 
           {/* Botões */}
@@ -214,7 +214,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
             onChange={(e) => set("title", e.target.value)}
             placeholder="Ex: Promoções Imperdíveis"
             maxLength={120}
-            className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] focus:border-[#7c5cf8] outline-none"
+            className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)] outline-none"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -224,7 +224,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
             onChange={(e) => set("subtitle", e.target.value)}
             placeholder="Ex: Descontos em produtos selecionados"
             maxLength={200}
-            className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] focus:border-[#7c5cf8] outline-none"
+            className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)] outline-none"
           />
         </label>
       </div>
@@ -238,7 +238,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
             <select
               value={form.ctaType}
               onChange={(e) => { set("ctaType", e.target.value); set("ctaTarget", ""); }}
-              className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+              className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
             >
               {CTA_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -254,7 +254,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
                 onChange={(e) => set("ctaText", e.target.value)}
                 placeholder='Ex: "Ver Ofertas"'
                 maxLength={60}
-                className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] focus:border-[#7c5cf8] outline-none"
+                className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)] outline-none"
               />
             </label>
           )}
@@ -267,7 +267,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
             <select
               value={form.ctaTarget ?? ""}
               onChange={(e) => set("ctaTarget", e.target.value)}
-              className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+              className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
             >
               <option value="">— Selecione um grupo —</option>
               <option value="">Todos os produtos</option>
@@ -285,7 +285,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
               value={form.ctaTarget ?? ""}
               onChange={(e) => set("ctaTarget", e.target.value)}
               placeholder="Copie o ID do produto em Produtos → Editar"
-              className="h-10 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+              className="h-10 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
             />
             <p className="text-[11px] text-gray-400">
               O ID está na URL ao editar um produto: /app/produtos/<strong>esse-id-aqui</strong>
@@ -301,7 +301,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
                 value={form.ctaTarget ?? ""}
                 onChange={(e) => set("ctaTarget", e.target.value)}
                 placeholder="https://..."
-                className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+                className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
               />
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -309,7 +309,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
                 type="checkbox"
                 checked={form.ctaNewTab ?? false}
                 onChange={(e) => set("ctaNewTab", e.target.checked)}
-                className="accent-[#7c5cf8]"
+                className="accent-[var(--brand)]"
               />
               Abrir em nova aba
             </label>
@@ -322,7 +322,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
           type="checkbox"
           checked={form.isActive ?? true}
           onChange={(e) => set("isActive", e.target.checked)}
-          className="accent-[#7c5cf8]"
+          className="accent-[var(--brand)]"
         />
         Slide ativo (visível na loja)
       </label>
@@ -333,7 +333,7 @@ function SlideForm({ initial, onSave, onCancel, loading }: SlideFormProps) {
           onClick={handleSave}
           disabled={loading}
           className="h-9 px-5 rounded-xl text-sm font-bold text-white transition hover:brightness-110 active:scale-95 disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg,#7c5cf8,#6d4df2)" }}
+          style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 82%, #000))" }}
         >
           {loading ? "Salvando..." : "Salvar slide"}
         </button>
@@ -381,7 +381,7 @@ function SlideCard({
         <p className="text-sm font-semibold text-gray-900 truncate">{slide.title || "(sem título)"}</p>
         <p className="text-xs text-gray-400 truncate">{slide.subtitle || ""}</p>
         {slide.ctaType !== "none" && (
-          <span className="text-[10px] font-semibold text-[#7c5cf8] mt-0.5 inline-block">
+          <span className="text-[10px] font-semibold text-[var(--brand)] mt-0.5 inline-block">
             {ctaLabel(slide.ctaType)}{slide.ctaTarget ? `: ${slide.ctaTarget.slice(0, 30)}` : ""}
           </span>
         )}
@@ -399,7 +399,7 @@ function SlideCard({
           <GripVertical className="w-3.5 h-3.5 text-gray-400 rotate-90" />
         </button>
         <button type="button" onClick={onEdit}
-          className="h-7 px-3 rounded-lg text-xs font-semibold text-[#7c5cf8] hover:bg-purple-50 transition">
+          className="h-7 px-3 rounded-lg text-xs font-semibold text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_8%,transparent)] transition">
           Editar
         </button>
         <button type="button" onClick={onDelete}
@@ -428,6 +428,9 @@ export default function StoreFrontConfigPage() {
   const reorderSlides = useReorderSlides();
 
   const [color, setColor]               = useState("#6366f1");
+  const [secondaryColor, setSecondaryColor] = useState("#6366f1");
+  const [accentColor, setAccentColor]   = useState("#f59e0b");
+  const [catalogStyle, setCatalogStyle] = useState("default");
   const [bgColor, setBgColor]           = useState("#ffffff");
   const [surface2Color, setSurface2Color] = useState("#f3f4f6");
   const [borderColor, setBorderColor]   = useState("rgba(0,0,0,0.08)");
@@ -444,6 +447,9 @@ export default function StoreFrontConfigPage() {
   useEffect(() => {
     if (config && !visualSynced) {
       setColor(config.primaryColor   ?? "#6366f1");
+      setSecondaryColor(config.secondaryColor ?? "#6366f1");
+      setAccentColor(config.accentColor ?? "#f59e0b");
+      setCatalogStyle(config.catalogStyle ?? "default");
       setBgColor(config.bgColor      ?? "#ffffff");
       setSurface2Color(config.surface2Color ?? "#f3f4f6");
       setBorderColor(config.borderColor     ?? "rgba(0,0,0,0.08)");
@@ -471,6 +477,9 @@ export default function StoreFrontConfigPage() {
   const handleSaveVisual = () => {
     updateConfig.mutate({
       primaryColor:    color         || "#6366f1",
+      secondaryColor:  secondaryColor || "#6366f1",
+      accentColor:     accentColor    || "#f59e0b",
+      catalogStyle:    catalogStyle   || "default",
       bgColor:         bgColor       || "#ffffff",
       surface2Color:   surface2Color || "#f3f4f6",
       borderColor:     borderColor   || "rgba(0,0,0,0.08)",
@@ -510,7 +519,7 @@ export default function StoreFrontConfigPage() {
             className="h-9 px-5 rounded-xl text-sm font-semibold transition-all"
             style={
               tab === t
-                ? { background: "linear-gradient(135deg,#7c5cf8,#6d4df2)", color: "white" }
+                ? { background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 82%, #000))", color: "white" }
                 : { color: "var(--text-muted)" }
             }
           >
@@ -538,7 +547,7 @@ export default function StoreFrontConfigPage() {
                 type="button"
                 onClick={() => setAdding(true)}
                 className="h-9 px-4 rounded-xl text-sm font-bold text-white flex items-center gap-1.5 transition hover:brightness-110 active:scale-95"
-                style={{ background: "linear-gradient(135deg,#7c5cf8,#6d4df2)" }}
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 82%, #000))" }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Novo slide
@@ -592,7 +601,7 @@ export default function StoreFrontConfigPage() {
           {/* Identidade da loja */}
           <div className="p-5 rounded-2xl bg-white border border-gray-200 space-y-4">
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Paintbrush className="w-4 h-4 text-[#7c5cf8]" />
+              <Paintbrush className="w-4 h-4 text-[var(--brand)]" />
               Identidade da Loja
             </h3>
 
@@ -611,7 +620,7 @@ export default function StoreFrontConfigPage() {
                   onChange={(e) => setStoreName(e.target.value)}
                   placeholder="PetShop Express"
                   maxLength={120}
-                  className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+                  className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -621,7 +630,7 @@ export default function StoreFrontConfigPage() {
                   onChange={(e) => setStoreSlogan(e.target.value)}
                   placeholder="Delivery rápido"
                   maxLength={200}
-                  className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+                  className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </label>
             </div>
@@ -630,7 +639,7 @@ export default function StoreFrontConfigPage() {
           {/* Faixa de avisos */}
           <div className="p-5 rounded-2xl bg-white border border-gray-200 space-y-4">
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-[#7c5cf8]" />
+              <Megaphone className="w-4 h-4 text-[var(--brand)]" />
               Faixa de Avisos
             </h3>
             <p className="text-xs text-gray-400 -mt-2">
@@ -663,14 +672,14 @@ export default function StoreFrontConfigPage() {
                 onKeyDown={(e) => e.key === "Enter" && addAnnouncement()}
                 placeholder='Ex: "Parcele em até 12x sem juros"'
                 maxLength={100}
-                className="flex-1 h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] focus:border-[#7c5cf8] outline-none"
+                className="flex-1 h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)] outline-none"
               />
               <button
                 type="button"
                 onClick={addAnnouncement}
                 disabled={!newAnnouncement.trim()}
                 className="h-10 px-4 rounded-xl text-sm font-bold text-white flex items-center gap-1.5 transition hover:brightness-110 active:scale-95 disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg,#7c5cf8,#6d4df2)" }}
+                style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 82%, #000))" }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Adicionar
@@ -694,13 +703,13 @@ export default function StoreFrontConfigPage() {
                 <input
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  placeholder="#7c5cf8"
+                  placeholder="#6366f1"
                   maxLength={10}
-                  className="h-10 w-32 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+                  className="h-10 w-32 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
                 <div
                   className="flex-1 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold"
-                  style={{ background: color || "#7c5cf8" }}
+                  style={{ background: color || "#6366f1" }}
                 >
                   Preview
                 </div>
@@ -709,6 +718,62 @@ export default function StoreFrontConfigPage() {
             </label>
 
             {/* ── Paleta de cores ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-gray-600">Cor secundaria</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                  />
+                  <input
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    maxLength={30}
+                    className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">Topo e menu lateral do painel.</p>
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-gray-600">Cor de acento</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                  />
+                  <input
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    maxLength={30}
+                    className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">Destaques, badges e estados secundarios.</p>
+              </label>
+            </div>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-gray-600">Estilo do catalogo</span>
+              <select
+                value={catalogStyle}
+                onChange={(e) => setCatalogStyle(e.target.value)}
+                className="h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
+              >
+                <option value="default">Padrao</option>
+                <option value="petshop">Petshop</option>
+                <option value="coffee">Cafeteria</option>
+              </select>
+              <p className="text-xs text-gray-400">
+                Define icones e pequenas variacoes visuais especificas do segmento.
+              </p>
+            </label>
+
             <div className="space-y-3 pt-1">
               <p className="text-xs font-semibold text-gray-600">Paleta de cores</p>
 
@@ -725,7 +790,7 @@ export default function StoreFrontConfigPage() {
                   value={bgColor}
                   onChange={(e) => setBgColor(e.target.value)}
                   maxLength={30}
-                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </div>
 
@@ -742,7 +807,7 @@ export default function StoreFrontConfigPage() {
                   value={surface2Color}
                   onChange={(e) => setSurface2Color(e.target.value)}
                   maxLength={30}
-                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </div>
 
@@ -760,7 +825,7 @@ export default function StoreFrontConfigPage() {
                   onChange={(e) => setBorderColor(e.target.value)}
                   placeholder="rgba(0,0,0,0.08)"
                   maxLength={40}
-                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </div>
 
@@ -777,7 +842,7 @@ export default function StoreFrontConfigPage() {
                   value={textColor}
                   onChange={(e) => setTextColor(e.target.value)}
                   maxLength={30}
-                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </div>
 
@@ -794,7 +859,7 @@ export default function StoreFrontConfigPage() {
                   value={textMutedColor}
                   onChange={(e) => setTextMutedColor(e.target.value)}
                   maxLength={30}
-                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[#6366f1] outline-none"
+                  className="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm font-mono bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
               </div>
 
@@ -812,7 +877,7 @@ export default function StoreFrontConfigPage() {
                   max={30}
                   value={intervalSecs}
                   onChange={(e) => setIntervalSecs(Number(e.target.value))}
-                  className="h-10 w-24 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[#7c5cf8] outline-none"
+                  className="h-10 w-24 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-[var(--brand)] outline-none"
                 />
                 <span className="text-xs text-gray-400">0 = sem rotação automática</span>
               </div>
@@ -825,7 +890,7 @@ export default function StoreFrontConfigPage() {
               onClick={handleSaveVisual}
               disabled={updateConfig.isPending}
               className="h-10 px-6 rounded-xl text-sm font-bold text-white transition hover:brightness-110 active:scale-95 disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg,#7c5cf8,#6d4df2)" }}
+              style={{ background: "linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 82%, #000))" }}
             >
               {updateConfig.isPending ? "Salvando..." : "Salvar configurações"}
             </button>

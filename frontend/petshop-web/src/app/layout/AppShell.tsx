@@ -2,12 +2,15 @@ import type { ReactNode } from "react";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
 import { SupplyAlertsPopup } from "./SupplyAlertsPopup";
+import { useAdminBrandVars } from "@/hooks/useAdminBrandVars";
 
 interface Props {
   children: ReactNode;
 }
 
 export function AppShell({ children }: Props) {
+  useAdminBrandVars();
+
   return (
     <div
       className="min-h-dvh flex flex-col"

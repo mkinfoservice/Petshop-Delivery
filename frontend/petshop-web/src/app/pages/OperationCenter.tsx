@@ -49,7 +49,7 @@ function KpiCard({ label, value, icon: Icon, accent, sub, route }: KpiItem) {
       onClick={clickable ? () => navigate(route!) : undefined}
       className={[
         "rounded-2xl border p-4 flex flex-col gap-3 transition-all",
-        clickable ? "cursor-pointer hover:ring-2 hover:ring-[#C8953A]/25 hover:scale-[1.02] active:scale-[0.99]" : "",
+        clickable ? "cursor-pointer hover:ring-2 hover:ring-[var(--brand)]/25 hover:scale-[1.02] active:scale-[0.99]" : "",
       ].join(" ")}
       style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
     >
@@ -59,7 +59,7 @@ function KpiCard({ label, value, icon: Icon, accent, sub, route }: KpiItem) {
         </span>
         <div
           className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${accent}22` }}
+          style={{ backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)` }}
         >
           <Icon size={15} color={accent} />
         </div>
@@ -112,7 +112,7 @@ function buildKpis(d: AdminDashboardResponse): KpiItem[] {
       label: "Pedidos hoje",
       value: totalOrders,
       icon: ShoppingBag,
-      accent: "#C8953A",
+      accent: "var(--brand)",
       sub: `${d.orders.entregue} entregue${d.orders.entregue !== 1 ? "s" : ""}`,
       route: "/app/pedidos",
     },
@@ -121,7 +121,7 @@ function buildKpis(d: AdminDashboardResponse): KpiItem[] {
       label: "Em preparo",
       value: d.orders.emPreparo,
       icon: ChefHat,
-      accent: "#A07230",
+      accent: "var(--brand-accent)",
       sub: `${d.orders.recebido} aguardando`,
       route: "/app/pedidos?status=EM_PREPARO",
     },
@@ -150,7 +150,7 @@ function buildKpis(d: AdminDashboardResponse): KpiItem[] {
       label: "Entregadores",
       value: d.deliverers.active,
       icon: Users,
-      accent: "#C8953A",
+      accent: "var(--brand)",
       sub: `${d.deliverers.withActiveRoute} em rota`,
       route: "/app/logistica/entregadores",
     },
@@ -268,7 +268,7 @@ export default function OperationCenter() {
           placeholder="Buscar módulo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-10 rounded-xl border pl-9 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-[#C8953A]/30"
+            className="w-full h-10 rounded-xl border pl-9 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-[var(--brand)]/30"
           style={{
             backgroundColor: "var(--surface)",
             borderColor: "var(--border)",
@@ -291,51 +291,51 @@ export default function OperationCenter() {
             <button
               type="button"
               onClick={() => { trackRecent("mesas"); navigate("/app/mesas"); }}
-              className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[#C8953A]/40 hover:scale-[1.02] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[var(--brand)]/40 hover:scale-[1.02] active:scale-[0.99]"
               style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
             >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(200,149,58,0.14)" }}>
-                <Coffee size={22} color="#C8953A" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--brand) 14%, transparent)" }}>
+                <Coffee size={22} color="var(--brand)" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Mesas</p>
                 <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Auto-atendimento e QR Code</p>
               </div>
-              <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#C8953A" }} />
+              <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand)" }} />
             </button>
 
             {/* Atendimento */}
             <button
               type="button"
               onClick={() => { trackRecent("atendimento"); navigate("/app/atendimento"); }}
-              className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[#C8953A]/40 hover:scale-[1.02] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[var(--brand)]/40 hover:scale-[1.02] active:scale-[0.99]"
               style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
             >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(200,149,58,0.14)" }}>
-                <Headphones size={22} color="#C8953A" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--brand) 14%, transparent)" }}>
+                <Headphones size={22} color="var(--brand)" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Atendimento</p>
                 <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Pedidos por telefone e balcão</p>
               </div>
-              <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#C8953A" }} />
+              <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand)" }} />
             </button>
 
             {/* Frente de Caixa / PDV */}
             <button
               type="button"
               onClick={() => { trackRecent("pdv"); navigate("/pdv"); }}
-              className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[#C8953A]/40 hover:scale-[1.02] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[var(--brand)]/40 hover:scale-[1.02] active:scale-[0.99]"
               style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
             >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(200,149,58,0.14)" }}>
-                <Monitor size={22} color="#C8953A" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--brand) 14%, transparent)" }}>
+                <Monitor size={22} color="var(--brand)" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Frente de Caixa</p>
                 <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Registrar vendas no PDV</p>
               </div>
-              <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#C8953A" }} />
+              <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand)" }} />
             </button>
 
             {/* Orçamento / DAV */}
@@ -343,17 +343,17 @@ export default function OperationCenter() {
               <button
                 type="button"
                 onClick={() => { trackRecent("orcamento"); navigate("/app/dav"); }}
-                className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[#A07230]/40 hover:scale-[1.02] active:scale-[0.99]"
+                className="group relative overflow-hidden rounded-2xl border p-5 flex items-center gap-4 text-left transition-all hover:ring-2 hover:ring-[var(--brand-accent)]/40 hover:scale-[1.02] active:scale-[0.99]"
                 style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
               >
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(160,114,48,0.14)" }}>
-                  <FileText size={22} color="#A07230" />
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--brand-accent) 14%, transparent)" }}>
+                  <FileText size={22} color="var(--brand-accent)" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm leading-tight" style={{ color: "var(--text)" }}>Orçamento / DAV</p>
                   <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>Montar orçamento para o cliente</p>
                 </div>
-                <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#A07230" }} />
+                <ArrowRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--brand-accent)" }} />
               </button>
             )}
           </div>

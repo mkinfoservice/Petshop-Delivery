@@ -12,7 +12,10 @@ export function useUpdateStoreFrontConfig() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (req: UpdateStoreFrontConfigRequest) => api.updateStoreFrontConfig(req),
-    onSuccess: (data) => qc.setQueryData(QK, data),
+    onSuccess: (data) => {
+      qc.setQueryData(QK, data);
+      qc.invalidateQueries({ queryKey: ["storefront"] });
+    },
   });
 }
 

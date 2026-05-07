@@ -29,8 +29,9 @@ export function ModuleCard({
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor =
-          module.iconColor + "55";
-        (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${module.iconColor}18`;
+          `color-mix(in srgb, ${module.iconColor} 32%, transparent)`;
+        (e.currentTarget as HTMLElement).style.boxShadow =
+          `0 8px 24px color-mix(in srgb, ${module.iconColor} 12%, transparent)`;
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
@@ -47,17 +48,17 @@ export function ModuleCard({
         }}
         className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
         style={{
-          color: isFavorite ? "#f59e0b" : "var(--text-muted)",
+          color: isFavorite ? "var(--brand-accent)" : "var(--text-muted)",
           backgroundColor: isFavorite
-            ? "rgba(245,158,11,0.12)"
+            ? "color-mix(in srgb, var(--brand-accent) 12%, transparent)"
             : "var(--surface-2)",
         }}
         title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
       >
         <Star
           size={12}
-          fill={isFavorite ? "#f59e0b" : "none"}
-          stroke={isFavorite ? "#f59e0b" : "currentColor"}
+          fill={isFavorite ? "var(--brand-accent)" : "none"}
+          stroke={isFavorite ? "var(--brand-accent)" : "currentColor"}
           strokeWidth={2.5}
         />
       </button>
