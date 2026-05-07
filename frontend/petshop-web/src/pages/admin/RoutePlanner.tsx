@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 
-import { fetchActiveDeliverers, fetchReadyOrders } from "@/features/admin/routes/plannerApi";
+import { fetchActiveDeliverers, fetchReadyOrders, geocodeMissing } from "@/features/admin/routes/plannerApi";
 import {
   createRoute,
   previewRoutes,
@@ -21,6 +22,7 @@ function formatDate(iso: string) {
 
 export default function RoutePlanner() {
   const nav = useNavigate();
+  const queryClient = useQueryClient();
 
   const [selectedDelivererId, setSelectedDelivererId] = useState<string>("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
@@ -59,6 +61,13 @@ export default function RoutePlanner() {
     },
   });
 
+  const geocodeMut = useMutation({
+    mutationFn: () => geocodeMissing(100),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ready-orders"] });
+    },
+  });
+
   function toggleOrder(id: string) {
     setSelectedOrderIds((prev) => {
       const next = new Set(prev);
@@ -76,6 +85,7 @@ export default function RoutePlanner() {
   const items = ordersQ.data?.items ?? [];
   const total = ordersQ.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 50));
+  const noGpsCount = items.filter((o) => !o.latitude || !o.longitude).length;
 
   return (
     <div className="bg-[var(--bg)] text-[var(--text)]">
@@ -117,10 +127,33 @@ export default function RoutePlanner() {
 
         {/* Pedidos */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="text-sm font-extrabold">Pedidos prontos para entrega</div>
-            <div className="text-xs text-[var(--text-muted)]">
-              {selectedOrderIds.size} selecionado(s)
+            <div className="flex items-center gap-2">
+              {noGpsCount > 0 && (
+                <button
+                  type="button"
+                  disabled={geocodeMut.isPending}
+                  onClick={() => geocodeMut.mutate()}
+                  className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:brightness-110 disabled:opacity-60"
+                  style={{
+                    borderColor: geocodeMut.isSuccess ? "var(--border)" : "rgba(124,92,248,0.4)",
+                    backgroundColor: geocodeMut.isSuccess ? "var(--surface-2)" : "rgba(124,92,248,0.08)",
+                    color: geocodeMut.isSuccess ? "var(--text-muted)" : "#a78bfa",
+                  }}
+                  title="Reprocessar geocoding dos pedidos sem GPS"
+                >
+                  <MapPin size={11} />
+                  {geocodeMut.isPending
+                    ? "Buscando GPS..."
+                    : geocodeMut.isSuccess
+                      ? `✓ ${geocodeMut.data.updated} atualizados`
+                      : `Corrigir GPS (${noGpsCount})`}
+                </button>
+              )}
+              <div className="text-xs text-[var(--text-muted)]">
+                {selectedOrderIds.size} selecionado(s)
+              </div>
             </div>
           </div>
 

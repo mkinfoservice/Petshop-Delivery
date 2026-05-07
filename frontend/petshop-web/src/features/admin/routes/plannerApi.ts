@@ -26,6 +26,19 @@ export type ReadyOrderItem = {
   longitude?: number | null;
 };
 
+export type GeocodeMissingResult = {
+  processed: number;
+  updated: number;
+  notFound: number;
+  errors: number;
+};
+
+export async function geocodeMissing(limit = 100): Promise<GeocodeMissingResult> {
+  return adminFetch<GeocodeMissingResult>(`/orders/geocode-missing?limit=${limit}`, {
+    method: "POST",
+  });
+}
+
 export async function fetchReadyOrders(page = 1, pageSize = 50, search?: string) {
   const params = new URLSearchParams();
   params.set("page", String(page));
