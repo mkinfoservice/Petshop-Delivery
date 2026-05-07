@@ -46,8 +46,8 @@ public class OrsGeocodingService : IGeocodingService
         if (!doc.RootElement.TryGetProperty("features", out var features)) return null;
         if (features.ValueKind != JsonValueKind.Array || features.GetArrayLength() == 0) return null;
 
-        // ✅ Procura resultado que está no estado do Rio de Janeiro
-        // Bounds do estado RJ: lat entre -23.4 e -20.7, lon entre -44.9 e -40.9
+        // Procura o primeiro resultado dentro do território brasileiro
+        // Bounds do Brasil: lat -35 a 5.5, lon -74 a -28.8
         foreach (var feature in features.EnumerateArray())
         {
             if (!feature.TryGetProperty("geometry", out var geom)) continue;
@@ -59,19 +59,18 @@ public class OrsGeocodingService : IGeocodingService
 
             if (!double.IsFinite(lat) || !double.IsFinite(lon)) continue;
 
-            // ✅ Validação: estado do Rio de Janeiro
-            if (lat >= -23.4 && lat <= -20.7 && lon >= -44.9 && lon <= -40.9)
+            if (lat >= -35.0 && lat <= 5.5 && lon >= -74.0 && lon <= -28.8)
             {
-                _logger.LogInformation("ORS: coords válidas RJ - Lat={Lat}, Lon={Lon} - {Address}", lat, lon, address);
+                _logger.LogInformation("ORS: coords válidas BR - Lat={Lat}, Lon={Lon} - {Address}", lat, lon, address);
                 return (lat, lon);
             }
             else
             {
-                _logger.LogDebug("ORS: coords fora do RJ - Lat={Lat}, Lon={Lon} - {Address}", lat, lon, address);
+                _logger.LogDebug("ORS: coords fora do Brasil - Lat={Lat}, Lon={Lon} - {Address}", lat, lon, address);
             }
         }
 
-        _logger.LogWarning("ORS: nenhuma coord válida no RJ para: {Address}", address);
+        _logger.LogWarning("ORS: nenhuma coord válida no Brasil para: {Address}", address);
         return null;
     }
 }

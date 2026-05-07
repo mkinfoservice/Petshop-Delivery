@@ -63,8 +63,8 @@ public class OrdersController : ControllerBase
 
         if (viaCep != null && !string.IsNullOrWhiteSpace(viaCep.Logradouro))
         {
-            // Extrair número da casa do endereço original (ex: "Nº 2105", "N 115", "nº115")
-            var numMatch = Regex.Match(order.Address ?? "", @"[Nn]\.?º?\s*(\d+)");
+            // Extrair número da casa do endereço original (ex: "Nº 2105", "N 115", "nº115", "N°5", "Nr 10")
+            var numMatch = Regex.Match(order.Address ?? "", @"[Nn](?:r\.?o?)?\.?[°º]?\s*(\d+)");
             var houseNumber = numMatch.Success ? numMatch.Groups[1].Value : "";
 
             var parts = new List<string> { viaCep.Logradouro };
@@ -84,7 +84,7 @@ public class OrdersController : ControllerBase
         }
 
         // Fallback: formato original se ViaCEP falhar
-        var fallback = $"{order.Address}, {order.Cep}, Rio de Janeiro, RJ, Brasil";
+        var fallback = $"{order.Address}, {order.Cep}, Brasil";
         _logger.LogWarning(
             "📮 VIACEP FALLBACK | Pedido={OrderId} | ViaCEP falhou, usando formato original: \"{Query}\"",
             order.PublicId, fallback);
