@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   useCreateDeliverer,
   useDeliverer,
+  useResetDelivererPin,
   useUpdateDeliverer,
 } from "@/features/admin/deliverers/queries";
 
@@ -12,6 +13,9 @@ function maskPhone(v: string) {
   return d.replace(/^(\d{2})(\d{5})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
 }
 function unmask(v: string) { return v.replace(/\D/g, ""); }
+function isValidPin(pin: string) {
+  return /^\d{4,6}$/.test(pin.trim());
+}
 
 type FormState = {
   name: string;
@@ -39,6 +43,7 @@ export default function DelivererForm() {
 
   const create = useCreateDeliverer();
   const update = useUpdateDeliverer();
+  const resetPin = useResetDelivererPin();
 
   const delivererQuery = useDeliverer(!isNew ? id! : "");
   const deliverer = delivererQuery.data;
@@ -59,7 +64,7 @@ export default function DelivererForm() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  const isSaving = create.isPending || update.isPending;
+  const isSaving = create.isPending || update.isPending || resetPin.isPending;
   const isLoadingDeliverer = !isNew && delivererQuery.isLoading;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -68,10 +73,14 @@ export default function DelivererForm() {
 
     if (!form.name.trim()) { setError("Nome é obrigatório."); return; }
     if (!form.phone.trim()) { setError("Telefone é obrigatório."); return; }
+    if (!isNew && form.pin.trim() && !isValidPin(form.pin)) {
+      setError("O novo PIN deve conter 4 a 6 dígitos numéricos.");
+      return;
+    }
 
     if (isNew) {
-      if (!form.pin.trim() || form.pin.trim().length < 4) {
-        setError("Informe um PIN com mínimo 4 dígitos numéricos.");
+      if (!isValidPin(form.pin)) {
+        setError("Informe um PIN com 4 a 6 dígitos numéricos.");
         return;
       }
 
@@ -100,6 +109,9 @@ export default function DelivererForm() {
           isActive: form.isActive,
         },
       });
+      if (form.pin.trim()) {
+        await resetPin.mutateAsync({ id: id!, pin: form.pin.trim() });
+      }
       navigate("/app/logistica/entregadores");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar entregador.");
@@ -231,41 +243,42 @@ export default function DelivererForm() {
               </div>
             </section>
 
-            {/* Acesso — PIN só no create */}
-            {isNew && (
-              <section
-                className="rounded-2xl border p-5 space-y-4"
-                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
-              >
-                <div className="text-sm font-extrabold" style={{ color: "var(--text)" }}>
-                  Acesso
-                </div>
+            {/* Acesso */}
+            <section
+              className="rounded-2xl border p-5 space-y-4"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+            >
+              <div className="text-sm font-extrabold" style={{ color: "var(--text)" }}>
+                Acesso
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
-                    PIN *
-                  </label>
-                  <input
-                    value={form.pin}
-                    onChange={(e) =>
-                      set("pin", e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    placeholder="Ex: 1234"
-                    maxLength={6}
-                    inputMode="numeric"
-                    className="w-full h-10 rounded-xl border px-3.5 text-sm font-mono tracking-widest outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/40"
-                    style={{
-                      backgroundColor: "var(--surface-2)",
-                      borderColor: "var(--border)",
-                      color: "var(--text)",
-                    }}
-                  />
-                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    4 a 6 dígitos. Usado no login do entregador (telefone + PIN).
-                  </p>
-                </div>
-              </section>
-            )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                  {isNew ? "PIN *" : "Novo PIN"}
+                </label>
+                <input
+                  value={form.pin}
+                  onChange={(e) =>
+                    set("pin", e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  placeholder={isNew ? "Ex: 1234" : "Deixe em branco para manter o atual"}
+                  maxLength={6}
+                  inputMode="numeric"
+                  autoComplete="new-password"
+                  className="w-full h-10 rounded-xl border px-3.5 text-sm font-mono tracking-widest outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/40"
+                  style={{
+                    backgroundColor: "var(--surface-2)",
+                    borderColor: "var(--border)",
+                    color: "var(--text)",
+                  }}
+                />
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {isNew
+                    ? "4 a 6 dígitos. Usado no login do entregador (telefone + PIN)."
+                    : "Opcional. Preencha apenas se quiser alterar o PIN do entregador."}
+                </p>
+              </div>
+            </section>
 
             {/* Erro */}
             {error && (

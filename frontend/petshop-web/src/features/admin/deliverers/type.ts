@@ -21,3 +21,7 @@ export type UpdateDelivererRequest = {
     vehicle?: string | null;
     isActive: boolean;
 };
+
+export type ResetDelivererPinRequest = {
+    pin: string;
+};

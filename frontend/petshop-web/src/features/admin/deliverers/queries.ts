@@ -4,6 +4,7 @@ import {
   fetchDelivererById,
   createDeliverer,
   updateDeliverer,
+  resetDelivererPin,
   deleteDeliverer,
 } from "./api";
 
@@ -35,11 +36,18 @@ export function useCreateDeliverer() {
 export function useUpdateDeliverer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateDeliverer(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateDeliverer>[1] }) =>
+      updateDeliverer(id, data),
     onSuccess: async (_, vars) => {
       await qc.invalidateQueries({ queryKey: ["admin-deliverers"] });
       await qc.invalidateQueries({ queryKey: ["admin-deliverer", vars.id] });
     },
+  });
+}
+
+export function useResetDelivererPin() {
+  return useMutation({
+    mutationFn: ({ id, pin }: { id: string; pin: string }) => resetDelivererPin(id, { pin }),
   });
 }
 

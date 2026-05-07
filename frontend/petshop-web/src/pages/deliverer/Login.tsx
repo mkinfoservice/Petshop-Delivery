@@ -7,12 +7,13 @@ import {
   saveDelivererInfo,
 } from "@/features/deliverer/auth/auth";
 
-const PIN_LENGTH = 4;
+const PIN_MIN_LENGTH = 4;
+const PIN_MAX_LENGTH = 6;
 
 export default function DelivererLogin() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState<string[]>(Array(PIN_LENGTH).fill(""));
+  const [pin, setPin] = useState<string[]>(Array(PIN_MAX_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -28,7 +29,7 @@ export default function DelivererLogin() {
     const next = [...pin];
     next[index] = digit;
     setPin(next);
-    if (digit && index < PIN_LENGTH - 1) {
+    if (digit && index < PIN_MAX_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   }
@@ -44,8 +45,8 @@ export default function DelivererLogin() {
     if (loading) return;
     const p = phone.trim();
     const pi = pin.join("");
-    if (!p || pi.length < PIN_LENGTH) {
-      setError("Informe o telefone e o PIN completo.");
+    if (!p || pi.length < PIN_MIN_LENGTH) {
+      setError("Informe o telefone e o PIN com 4 a 6 dígitos.");
       return;
     }
     try {
@@ -62,7 +63,7 @@ export default function DelivererLogin() {
     }
   }
 
-  const pinFilled = pin.join("").length === PIN_LENGTH;
+  const pinFilled = pin.join("").length >= PIN_MIN_LENGTH;
   const canSubmit = phone.trim().length > 0 && pinFilled && !loading;
 
   return (
@@ -134,7 +135,7 @@ export default function DelivererLogin() {
               PIN
             </label>
             <div className="flex gap-3 justify-center">
-              {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+              {Array.from({ length: PIN_MAX_LENGTH }).map((_, i) => (
                 <input
                   key={i}
                   ref={(el) => { inputRefs.current[i] = el; }}
@@ -145,7 +146,7 @@ export default function DelivererLogin() {
                   onChange={(e) => handlePinChange(i, e.target.value)}
                   onKeyDown={(e) => handlePinKeyDown(i, e)}
                   disabled={loading}
-                  className="w-14 h-14 rounded-xl border text-center text-xl font-bold outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/50 disabled:opacity-60"
+                  className="w-11 h-12 sm:w-12 sm:h-12 rounded-xl border text-center text-xl font-bold outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/50 disabled:opacity-60"
                   style={{
                     backgroundColor: pin[i] ? "#7c5cf8" : "var(--surface-2)",
                     borderColor: pin[i] ? "#7c5cf8" : "var(--border)",
@@ -156,6 +157,9 @@ export default function DelivererLogin() {
               ))}
             </div>
           </div>
+          <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
+            PIN de 4 a 6 dígitos
+          </p>
 
           {/* Error */}
           {error && (

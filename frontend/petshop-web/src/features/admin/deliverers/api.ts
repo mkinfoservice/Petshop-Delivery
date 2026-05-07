@@ -2,6 +2,7 @@ import { adminFetch } from "@/features/admin/auth/adminFetch";
 import type {
   DelivererResponse,
   CreateDelivererRequest,
+  ResetDelivererPinRequest,
   UpdateDelivererRequest,
 } from "./type";
 
@@ -27,6 +28,14 @@ export async function createDeliverer(data: CreateDelivererRequest) {
 export async function updateDeliverer(id: string, data: UpdateDelivererRequest) {
   return adminFetch<DelivererResponse>(`/deliverers/${id}`, {
     method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function resetDelivererPin(id: string, data: ResetDelivererPinRequest) {
+  return adminFetch<{ id: string; message: string }>(`/deliverers/${id}/pin`, {
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
