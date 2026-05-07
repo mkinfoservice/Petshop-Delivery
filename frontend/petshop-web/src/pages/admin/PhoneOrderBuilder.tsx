@@ -6,6 +6,8 @@ import type { CustomerDetailDto } from "@/features/admin/customers/types";
 import { fetchAdminProductById, fetchAdminProducts } from "@/features/admin/products/api";
 import type { ProductAddon, ProductDetail, ProductListItem } from "@/features/admin/products/api";
 import { createPhoneOrder } from "@/features/admin/phoneOrder/api";
+import { fetchCompanyFeatures } from "@/features/admin/company/featuresApi";
+import { fetchAddressByCep } from "@/features/shipping/viacep";
 import { digitsOnly, formatCpf, isValidCpf } from "@/utils/cpf";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Coffee, Loader2, MapPin,
@@ -44,6 +46,10 @@ function paymentMethodLabel(method: string) {
 function normalizeDavCode(code: string) {
   const normalized = code.trim().toUpperCase();
   return normalized.startsWith("DAV-") ? normalized : `DAV-${normalized}`;
+}
+function formatCep(value: string) {
+  const d = digitsOnly(value).slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 function formatPhone(value: string) {
   const d = digitsOnly(value).slice(0, 11);
@@ -93,6 +99,12 @@ export default function PhoneOrderBuilder() {
   const [guestCep, setGuestCep] = useState("");
   const [guestAddress, setGuestAddress] = useState("");
   const [guestComplement, setGuestComplement] = useState("");
+  const [guestStreet, setGuestStreet] = useState("");
+  const [guestNumber, setGuestNumber] = useState("");
+  const [guestNeighborhood, setGuestNeighborhood] = useState("");
+  const [guestCityUf, setGuestCityUf] = useState("");
+  const [guestCepLoading, setGuestCepLoading] = useState(false);
+  const [guestCepError, setGuestCepError] = useState<string | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<CustomerEditForm | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -112,6 +124,13 @@ export default function PhoneOrderBuilder() {
   const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<string | null>(null);
   const [confirmedDavId, setConfirmedDavId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const { data: companyFeatures } = useQuery({
+    queryKey: ["company-features"],
+    queryFn: fetchCompanyFeatures,
+    staleTime: 5 * 60 * 1000,
+  });
+  const customerAddressGeocoding = companyFeatures?.features?.["customer_address_geocoding"] ?? false;
 
   const { data: foundCustomer, isFetching: searchingCustomer, error: lookupError } = useQuery({
     queryKey: ["customer-by-phone-or-cpf", lookupValue],
@@ -240,6 +259,31 @@ export default function PhoneOrderBuilder() {
     setCart((prev) => { const withoutEdited = editingCartKey ? prev.filter((i) => i.key !== editingCartKey) : prev; const existing = withoutEdited.find((i) => i.key === key); if (existing) return withoutEdited.map((i) => (i.key === key ? { ...i, qty: i.qty + Math.max(1, configQty) } : i)); return [...withoutEdited, { key, qty: Math.max(1, configQty), product: { id: configuringProduct.id, name: configuringProduct.name, imageUrl: configuringProduct.images?.[0]?.url ?? null, basePriceCents: basePrice }, addonIds, addons: selected }]; });
     closeConfig();
   }
+  function buildGuestAddress() {
+    const parts: string[] = [];
+    if (guestStreet) parts.push(guestStreet);
+    if (guestNumber) parts.push(`Nº ${guestNumber}`);
+    if (guestComplement) parts.push(guestComplement);
+    if (guestNeighborhood) parts.push(guestNeighborhood);
+    if (guestCityUf) parts.push(guestCityUf);
+    return parts.join(", ");
+  }
+  async function handleCepLookup() {
+    const digits = digitsOnly(guestCep);
+    if (digits.length !== 8) return;
+    setGuestCepLoading(true);
+    setGuestCepError(null);
+    try {
+      const data = await fetchAddressByCep(digits);
+      setGuestStreet(data.logradouro || "");
+      setGuestNeighborhood(data.bairro || "");
+      setGuestCityUf(data.localidade && data.uf ? `${data.localidade}/${data.uf}` : "");
+    } catch {
+      setGuestCepError("CEP não encontrado.");
+    } finally {
+      setGuestCepLoading(false);
+    }
+  }
   function handleLookup() {
     const cleaned = digitsOnly(lookupInput);
     if (cleaned.length < 8) return;
@@ -253,6 +297,7 @@ export default function PhoneOrderBuilder() {
   function resetFlow() {
     setStep("search"); setSearchMode("lookup"); setLookupInput(""); setLookupValue(""); setCustomer(null);
     setGuestName(""); setGuestPhone(""); setGuestCpf(""); setGuestCep(""); setGuestAddress(""); setGuestComplement("");
+    setGuestStreet(""); setGuestNumber(""); setGuestNeighborhood(""); setGuestCityUf(""); setGuestCepLoading(false); setGuestCepError(null);
     setCpfConfirmation(""); setCpfConfirmationError(null);
     setCart([]); setPaymentMethod("PIX"); setCashGiven(""); setDeliveryCents(0);
     setConfirmedOrderId(null); setConfirmedOrderNumber(null); setConfirmedDavId(null); closeConfig();
@@ -299,12 +344,17 @@ export default function PhoneOrderBuilder() {
   async function handleRegisterAndContinue() {
     if (!guestName.trim()) return; setRegisterLoading(true); setRegisterError(null);
     try {
+      const builtAddress = buildGuestAddress();
       const created = await createCustomer({
         name: guestName.trim(),
         phone: digitsOnly(guestPhone) || undefined,
         cpf: digitsOnly(guestCpf) || undefined,
+        cep: digitsOnly(guestCep) || undefined,
+        address: builtAddress || undefined,
+        complement: guestComplement || undefined,
       });
       setCustomer(created);
+      if (builtAddress) setGuestAddress(builtAddress);
       setStep("cart");
     }
     catch (e) { setRegisterError(e instanceof Error ? e.message : "Erro ao cadastrar cliente."); }
@@ -515,6 +565,61 @@ export default function PhoneOrderBuilder() {
                               className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
                               style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }} />
                           </div>
+
+                          {/* Endereço — visível apenas quando feature customer_address_geocoding está ativa */}
+                          {customerAddressGeocoding && (
+                            <div className="space-y-2 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+                              <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                                Endereço de entrega
+                              </p>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  value={guestCep}
+                                  onChange={(e) => setGuestCep(formatCep(e.target.value))}
+                                  onBlur={handleCepLookup}
+                                  placeholder="CEP (00000-000)"
+                                  maxLength={9}
+                                  className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                                  style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                                />
+                                {guestCepLoading && <Loader2 size={15} className="animate-spin shrink-0" style={{ color: "var(--text-muted)" }} />}
+                              </div>
+                              {guestCepError && <p className="text-xs" style={{ color: "#f87171" }}>{guestCepError}</p>}
+                              {guestStreet && (
+                                <>
+                                  <input
+                                    value={guestStreet}
+                                    onChange={(e) => setGuestStreet(e.target.value)}
+                                    placeholder="Rua / Logradouro"
+                                    className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                                    style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                                  />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                      value={guestNumber}
+                                      onChange={(e) => setGuestNumber(e.target.value)}
+                                      placeholder="Número"
+                                      className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                                      style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                                    />
+                                    <input
+                                      value={guestComplement}
+                                      onChange={(e) => setGuestComplement(e.target.value)}
+                                      placeholder="Complemento"
+                                      className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                                      style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                                    />
+                                  </div>
+                                  <div className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--brand-accent) 10%, transparent)" }}>
+                                    <MapPin size={12} className="shrink-0 mt-0.5" style={{ color: "var(--brand-accent)" }} />
+                                    <p className="text-xs leading-relaxed" style={{ color: "var(--brand-accent)" }}>
+                                      {[guestStreet, guestNumber ? `Nº ${guestNumber}` : null, guestComplement, guestNeighborhood, guestCityUf].filter(Boolean).join(", ")}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {registerError && <p className="text-xs text-red-500">{registerError}</p>}
                         <div className="grid grid-cols-2 gap-2">

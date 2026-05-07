@@ -16,6 +16,8 @@ public static class AppFeatureKeys
     /// <summary>Exibe módulos de entrega própria (Rotas, Entregadores). false = entrega somente via marketplace.</summary>
     public const string OwnDelivery = "own_delivery";
     public const string ModernCatalogExperience = "modern_catalog_experience";
+    /// <summary>Habilita campos de endereço + geocoding no cadastro de clientes via atendimento telefônico.</summary>
+    public const string CustomerAddressGeocoding = "customer_address_geocoding";
 }
 
 public class PlanFeatureService
@@ -37,7 +39,8 @@ public class PlanFeatureService
         AppFeatureKeys.LoyaltyProgram,
         AppFeatureKeys.AccountingEmailDispatch,
         AppFeatureKeys.OwnDelivery,
-        AppFeatureKeys.ModernCatalogExperience
+        AppFeatureKeys.ModernCatalogExperience,
+        AppFeatureKeys.CustomerAddressGeocoding,
     ];
 
     public async Task<Dictionary<string, bool>> ResolveFeaturesAsync(Company company, CancellationToken ct = default)
@@ -70,6 +73,7 @@ public class PlanFeatureService
             [AppFeatureKeys.AccountingEmailDispatch] = IsPlanAtLeast(plan, "pro"),
             [AppFeatureKeys.OwnDelivery] = true,
             [AppFeatureKeys.ModernCatalogExperience] = false,
+            [AppFeatureKeys.CustomerAddressGeocoding] = false,
         };
     }
 
