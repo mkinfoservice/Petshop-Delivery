@@ -176,8 +176,7 @@ function StepName({ brand, tableNum, tableName, maxGuests, initialName, initialG
           </div>
 
           {/* Card */}
-          <div className="rounded-3xl p-6 space-y-4" style={{ background: "var(--surface)" }}
-            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+          <div className="rounded-3xl p-6 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
 
             {tab === "new" ? (
               <>
@@ -651,8 +650,7 @@ function MesaProductCard({ product, qty, primaryColor, onOpen, onInc, onDec }: {
   return (
     <button onClick={onOpen} className="w-full text-left"
       style={{ WebkitTapHighlightColor: "transparent" }}>
-      <div className="rounded-2xl overflow-hidden flex gap-0 transition-all duration-200 active:scale-[0.98]" style={{ background: "var(--surface)" }}
-        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div className="rounded-2xl overflow-hidden flex gap-0 transition-all duration-200 active:scale-[0.98]" style={{ background: "var(--surface)", boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}>
 
         {/* Text side */}
         <div className="flex-1 p-3.5 flex flex-col gap-1 min-w-0">
@@ -1122,8 +1120,7 @@ export default function MesaPage() {
     }}>
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--surface) 95%, transparent)" }}
-        style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.04)" }}>
+      <div className="sticky top-0 z-30 backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--surface) 95%, transparent)", boxShadow: "0 1px 0 rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.04)" }}>
 
         {/* Brand + cart */}
         <div className="max-w-2xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3">
