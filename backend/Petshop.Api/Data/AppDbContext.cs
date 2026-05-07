@@ -81,6 +81,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // ── Auditoria ────────────────────────────────────────────
     public DbSet<ProductChangeLog> ProductChangeLogs => Set<ProductChangeLog>();
     public DbSet<ProductPriceHistory> ProductPriceHistories => Set<ProductPriceHistory>();
+    public DbSet<OperationalAuditLog> OperationalAuditLogs => Set<OperationalAuditLog>();
 
     // ── Insumos ───────────────────────────────────────────────
     public DbSet<Supply> Supplies => Set<Supply>();
@@ -183,6 +184,18 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<CompanyFeatureOverride>()
             .HasIndex(f => new { f.CompanyId, f.FeatureKey })
             .IsUnique();
+
+        modelBuilder.Entity<OperationalAuditLog>()
+            .HasIndex(a => new { a.CompanyId, a.CreatedAtUtc });
+
+        modelBuilder.Entity<OperationalAuditLog>()
+            .HasIndex(a => new { a.Action, a.CreatedAtUtc });
+
+        modelBuilder.Entity<OperationalAuditLog>()
+            .HasIndex(a => new { a.TargetType, a.TargetId });
+
+        modelBuilder.Entity<OperationalAuditLog>()
+            .HasIndex(a => a.CorrelationId);
 
         // ── Category ─────────────────────────────────────────
         modelBuilder.Entity<Category>()

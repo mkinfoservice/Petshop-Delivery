@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Catalog;
+using Petshop.Api.Services.Audit;
 using Petshop.Api.Services.Tenancy;
 
 namespace Petshop.Api.Controllers;
@@ -14,11 +15,16 @@ public class MasterCompanyFeaturesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly PlanFeatureService _features;
+    private readonly OperationalAuditService _audit;
 
-    public MasterCompanyFeaturesController(AppDbContext db, PlanFeatureService features)
+    public MasterCompanyFeaturesController(
+        AppDbContext db,
+        PlanFeatureService features,
+        OperationalAuditService audit)
     {
         _db = db;
         _features = features;
+        _audit = audit;
     }
 
     [HttpGet]
@@ -81,6 +87,16 @@ public class MasterCompanyFeaturesController : ControllerBase
         }
 
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "company.features.update",
+            targetType: "company",
+            targetId: company.Id.ToString(),
+            companyId: company.Id,
+            companySlug: company.Slug,
+            targetName: company.Name,
+            payload: new { features = normalized },
+            ct: ct);
 
         var resolved = await _features.ResolveFeaturesAsync(company, ct);
         return Ok(new { companyId = company.Id, plan = company.Plan, features = resolved });

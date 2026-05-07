@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Contracts.Delivery;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Delivery;
+using Petshop.Api.Services.Audit;
 
 namespace Petshop.Api.Controllers;
 
@@ -13,10 +14,12 @@ namespace Petshop.Api.Controllers;
 public class DeliverersController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly OperationalAuditService _audit;
 
-    public DeliverersController(AppDbContext db)
+    public DeliverersController(AppDbContext db, OperationalAuditService audit)
     {
         _db = db;
+        _audit = audit;
     }
 
     // GET /deliverers?isActive=true
@@ -199,6 +202,14 @@ public class DeliverersController : ControllerBase
 
         d.PinHash = BCrypt.Net.BCrypt.HashPassword(pinTrimmed);
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "deliverer.pin.update",
+            targetType: "deliverer",
+            targetId: d.Id.ToString(),
+            targetName: d.Name,
+            payload: new { pinLength = pinTrimmed.Length },
+            ct: ct);
 
         return Ok(new { id = d.Id, message = "PIN atualizado com sucesso." });
     }

@@ -30,6 +30,7 @@ using Petshop.Api.Services.Tenancy;
 using Petshop.Api.Services.Accounting;
 using Petshop.Api.Services.Accounting.Jobs;
 using Microsoft.AspNetCore.DataProtection;
+using Petshop.Api.Middleware;
 
 // QuestPDF Community license — deve ser configurado antes de qualquer uso
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -261,6 +262,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("vendApps");
 builder.Services.AddScoped<Petshop.Api.Services.Master.MasterAuditService>();
 builder.Services.AddScoped<Petshop.Api.Services.Master.MasterCryptoService>();
+builder.Services.AddScoped<Petshop.Api.Services.Audit.OperationalAuditService>();
 
 // ===============================
 // Services — Tenant
@@ -449,19 +451,23 @@ app.UseExceptionHandler(errorApp =>
         context.Response.ContentType = "application/json";
 
         var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        var correlationId = context.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var value)
+            ? value?.ToString()
+            : context.TraceIdentifier;
         if (exceptionFeature != null)
         {
             var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogError(exceptionFeature.Error,
-                "UNHANDLED EXCEPTION | {Method} {Path} | {Message}",
+                "UNHANDLED EXCEPTION | CorrelationId={CorrelationId} | {Method} {Path} | {Message}",
+                correlationId,
                 context.Request.Method,
                 context.Request.Path,
                 exceptionFeature.Error.Message);
         }
 
         object response = app.Environment.IsDevelopment() && exceptionFeature != null
-            ? new { error = exceptionFeature.Error.Message, detail = exceptionFeature.Error.ToString() }
-            : (object)new { error = "Erro interno do servidor." };
+            ? new { error = exceptionFeature.Error.Message, detail = exceptionFeature.Error.ToString(), correlationId }
+            : (object)new { error = "Erro interno do servidor.", correlationId };
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     });
 });
@@ -959,6 +965,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Rate limiting após ForwardedHeaders para que o IP real seja lido corretamente
 app.UseRateLimiter();
