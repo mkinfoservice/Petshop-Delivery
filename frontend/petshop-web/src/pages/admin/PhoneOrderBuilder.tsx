@@ -31,6 +31,9 @@ type CustomerEditForm = {
   name: string;
   phone: string;
   cpf: string;
+  cep: string;
+  address: string;
+  complement: string;
 };
 
 function stepIndex(step: Step) { return STEPS.indexOf(step); }
@@ -214,8 +217,8 @@ export default function PhoneOrderBuilder() {
   });
 
   const editCustomerMut = useMutation({
-    mutationFn: (body: { id: string; name: string; phone?: string; cpf?: string }) =>
-      updateCustomer(body.id, { name: body.name, phone: body.phone, cpf: body.cpf }),
+    mutationFn: (body: { id: string; name: string; phone?: string; cpf?: string; cep?: string; address?: string; complement?: string }) =>
+      updateCustomer(body.id, { name: body.name, phone: body.phone, cpf: body.cpf, cep: body.cep, address: body.address, complement: body.complement }),
     onSuccess: (updated) => {
       setCustomer(updated);
       qc.setQueryData(["customer-by-phone-or-cpf", lookupValue], updated);
@@ -322,6 +325,9 @@ export default function PhoneOrderBuilder() {
       name: foundCustomer.name,
       phone: formatPhone(foundCustomer.phone ?? ""),
       cpf: formatCpf(foundCustomer.cpf ?? ""),
+      cep: formatCep(foundCustomer.cep ?? ""),
+      address: foundCustomer.address ?? "",
+      complement: foundCustomer.complement ?? "",
     });
     setEditError(null);
   }
@@ -339,6 +345,9 @@ export default function PhoneOrderBuilder() {
       name: editingCustomer.name.trim(),
       phone: digitsOnly(editingCustomer.phone) || undefined,
       cpf: cpfDigits || undefined,
+      cep: digitsOnly(editingCustomer.cep) || undefined,
+      address: editingCustomer.address.trim() || undefined,
+      complement: editingCustomer.complement.trim() || undefined,
     });
   }
   async function handleRegisterAndContinue() {
@@ -1162,6 +1171,7 @@ export default function PhoneOrderBuilder() {
           form={editingCustomer}
           saving={editCustomerMut.isPending}
           error={editError}
+          showAddress={customerAddressGeocoding}
           onClose={() => { if (!editCustomerMut.isPending) setEditingCustomer(null); }}
           onChange={(next) => setEditingCustomer(next)}
           onSave={submitCustomerEdit}
@@ -1171,33 +1181,58 @@ export default function PhoneOrderBuilder() {
   );
 }
 
-function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
+function CustomerEditModal({ form, saving, error, showAddress, onClose, onChange, onSave }: {
   form: CustomerEditForm;
   saving: boolean;
   error: string | null;
+  showAddress: boolean;
   onClose: () => void;
   onChange: (next: CustomerEditForm) => void;
   onSave: () => void;
 }) {
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [cepHint, setCepHint] = useState<string | null>(null);
+
+  async function lookupCep() {
+    const digits = digitsOnly(form.cep);
+    if (digits.length !== 8) return;
+    setCepLoading(true); setCepError(null); setCepHint(null);
+    try {
+      const data = await fetchAddressByCep(digits);
+      const hint = [data.logradouro, data.bairro, data.localidade && data.uf ? `${data.localidade}/${data.uf}` : null].filter(Boolean).join(", ");
+      setCepHint(hint);
+      if (!form.address.trim() && data.logradouro) onChange({ ...form, address: data.logradouro });
+    } catch {
+      setCepError("CEP não encontrado.");
+    } finally {
+      setCepLoading(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
-      <div className="w-full max-w-lg rounded-3xl p-5 space-y-4" style={{ background: "var(--surface)", boxShadow: "0 16px 48px rgba(0,0,0,0.18)" }}>
+      <div className="w-full max-w-lg rounded-3xl p-5 space-y-4 max-h-[90dvh] overflow-y-auto" style={{ background: "var(--surface)", boxShadow: "0 16px 48px rgba(0,0,0,0.18)" }}>
         <div className="flex items-start justify-between">
           <div>
             <p className="font-black text-base" style={{ color: "var(--text)" }}>Editar cliente</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Atualize nome, telefone e CPF.</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              {showAddress ? "Atualize nome, contato e endereço." : "Atualize nome, telefone e CPF."}
+            </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center"
+          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
             <X size={15} />
           </button>
         </div>
 
+        {/* Dados pessoais */}
         <div className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Dados do cliente</p>
           <input
             value={form.name}
             onChange={(e) => onChange({ ...form, name: e.target.value })}
-            placeholder="Nome"
+            placeholder="Nome *"
             className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none"
             style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
           />
@@ -1219,6 +1254,49 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
           </div>
         </div>
 
+        {/* Endereço — só quando feature está ativa */}
+        {showAddress && (
+          <div className="space-y-2 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Endereço de entrega</p>
+
+            <div className="flex gap-2 items-center">
+              <input
+                value={form.cep}
+                onChange={(e) => { onChange({ ...form, cep: formatCep(e.target.value) }); setCepHint(null); setCepError(null); }}
+                onBlur={lookupCep}
+                placeholder="CEP (00000-000)"
+                maxLength={9}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+              />
+              {cepLoading && <Loader2 size={15} className="animate-spin shrink-0" style={{ color: "var(--text-muted)" }} />}
+            </div>
+
+            {cepError && <p className="text-xs" style={{ color: "#f87171" }}>{cepError}</p>}
+            {cepHint && (
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--brand-accent) 10%, transparent)" }}>
+                <MapPin size={11} style={{ color: "var(--brand-accent)" }} />
+                <p className="text-xs" style={{ color: "var(--brand-accent)" }}>{cepHint}</p>
+              </div>
+            )}
+
+            <input
+              value={form.address}
+              onChange={(e) => onChange({ ...form, address: e.target.value })}
+              placeholder="Endereço completo (rua, nº)"
+              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+              style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+            />
+            <input
+              value={form.complement}
+              onChange={(e) => onChange({ ...form, complement: e.target.value })}
+              placeholder="Complemento (apto, bloco...)"
+              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+              style={{ border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+            />
+          </div>
+        )}
+
         {error && (
           <p className="text-xs" style={{ color: "#dc2626" }}>{error}</p>
         )}
@@ -1237,7 +1315,7 @@ function CustomerEditModal({ form, saving, error, onClose, onChange, onSave }: {
             className="py-3 rounded-2xl text-sm font-black text-white disabled:opacity-50 transition active:scale-95"
             style={{ background: `linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000))` }}
           >
-            {saving ? "Salvando..." : "Salvar"}
+            {saving ? "Salvando..." : "Salvar alterações"}
           </button>
         </div>
       </div>
