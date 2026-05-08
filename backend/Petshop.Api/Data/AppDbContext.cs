@@ -189,6 +189,9 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             .HasIndex(a => new { a.CompanyId, a.CreatedAtUtc });
 
         modelBuilder.Entity<OperationalAuditLog>()
+            .HasIndex(a => new { a.CompanyId, a.Action, a.CreatedAtUtc });
+
+        modelBuilder.Entity<OperationalAuditLog>()
             .HasIndex(a => new { a.Action, a.CreatedAtUtc });
 
         modelBuilder.Entity<OperationalAuditLog>()
@@ -294,6 +297,12 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.PublicId)
             .IsUnique();
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.CompanyId, o.CreatedAtUtc });
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.CompanyId, o.Status, o.IsTableOrder, o.CreatedAtUtc });
 
         // ── OrderItem ─────────────────────────────────────────
         modelBuilder.Entity<OrderItem>()
@@ -796,6 +805,16 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<SalesQuote>()
             .HasIndex(q => new { q.CompanyId, q.CreatedAtUtc });
 
+        modelBuilder.Entity<SalesQuote>()
+            .HasIndex(q => new { q.CompanyId, q.IsArchived, q.Status, q.CreatedAtUtc });
+
+        modelBuilder.Entity<SalesQuote>()
+            .HasIndex(q => new { q.CompanyId, q.Origin, q.CreatedAtUtc });
+
+        modelBuilder.Entity<SalesQuote>()
+            .HasIndex(q => new { q.CompanyId, q.ArchivedAtUtc })
+            .HasFilter("\"IsArchived\" = true AND \"ArchivedAtUtc\" IS NOT NULL");
+
         // Garantia: um pedido de delivery gera no máximo um DAV
         modelBuilder.Entity<SalesQuote>()
             .HasIndex(q => q.OriginOrderId)
@@ -1213,6 +1232,12 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<Table>()
             .HasIndex(t => new { t.CompanyId, t.Number })
             .IsUnique();
+
+        modelBuilder.Entity<Petshop.Api.Entities.Delivery.Route>()
+            .HasIndex(r => new { r.Status, r.CreatedAtUtc });
+
+        modelBuilder.Entity<RouteStop>()
+            .HasIndex(s => new { s.RouteId, s.Sequence });
 
         // ── Order.TableId ─────────────────────────────────────────────────────
         modelBuilder.Entity<Order>()
