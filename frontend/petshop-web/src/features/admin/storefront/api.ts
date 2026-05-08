@@ -1,6 +1,7 @@
 import { adminFetch } from "@/features/admin/auth/adminFetch";
 import type {
   StoreFrontConfigResponse,
+  StoreFrontBrandingHealthResponse,
   UpdateStoreFrontConfigRequest,
   UpsertBannerSlideRequest,
   BannerSlideResponse,
@@ -8,6 +9,10 @@ import type {
 
 export function fetchStoreFrontConfig(): Promise<StoreFrontConfigResponse> {
   return adminFetch<StoreFrontConfigResponse>("/admin/storefront");
+}
+
+export function fetchBrandingHealth(): Promise<StoreFrontBrandingHealthResponse> {
+  return adminFetch<StoreFrontBrandingHealthResponse>("/admin/storefront/branding-health");
 }
 
 export function updateStoreFrontConfig(

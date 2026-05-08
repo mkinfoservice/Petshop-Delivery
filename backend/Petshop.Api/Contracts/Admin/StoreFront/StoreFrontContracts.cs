@@ -35,6 +35,30 @@ public record StoreFrontConfigResponse(
     string AccentColor    = "#f59e0b",
     string CatalogStyle   = "default");
 
+public record StoreFrontBrandingHealthResponse(
+    Guid CompanyId,
+    string CompanySlug,
+    string CompanyName,
+    int Score,
+    bool IsReadyForTenantBranding,
+    IReadOnlyList<BrandingHealthItem> Items,
+    IReadOnlyList<WhiteLabelCoverageItem> Coverage);
+
+public record BrandingHealthItem(
+    string Key,
+    string Label,
+    string Status,
+    string Severity,
+    string Message,
+    string? Recommendation = null);
+
+public record WhiteLabelCoverageItem(
+    string Area,
+    string Label,
+    string Status,
+    string Source,
+    string NextStep);
+
 // ── Requests — config geral ───────────────────────────────────────────────────
 
 public record UpdateStoreFrontConfigRequest(

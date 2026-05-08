@@ -30,6 +30,33 @@ export interface StoreFrontConfigResponse {
   catalogStyle: string;
 }
 
+export interface BrandingHealthItem {
+  key: string;
+  label: string;
+  status: "ok" | "attention" | "missing" | string;
+  severity: "ok" | "info" | "warning" | "critical" | string;
+  message: string;
+  recommendation: string | null;
+}
+
+export interface WhiteLabelCoverageItem {
+  area: string;
+  label: string;
+  status: "covered" | "partial" | "not_configured" | string;
+  source: string;
+  nextStep: string;
+}
+
+export interface StoreFrontBrandingHealthResponse {
+  companyId: string;
+  companySlug: string;
+  companyName: string;
+  score: number;
+  isReadyForTenantBranding: boolean;
+  items: BrandingHealthItem[];
+  coverage: WhiteLabelCoverageItem[];
+}
+
 export interface UpdateStoreFrontConfigRequest {
   primaryColor?: string;
   bannerIntervalSecs?: number;

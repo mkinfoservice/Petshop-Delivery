@@ -6,8 +6,10 @@ using Petshop.Api.Data;
 using Petshop.Api.Entities.Catalog;
 using Petshop.Api.Entities.StoreFront;
 using Petshop.Api.Services;
+using Petshop.Api.Services.Audit;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Petshop.Api.Controllers;
 
@@ -21,7 +23,13 @@ namespace Petshop.Api.Controllers;
 public class StoreFrontAdminController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public StoreFrontAdminController(AppDbContext db) => _db = db;
+    private readonly OperationalAuditService _audit;
+
+    public StoreFrontAdminController(AppDbContext db, OperationalAuditService audit)
+    {
+        _db = db;
+        _audit = audit;
+    }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
 
@@ -45,6 +53,19 @@ public class StoreFrontAdminController : ControllerBase
     {
         var config = await GetOrCreateConfig(ct);
         return Ok(ToResponse(config));
+    }
+
+    [HttpGet("branding-health")]
+    public async Task<IActionResult> BrandingHealth(CancellationToken ct)
+    {
+        var company = await _db.Companies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == CompanyId, ct);
+
+        if (company is null) return NotFound();
+
+        var config = await GetOrCreateConfig(ct);
+        return Ok(BuildBrandingHealth(company.Slug, company.Name, config));
     }
 
     // ── PUT /admin/storefront ─────────────────────────────────────────────────
@@ -73,6 +94,23 @@ public class StoreFrontAdminController : ControllerBase
 
         config.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "storefront.branding.update",
+            targetType: "storefront",
+            targetId: config.Id.ToString(),
+            companyId: CompanyId,
+            targetName: config.StoreName,
+            payload: new
+            {
+                hasLogo = !string.IsNullOrWhiteSpace(config.LogoUrl),
+                hasStoreName = !string.IsNullOrWhiteSpace(config.StoreName),
+                config.PrimaryColor,
+                config.SecondaryColor,
+                config.AccentColor,
+                config.CatalogStyle
+            },
+            ct: ct);
         return Ok(ToResponse(config));
     }
 
@@ -102,6 +140,15 @@ public class StoreFrontAdminController : ControllerBase
 
         _db.BannerSlides.Add(slide);
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "storefront.slide.create",
+            targetType: "storefront_slide",
+            targetId: slide.Id.ToString(),
+            companyId: CompanyId,
+            targetName: slide.Title,
+            payload: new { slide.IsActive, slide.SortOrder, hasImage = !string.IsNullOrWhiteSpace(slide.ImageUrl) },
+            ct: ct);
         return Ok(ToSlideResponse(slide));
     }
 
@@ -125,6 +172,15 @@ public class StoreFrontAdminController : ControllerBase
 
         slide.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "storefront.slide.update",
+            targetType: "storefront_slide",
+            targetId: slide.Id.ToString(),
+            companyId: CompanyId,
+            targetName: slide.Title,
+            payload: new { slide.IsActive, slide.SortOrder, hasImage = !string.IsNullOrWhiteSpace(slide.ImageUrl) },
+            ct: ct);
         return Ok(ToSlideResponse(slide));
     }
 
@@ -138,6 +194,15 @@ public class StoreFrontAdminController : ControllerBase
 
         _db.BannerSlides.Remove(slide);
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "storefront.slide.delete",
+            targetType: "storefront_slide",
+            targetId: slide.Id.ToString(),
+            companyId: CompanyId,
+            targetName: slide.Title,
+            payload: new { slide.SortOrder },
+            ct: ct);
         return NoContent();
     }
 
@@ -155,6 +220,15 @@ public class StoreFrontAdminController : ControllerBase
         }
 
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "storefront.slide.reorder",
+            targetType: "storefront",
+            targetId: config.Id.ToString(),
+            companyId: CompanyId,
+            targetName: config.StoreName,
+            payload: new { count = req.OrderedIds.Count },
+            ct: ct);
         return Ok(ToResponse(config));
     }
 
@@ -184,6 +258,154 @@ public class StoreFrontAdminController : ControllerBase
             "external" => "external",
             _          => "none"
         };
+
+    private static StoreFrontBrandingHealthResponse BuildBrandingHealth(
+        string companySlug,
+        string companyName,
+        StoreFrontConfig config)
+    {
+        var items = new List<BrandingHealthItem>();
+
+        AddPresence(items, "logo", "Logo", config.LogoUrl, "Envie uma logo da empresa para o header e catalogo.");
+        AddPresence(items, "store_name", "Nome da loja", config.StoreName, "Defina o nome publico da loja.");
+        AddColor(items, "primary_color", "Cor primaria", config.PrimaryColor, "#6366f1");
+        AddColor(items, "secondary_color", "Cor secundaria", config.SecondaryColor, "#6366f1");
+        AddColor(items, "accent_color", "Cor de destaque", config.AccentColor, "#f59e0b");
+        AddColor(items, "background_color", "Fundo light", config.BgColor, "#ffffff");
+        AddColor(items, "surface_color", "Superficie light", config.Surface2Color, "#f3f4f6");
+        AddColor(items, "text_color", "Texto light", config.TextColor, "#111827");
+        AddColor(items, "text_muted_color", "Texto secundario", config.TextMutedColor, "#6b7280");
+
+        var activeSlides = config.BannerSlides.Count(s => s.IsActive);
+        items.Add(activeSlides > 0
+            ? Ok("slides", "Banners", $"{activeSlides} banner(s) ativo(s).")
+            : Warn("slides", "Banners", "Nenhum banner ativo configurado.", "Adicione pelo menos um banner para lojas online com vitrine."));
+
+        var announcements = ParseAnnouncements(config.AnnouncementsJson);
+        var usesDefaultAnnouncement = announcements.Count == 1 && IsDefaultAnnouncement(announcements[0]);
+        items.Add(!usesDefaultAnnouncement
+            ? Ok("announcements", "Avisos", $"{announcements.Count} aviso(s) configurado(s).")
+            : Info("announcements", "Avisos", "Usando aviso padrao.", "Configure avisos alinhados a campanha do tenant."));
+
+        items.Add(string.Equals(config.CatalogStyle, "default", StringComparison.OrdinalIgnoreCase)
+            ? Info("catalog_style", "Estilo do catalogo", "Usando estilo padrao.", "Use um estilo especifico quando a marca exigir composicao propria.")
+            : Ok("catalog_style", "Estilo do catalogo", $"Estilo '{config.CatalogStyle}' configurado."));
+
+        var score = CalculateScore(items);
+        var coverage = BuildWhiteLabelCoverage();
+
+        return new StoreFrontBrandingHealthResponse(
+            config.CompanyId,
+            companySlug,
+            companyName,
+            score,
+            score >= 80 && items.All(i => i.Severity != "critical"),
+            items,
+            coverage);
+    }
+
+    private static IReadOnlyList<WhiteLabelCoverageItem> BuildWhiteLabelCoverage() =>
+        new List<WhiteLabelCoverageItem>
+        {
+            new("admin_shell", "Painel administrativo", "partial", "StoreFrontConfig", "Continuar removendo cores hardcoded dos modulos internos."),
+            new("storefront", "Loja online/catalogo", "covered", "StoreFrontConfig", "Manter componentes lendo variaveis de marca."),
+            new("favicon", "Favicon/app icons", "not_configured", "static", "Adicionar campos de favicon e icones por tenant."),
+            new("documents", "PDFs, recibos e impressao", "not_configured", "hardcoded", "Criar resolver de branding para documentos e impressao."),
+            new("whatsapp", "WhatsApp", "partial", "CompanyIntegrationWhatsapp", "Adicionar nome/logo/textos por tenant nos templates."),
+            new("email", "E-mails", "not_configured", "platform", "Criar remetente, assinatura e cores por tenant."),
+            new("domain", "Dominio proprio", "not_configured", "tenant host", "Adicionar configuracao de dominio customizado por company.")
+        };
+
+    private static void AddPresence(
+        List<BrandingHealthItem> items,
+        string key,
+        string label,
+        string? value,
+        string recommendation)
+    {
+        items.Add(!string.IsNullOrWhiteSpace(value)
+            ? Ok(key, label, "Configurado.")
+            : Critical(key, label, "Nao configurado.", recommendation));
+    }
+
+    private static void AddColor(
+        List<BrandingHealthItem> items,
+        string key,
+        string label,
+        string? value,
+        string defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            items.Add(Critical(key, label, "Cor ausente.", "Defina uma cor valida para evitar fallback visual."));
+            return;
+        }
+
+        if (!IsValidCssColorToken(value))
+        {
+            items.Add(Critical(key, label, $"Valor invalido: {value}", "Use hexadecimal (#RRGGBB) ou rgba(...)."));
+            return;
+        }
+
+        items.Add(string.Equals(value, defaultValue, StringComparison.OrdinalIgnoreCase)
+            ? Info(key, label, $"Usando fallback {defaultValue}.", "Troque pelo valor real da identidade do tenant.")
+            : Ok(key, label, $"Configurado como {value}."));
+    }
+
+    private static bool IsValidCssColorToken(string value)
+    {
+        var trimmed = value.Trim();
+        return Regex.IsMatch(trimmed, "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+            || Regex.IsMatch(trimmed, "^rgba?\\([^\\)]{5,80}\\)$", RegexOptions.IgnoreCase);
+    }
+
+    private static int CalculateScore(IReadOnlyList<BrandingHealthItem> items)
+    {
+        if (items.Count == 0) return 0;
+        var points = items.Sum(i => i.Severity switch
+        {
+            "ok" => 100,
+            "info" => 70,
+            "warning" => 45,
+            _ => 0
+        });
+        return (int)Math.Round(points / (double)items.Count);
+    }
+
+    private static bool IsDefaultAnnouncement(string value)
+    {
+        var normalized = value
+            .Trim()
+            .ToLowerInvariant()
+            .Replace("á", "a")
+            .Replace("ã", "a")
+            .Replace("â", "a")
+            .Replace("à", "a")
+            .Replace("é", "e")
+            .Replace("ê", "e")
+            .Replace("í", "i")
+            .Replace("ó", "o")
+            .Replace("õ", "o")
+            .Replace("ô", "o")
+            .Replace("ú", "u")
+            .Replace("ç", "c");
+
+        return normalized.Contains("frete")
+            && normalized.Contains("gratis")
+            && normalized.Contains("100");
+    }
+
+    private static BrandingHealthItem Ok(string key, string label, string message) =>
+        new(key, label, "ok", "ok", message);
+
+    private static BrandingHealthItem Info(string key, string label, string message, string? recommendation = null) =>
+        new(key, label, "attention", "info", message, recommendation);
+
+    private static BrandingHealthItem Warn(string key, string label, string message, string? recommendation = null) =>
+        new(key, label, "attention", "warning", message, recommendation);
+
+    private static BrandingHealthItem Critical(string key, string label, string message, string? recommendation = null) =>
+        new(key, label, "missing", "critical", message, recommendation);
 
     private static BannerSlideResponse ToSlideResponse(BannerSlide s) => new(
         s.Id, s.ImageUrl, s.Title, s.Subtitle, s.CtaText,
