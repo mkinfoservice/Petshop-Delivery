@@ -58,6 +58,7 @@ const PdvSalesPage = lazy(() => import("./pages/admin/PdvSalesPage"));
 const FiscalDocumentsPage = lazy(() => import("./pages/admin/FiscalDocumentsPage"));
 const DeliveriesPage = lazy(() => import("./pages/admin/DeliveriesPage"));
 const StoreFrontConfigPage = lazy(() => import("./pages/admin/StoreFrontConfigPage"));
+const OperationalAuditPage = lazy(() => import("./pages/admin/OperationalAuditPage"));
 const TablesPage = lazy(() => import("./pages/admin/TablesPage"));
 const MarketplacePage = lazy(() => import("./pages/admin/MarketplacePage"));
 
@@ -170,6 +171,7 @@ export function AppRoutes() {
           <Route path="/app/balanca" element={<AppPage roles={["admin"]}><ScaleAgentsPage /></AppPage>} />
           <Route path="/app/enriquecimento" element={<AppPage roles={["admin", "gerente"]}><CatalogEnrichmentPage /></AppPage>} />
           <Route path="/app/configuracao-loja" element={<AppPage roles={["admin", "gerente"]}><StoreFrontConfigPage /></AppPage>} />
+          <Route path="/app/auditoria" element={<AppPage roles={["admin", "gerente"]}><OperationalAuditPage /></AppPage>} />
           <Route path="/app/marketplace" element={<AppPage roles={["admin"]}><MarketplacePage /></AppPage>} />
           <Route path="/app/dashboard" element={<AppPage><Dashboard /></AppPage>} />
 
@@ -200,6 +202,7 @@ export function AppRoutes() {
           <Route path="/admin/accounting-dispatch" element={<Navigate to="/app/configuracoes/contabilidade" replace />} />
           <Route path="/admin/scale" element={<Navigate to="/app/balanca" replace />} />
           <Route path="/admin/print" element={<Navigate to="/app/impressao" replace />} />
+          <Route path="/admin/audit" element={<Navigate to="/app/auditoria" replace />} />
           <Route path="/admin/agenda" element={<Navigate to="/app/comissoes" replace />} />
 
           <Route

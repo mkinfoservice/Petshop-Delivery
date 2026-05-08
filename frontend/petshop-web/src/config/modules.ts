@@ -28,6 +28,7 @@ import {
   Plug,
   Calculator,
   Smartphone,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -488,6 +489,18 @@ export const APP_MODULES: AppModule[] = [
     iconColor: "var(--brand-accent)",
     iconBg: "color-mix(in srgb, var(--brand-accent) 14%, transparent)",
     route: "/app/configuracao-loja",
+    group: "PLATAFORMA",
+    roles: ["admin", "gerente"],
+    isActive: true,
+  },
+  {
+    id: "auditoria",
+    label: "Auditoria",
+    description: "Eventos operacionais e rastreabilidade por tenant",
+    icon: ShieldCheck,
+    iconColor: "var(--brand-2)",
+    iconBg: "color-mix(in srgb, var(--brand-2) 14%, transparent)",
+    route: "/app/auditoria",
     group: "PLATAFORMA",
     roles: ["admin", "gerente"],
     isActive: true,
