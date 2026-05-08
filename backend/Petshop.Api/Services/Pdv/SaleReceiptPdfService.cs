@@ -1,4 +1,5 @@
 using Petshop.Api.Entities.Pdv;
+using Petshop.Api.Services.Branding;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -11,26 +12,41 @@ namespace Petshop.Api.Services.Pdv;
 /// </summary>
 public class SaleReceiptPdfService
 {
-    public byte[] Generate(SaleOrder sale, string companyName)
+    public byte[] Generate(SaleOrder sale, string companyName, TenantBrandingSnapshot? branding = null)
     {
+        var brand = branding ?? TenantBrandingSnapshot.Fallback(companyName);
+        var logoBytes = brand.TryDecodeDataUriLogo();
+
         var doc = Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A6);
                 page.Margin(16, Unit.Point);
-                page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(9).FontColor("#111111"));
+                page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(9).FontColor(brand.TextColor));
 
                 page.Content().Column(col =>
                 {
                     // Header
-                    col.Item().AlignCenter().Text(companyName)
-                        .Bold().FontSize(13).FontColor("#1a1a1a");
+                    if (logoBytes is not null)
+                    {
+                        col.Item().AlignCenter().Width(40).Image(logoBytes).FitWidth();
+                        col.Item().PaddingTop(2);
+                    }
+
+                    col.Item().AlignCenter().Text(brand.StoreName)
+                        .Bold().FontSize(13).FontColor(brand.SecondaryColor);
+
+                    if (!string.IsNullOrWhiteSpace(brand.StoreSlogan))
+                    {
+                        col.Item().AlignCenter().Text(brand.StoreSlogan)
+                            .FontSize(7).FontColor(brand.TextMutedColor);
+                    }
 
                     col.Item().AlignCenter().Text("Comprovante de Venda")
-                        .FontSize(9).FontColor("#555555");
+                        .FontSize(9).FontColor(brand.PrimaryColor);
 
-                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor("#cccccc");
+                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor(brand.AccentColor);
 
                     // Sale metadata
                     col.Item().Row(row =>
@@ -45,10 +61,10 @@ public class SaleReceiptPdfService
                     if (!string.IsNullOrWhiteSpace(sale.CustomerName))
                     {
                         col.Item().PaddingTop(2).Text($"Cliente: {sale.CustomerName}")
-                            .FontSize(8).FontColor("#444444");
+                            .FontSize(8).FontColor(brand.TextMutedColor);
                     }
 
-                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor("#cccccc");
+                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor(brand.BorderColor);
 
                     // Items
                     foreach (var item in sale.Items)
@@ -64,17 +80,17 @@ public class SaleReceiptPdfService
                         {
                             col.Item().PaddingLeft(6).Text(
                                 $"{item.WeightKg:F3} kg × {FormatCents(item.UnitPriceCentsSnapshot)}/kg")
-                                .FontSize(7).FontColor("#777777");
+                                .FontSize(7).FontColor(brand.TextMutedColor);
                         }
                         else if (item.Qty != 1)
                         {
                             col.Item().PaddingLeft(6).Text(
                                 $"{item.Qty:G} × {FormatCents(item.UnitPriceCentsSnapshot)}")
-                                .FontSize(7).FontColor("#777777");
+                                .FontSize(7).FontColor(brand.TextMutedColor);
                         }
                     }
 
-                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor("#cccccc");
+                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor(brand.BorderColor);
 
                     // Subtotal / Discount / Total
                     if (sale.DiscountCents > 0)
@@ -95,12 +111,12 @@ public class SaleReceiptPdfService
 
                     col.Item().PaddingTop(2).Row(row =>
                     {
-                        row.RelativeItem().Text("TOTAL").Bold().FontSize(11);
+                        row.RelativeItem().Text("TOTAL").Bold().FontSize(11).FontColor(brand.SecondaryColor);
                         row.ConstantItem(80).AlignRight()
-                            .Text(FormatCents(sale.TotalCents)).Bold().FontSize(11);
+                            .Text(FormatCents(sale.TotalCents)).Bold().FontSize(11).FontColor(brand.PrimaryColor);
                     });
 
-                    col.Item().PaddingVertical(3).LineHorizontal(0.5f).LineColor("#cccccc");
+                    col.Item().PaddingVertical(3).LineHorizontal(0.5f).LineColor(brand.BorderColor);
 
                     // Payments
                     foreach (var p in sale.Payments)
@@ -115,20 +131,20 @@ public class SaleReceiptPdfService
                         {
                             col.Item().Row(row =>
                             {
-                                row.RelativeItem().Text("Troco").FontSize(8).FontColor("#555555");
+                                row.RelativeItem().Text("Troco").FontSize(8).FontColor(brand.TextMutedColor);
                                 row.ConstantItem(80).AlignRight()
-                                    .Text(FormatCents(p.ChangeCents)).FontSize(8).FontColor("#555555");
+                                    .Text(FormatCents(p.ChangeCents)).FontSize(8).FontColor(brand.TextMutedColor);
                             });
                         }
                     }
 
-                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor("#cccccc");
+                    col.Item().PaddingVertical(4).LineHorizontal(0.5f).LineColor(brand.BorderColor);
 
                     // Footer
                     col.Item().AlignCenter().Text("Documento auxiliar — NFC-e autorizada pela SEFAZ")
-                        .FontSize(7).FontColor("#888888").Italic();
+                        .FontSize(7).FontColor(brand.TextMutedColor).Italic();
                     col.Item().AlignCenter().Text("Obrigado pela preferência!")
-                        .FontSize(8).FontColor("#555555");
+                        .FontSize(8).FontColor(brand.SecondaryColor);
                 });
             });
         });

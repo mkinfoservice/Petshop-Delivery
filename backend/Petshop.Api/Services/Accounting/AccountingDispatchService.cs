@@ -9,6 +9,7 @@ using Npgsql;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Accounting;
 using Petshop.Api.Entities.Catalog;
+using Petshop.Api.Services.Branding;
 using Petshop.Api.Services.Tenancy;
 
 namespace Petshop.Api.Services.Accounting;
@@ -23,6 +24,7 @@ public sealed class AccountingDispatchService
     private readonly AccountingDataCollectorService _collector;
     private readonly AccountingExportService _exports;
     private readonly AccountingEmailService _email;
+    private readonly TenantBrandingService _branding;
     private readonly ILogger<AccountingDispatchService> _logger;
 
     public AccountingDispatchService(
@@ -31,6 +33,7 @@ public sealed class AccountingDispatchService
         AccountingDataCollectorService collector,
         AccountingExportService exports,
         AccountingEmailService email,
+        TenantBrandingService branding,
         ILogger<AccountingDispatchService> logger)
     {
         _db = db;
@@ -38,6 +41,7 @@ public sealed class AccountingDispatchService
         _collector = collector;
         _exports = exports;
         _email = email;
+        _branding = branding;
         _logger = logger;
     }
 
@@ -427,6 +431,7 @@ public sealed class AccountingDispatchService
                 return run;
             }
 
+            var branding = await _branding.ResolveAsync(companyId, ct);
             var exportRequest = new AccountingExportRequest(
                 periodReference,
                 periodStartUtc,
@@ -443,6 +448,7 @@ public sealed class AccountingDispatchService
                 dataset.DiscountAmount,
                 dataset.NetAmount,
                 dataset.AverageTicket,
+                branding,
                 cfg.IncludeXmlIssued || cfg.IncludeXmlCanceled,
                 cfg.IncludeSalesCsv,
                 cfg.IncludeSummaryPdf);

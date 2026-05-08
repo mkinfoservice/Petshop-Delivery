@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+using Petshop.Api.Services.Branding;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -115,26 +116,44 @@ public sealed class AccountingExportService
 
     private static byte[] BuildSummaryPdf(AccountingExportRequest req)
     {
+        var brand = req.Branding ?? TenantBrandingSnapshot.Fallback(req.CompanyName);
+        var logoBytes = brand.TryDecodeDataUriLogo();
+
         var doc = Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
                 page.Margin(24, Unit.Point);
-                page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(10).FontColor("#18181b"));
+                page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(10).FontColor(brand.TextColor));
 
                 page.Content().Column(col =>
                 {
                     col.Spacing(8);
-                    col.Item().Text("Fechamento Contabil - vendApps").Bold().FontSize(16);
-                    col.Item().Text($"Empresa: {req.CompanyName}").FontSize(11);
+                    col.Item().Row(row =>
+                    {
+                        if (logoBytes is not null)
+                        {
+                            row.ConstantItem(52).Image(logoBytes).FitWidth();
+                        }
+
+                        row.RelativeItem().Column(header =>
+                        {
+                            header.Item().Text("Fechamento Contabil").Bold().FontSize(16).FontColor(brand.SecondaryColor);
+                            header.Item().Text(brand.StoreName).Bold().FontSize(12).FontColor(brand.PrimaryColor);
+                            if (!string.IsNullOrWhiteSpace(brand.StoreSlogan))
+                                header.Item().Text(brand.StoreSlogan).FontSize(9).FontColor(brand.TextMutedColor);
+                        });
+                    });
+
+                    col.Item().Text($"Empresa fiscal: {req.CompanyName}").FontSize(11);
                     col.Item().Text($"CNPJ: {req.CompanyCnpj}").FontSize(11);
                     col.Item().Text($"Periodo: {req.PeriodStartUtc:dd/MM/yyyy} a {req.PeriodEndUtc.AddSeconds(-1):dd/MM/yyyy}").FontSize(11);
-                    col.Item().Text($"Gerado em UTC: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss}").FontSize(9).FontColor("#555555");
+                    col.Item().Text($"Gerado em UTC: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss}").FontSize(9).FontColor(brand.TextMutedColor);
 
-                    col.Item().PaddingVertical(6).LineHorizontal(1).LineColor("#e5e7eb");
+                    col.Item().PaddingVertical(6).LineHorizontal(1).LineColor(brand.AccentColor);
 
-                    col.Item().Text("Resumo financeiro").Bold().FontSize(12);
+                    col.Item().Text("Resumo financeiro").Bold().FontSize(12).FontColor(brand.SecondaryColor);
                     col.Item().Text($"Faturamento bruto: {Fmt(req.GrossAmount)}");
                     col.Item().Text($"Descontos: {Fmt(req.DiscountAmount)}");
                     col.Item().Text($"Total liquido: {Fmt(req.NetAmount)}");
@@ -142,11 +161,11 @@ public sealed class AccountingExportService
                     col.Item().Text($"Vendas canceladas/estornadas: {req.CancelledSalesCount}");
                     col.Item().Text($"Ticket medio: {Fmt(req.AverageTicket)}");
 
-                    col.Item().PaddingTop(8).Text("Resumo fiscal").Bold().FontSize(12);
+                    col.Item().PaddingTop(8).Text("Resumo fiscal").Bold().FontSize(12).FontColor(brand.SecondaryColor);
                     col.Item().Text($"XML emitidos: {req.FiscalIssuedRows.Count}");
                     col.Item().Text($"XML cancelados: {req.FiscalCanceledRows.Count}");
 
-                    col.Item().PaddingTop(8).Text("Formas de pagamento").Bold().FontSize(12);
+                    col.Item().PaddingTop(8).Text("Formas de pagamento").Bold().FontSize(12).FontColor(brand.SecondaryColor);
                     if (req.PaymentBreakdown.Count == 0)
                     {
                         col.Item().Text("Sem pagamentos no periodo.");
@@ -198,6 +217,7 @@ public sealed record AccountingExportRequest(
     decimal DiscountAmount,
     decimal NetAmount,
     decimal AverageTicket,
+    TenantBrandingSnapshot? Branding,
     bool IncludeXmls,
     bool IncludeSalesCsv,
     bool IncludeSummaryPdf);

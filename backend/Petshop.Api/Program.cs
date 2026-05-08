@@ -27,6 +27,7 @@ using Petshop.Api.Services.Fiscal.Jobs;
 using Petshop.Api.Services.Scale;
 using Petshop.Api.Services.Scale.Jobs;
 using Petshop.Api.Services.Tenancy;
+using Petshop.Api.Services.Branding;
 using Petshop.Api.Services.Accounting;
 using Petshop.Api.Services.Accounting.Jobs;
 using Microsoft.AspNetCore.DataProtection;
@@ -273,6 +274,7 @@ builder.Services.AddScoped<Petshop.Api.Services.Audit.OperationalAuditService>()
 // ===============================
 builder.Services.AddScoped<Petshop.Api.Services.TenantResolverService>();
 builder.Services.AddScoped<PlanFeatureService>();
+builder.Services.AddScoped<TenantBrandingService>();
 
 // ===============================
 // Services — Impressão

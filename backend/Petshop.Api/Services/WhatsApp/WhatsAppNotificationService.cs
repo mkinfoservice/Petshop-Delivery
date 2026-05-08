@@ -6,6 +6,7 @@ using Petshop.Api.Entities;
 using Petshop.Api.Entities.Master;
 using Petshop.Api.Entities.WhatsApp;
 using Petshop.Api.Services.Customers;
+using Petshop.Api.Services.Branding;
 using Petshop.Api.Services.Pdv;
 using Petshop.Api.Services.Tenancy;
 
@@ -21,6 +22,7 @@ public class WhatsAppNotificationService
     private readonly AppDbContext _db;
     private readonly WhatsAppClient _wa;
     private readonly SaleReceiptPdfService _pdf;
+    private readonly TenantBrandingService _branding;
     private readonly CpfProtectionService _cpfProtection;
     private readonly IConfiguration _config;
     private readonly ILogger<WhatsAppNotificationService> _logger;
@@ -29,6 +31,7 @@ public class WhatsAppNotificationService
         AppDbContext db,
         WhatsAppClient wa,
         SaleReceiptPdfService pdf,
+        TenantBrandingService branding,
         CpfProtectionService cpfProtection,
         IConfiguration config,
         ILogger<WhatsAppNotificationService> logger)
@@ -36,6 +39,7 @@ public class WhatsAppNotificationService
         _db = db;
         _wa = wa;
         _pdf = pdf;
+        _branding = branding;
         _cpfProtection = cpfProtection;
         _config = config;
         _logger = logger;
@@ -823,17 +827,12 @@ public class WhatsAppNotificationService
             return;
         }
 
-        // Carrega nome da empresa para o PDF
-        var company = await _db.Companies.AsNoTracking()
-            .Where(c => c.Id == companyId)
-            .Select(c => new { c.Name })
-            .FirstOrDefaultAsync(ct);
-
         // Gera PDF
         byte[] pdfBytes;
         try
         {
-            pdfBytes = _pdf.Generate(sale, company?.Name ?? "VendApps");
+            var branding = await _branding.ResolveAsync(companyId, ct);
+            pdfBytes = _pdf.Generate(sale, branding.StoreName, branding);
         }
         catch (Exception ex)
         {
