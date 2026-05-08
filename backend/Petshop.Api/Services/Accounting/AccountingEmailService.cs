@@ -22,7 +22,7 @@ public sealed class AccountingEmailService
 
         using var mail = new MailMessage
         {
-            From = new MailAddress(_settings.FromEmail!, _settings.FromName ?? "vendApps"),
+            From = new MailAddress(_settings.FromEmail!, message.FromDisplayName ?? _settings.FromName ?? "vendApps"),
             Subject = message.Subject,
             Body = message.Body,
             IsBodyHtml = false
@@ -63,14 +63,20 @@ public sealed class AccountingEmailService
         }
     }
 
-    public async Task SendTestAsync(string recipientEmail, string body, CancellationToken ct)
+    public async Task SendTestAsync(
+        string recipientEmail,
+        string subject,
+        string body,
+        string? fromDisplayName,
+        CancellationToken ct)
     {
         await SendAsync(
             new AccountingEmailMessage(
                 recipientEmail,
                 [],
-                "Teste de envio contabil - vendApps",
-                body),
+                subject,
+                body,
+                fromDisplayName),
             [],
             ct);
     }
@@ -102,7 +108,8 @@ public sealed record AccountingEmailMessage(
     string PrimaryEmail,
     IReadOnlyList<string> CcEmails,
     string Subject,
-    string Body);
+    string Body,
+    string? FromDisplayName = null);
 
 public sealed class AccountingMailSettings
 {

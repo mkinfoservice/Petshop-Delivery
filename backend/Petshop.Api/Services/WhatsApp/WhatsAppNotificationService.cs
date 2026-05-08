@@ -165,7 +165,8 @@ public class WhatsAppNotificationService
         {
             // Fallback texto livre — funciona somente dentro da janela de 24h
             // (após o cliente ter enviado mensagem). Não funciona para notificações cold.
-            var message = BuildMessage(order, triggerStatus);
+            var branding = await _branding.ResolveAsync(companyId, ct);
+            var message = BuildMessage(order, triggerStatus, branding);
             wamid = await _wa.SendTextAsync(waId, message, companyId, ct);
             sendMode = "text";
         }
@@ -278,17 +279,18 @@ public class WhatsAppNotificationService
 
     // ── Builder de mensagens por status ──────────────────────────────────────
 
-    private static string BuildMessage(Order order, OrderStatus status)
+    private static string BuildMessage(Order order, OrderStatus status, TenantBrandingSnapshot branding)
     {
         var sb = new StringBuilder();
         var name = order.CustomerName.Split(' ')[0]; // Primeiro nome
+        var storeName = branding.StoreName;
 
         switch (status)
         {
             case OrderStatus.RECEBIDO:
                 sb.AppendLine($"Olá, *{name}*! 🎉");
                 sb.AppendLine();
-                sb.AppendLine($"Seu pedido *{order.PublicId}* foi recebido com sucesso!");
+                sb.AppendLine($"Seu pedido *{order.PublicId}* foi recebido com sucesso pela *{storeName}*!");
                 sb.AppendLine();
                 sb.AppendLine("📋 *Resumo do pedido:*");
                 foreach (var item in order.Items)
@@ -301,17 +303,17 @@ public class WhatsAppNotificationService
                 sb.AppendLine($"💳 *Total:* {FormatBrl(order.TotalCents)}");
                 sb.AppendLine($"💵 *Pagamento:* {FormatPayment(order)}");
                 sb.AppendLine();
-                sb.AppendLine("Fique de olho — você receberá atualizações aqui. 😊");
+                sb.AppendLine($"Fique de olho — a *{storeName}* enviará atualizações por aqui. 😊");
                 break;
 
             case OrderStatus.EM_PREPARO:
                 sb.AppendLine($"*{name}*, seu pedido *{order.PublicId}* está sendo preparado! 👨‍🍳");
-                sb.AppendLine("Em breve ficará pronto.");
+                sb.AppendLine($"A equipe da *{storeName}* avisa assim que ficar pronto.");
                 break;
 
             case OrderStatus.PRONTO_PARA_ENTREGA:
                 sb.AppendLine($"*{name}*, seu pedido *{order.PublicId}* está pronto! 📦");
-                sb.AppendLine("Nosso entregador irá buscá-lo em instantes.");
+                sb.AppendLine($"O entregador da *{storeName}* irá buscá-lo em instantes.");
                 break;
 
             case OrderStatus.SAIU_PARA_ENTREGA:
@@ -321,7 +323,7 @@ public class WhatsAppNotificationService
 
             case OrderStatus.ENTREGUE:
                 sb.AppendLine($"*{name}*, seu pedido *{order.PublicId}* foi entregue! ✅");
-                sb.AppendLine("Obrigado pela preferência. Até a próxima! 🙏");
+                sb.AppendLine($"A *{storeName}* agradece pela preferência. Até a próxima! 🙏");
                 break;
 
             case OrderStatus.CANCELADO:

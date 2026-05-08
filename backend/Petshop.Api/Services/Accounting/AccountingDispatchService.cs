@@ -246,20 +246,26 @@ public sealed class AccountingDispatchService
     {
         var cfg = await GetOrCreateConfigAsync(companyId, ct);
         var company = await LoadCompanyAsync(companyId, ct);
+        var branding = await _branding.ResolveAsync(companyId, ct);
         await EnsureFeatureEnabledAsync(company, ct);
 
         if (string.IsNullOrWhiteSpace(cfg.PrimaryEmail))
             throw new InvalidOperationException("Configure o e-mail principal do contador antes de testar.");
 
         var body = string.Join(Environment.NewLine, [
-            "Teste do modulo de envio contabil automatizado.",
-            $"Empresa: {company.Name}",
+            $"Teste do modulo de envio contabil automatizado da {branding.StoreName}.",
+            $"Empresa fiscal: {company.Name}",
             $"Solicitado por: {requestedBy}",
             $"Data UTC: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss}",
             "Se voce recebeu este e-mail, a configuracao SMTP esta valida."
         ]);
 
-        await _email.SendTestAsync(cfg.PrimaryEmail, body, ct);
+        await _email.SendTestAsync(
+            cfg.PrimaryEmail,
+            $"[{branding.StoreName}] Teste de envio contabil",
+            body,
+            branding.StoreName,
+            ct);
     }
 
     public async Task<int> ProcessDueDispatchesAsync(CancellationToken ct)
@@ -486,11 +492,11 @@ public sealed class AccountingDispatchService
 
             stage = "email";
             var (toEmail, ccEmails) = ResolveRecipients(cfg);
-            var subject = $"[vendApps] Fechamento contabil {periodReference} - {company.Name}";
-            var body = BuildEmailBody(company, cfg, periodReference, dataset);
+            var subject = $"[{branding.StoreName}] Fechamento contabil {periodReference} - {company.Name}";
+            var body = BuildEmailBody(company, cfg, periodReference, dataset, branding);
 
             await _email.SendAsync(
-                new AccountingEmailMessage(toEmail, ccEmails, subject, body),
+                new AccountingEmailMessage(toEmail, ccEmails, subject, body, branding.StoreName),
                 attachments,
                 ct);
 
@@ -576,13 +582,15 @@ public sealed class AccountingDispatchService
         Company company,
         AccountingDispatchConfig cfg,
         string periodReference,
-        AccountingDispatchDataset dataset)
+        AccountingDispatchDataset dataset,
+        TenantBrandingSnapshot branding)
     {
         var lines = new List<string>
         {
             $"Ola {cfg.AccountantName ?? "contador(a)"},",
             "",
-            $"Segue o fechamento contabil do periodo {periodReference} da empresa {company.Name}.",
+            $"Segue o fechamento contabil do periodo {periodReference} da {branding.StoreName}.",
+            $"Empresa fiscal: {company.Name}.",
             "",
             $"Vendas concluidas: {dataset.CompletedSalesCount}",
             $"Faturamento bruto: {ToBrl(dataset.GrossAmount)}",
@@ -593,7 +601,7 @@ public sealed class AccountingDispatchService
             "",
             "Arquivos anexados no envio.",
             "",
-            "Mensagem automatica do vendApps."
+            $"Mensagem automatica da {branding.StoreName}."
         };
 
         if (!string.IsNullOrWhiteSpace(cfg.FixedEmailNote))

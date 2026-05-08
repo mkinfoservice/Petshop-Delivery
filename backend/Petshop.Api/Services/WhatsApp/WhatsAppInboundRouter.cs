@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities;
 using Petshop.Api.Entities.WhatsApp;
+using Petshop.Api.Services.Branding;
 
 namespace Petshop.Api.Services.WhatsApp;
 
@@ -21,15 +22,18 @@ public class WhatsAppInboundRouter
 {
     private readonly AppDbContext _db;
     private readonly WhatsAppClient _wa;
+    private readonly TenantBrandingService _branding;
     private readonly ILogger<WhatsAppInboundRouter> _logger;
 
     public WhatsAppInboundRouter(
         AppDbContext db,
         WhatsAppClient wa,
+        TenantBrandingService branding,
         ILogger<WhatsAppInboundRouter> logger)
     {
         _db = db;
         _wa = wa;
+        _branding = branding;
         _logger = logger;
     }
 
@@ -60,6 +64,7 @@ public class WhatsAppInboundRouter
 
         // 3. Detecta intent
         var intent = DetectIntent(text);
+        var branding = await _branding.ResolveAsync(companyId, ct);
 
         _logger.LogInformation(
             "WA_INTENT | WaId={WaId} | Intent={Intent}",
@@ -68,11 +73,11 @@ public class WhatsAppInboundRouter
         // 4. Executa intent
         string? reply = intent switch
         {
-            Intent.Tracking  => await HandleTrackingAsync(waId, companyId, ct),
-            Intent.Return    => HandleReturn(),
-            Intent.History   => await HandleHistoryAsync(waId, companyId, ct),
-            Intent.HumanHandoff => await HandleHumanHandoffAsync(contact, ct),
-            _                => HandleHelp(),
+            Intent.Tracking  => await HandleTrackingAsync(waId, companyId, branding, ct),
+            Intent.Return    => HandleReturn(branding),
+            Intent.History   => await HandleHistoryAsync(waId, companyId, branding, ct),
+            Intent.HumanHandoff => await HandleHumanHandoffAsync(contact, branding, ct),
+            _                => HandleHelp(branding),
         };
 
         if (reply is null) return;
@@ -95,13 +100,17 @@ public class WhatsAppInboundRouter
 
     // ── Handlers por intent ───────────────────────────────────────────────────
 
-    private async Task<string?> HandleTrackingAsync(string waId, Guid companyId, CancellationToken ct)
+    private async Task<string?> HandleTrackingAsync(
+        string waId,
+        Guid companyId,
+        TenantBrandingSnapshot branding,
+        CancellationToken ct)
     {
         var orders = await FindOrdersByPhoneAsync(waId, companyId, ct);
 
         if (orders.Count == 0)
             return "Não encontrei nenhum pedido recente associado ao seu número. " +
-                   "Confirme o telefone cadastrado ou entre em contato com a loja. 🔍";
+                   $"Confirme o telefone cadastrado ou entre em contato com a {branding.StoreName}. 🔍";
 
         var latest = orders[0];
         var sb = new StringBuilder();
@@ -111,23 +120,27 @@ public class WhatsAppInboundRouter
         sb.AppendLine($"Realizado em: {latest.CreatedAtUtc.ToLocalTime():dd/MM/yyyy HH:mm}");
 
         if (latest.Status == OrderStatus.ENTREGUE)
-            sb.AppendLine("\n✅ Pedido já entregue. Obrigado pela preferência!");
+            sb.AppendLine($"\n✅ Pedido já entregue. A {branding.StoreName} agradece pela preferência!");
         else if (latest.Status == OrderStatus.CANCELADO)
             sb.AppendLine("\n❌ Pedido cancelado. Precisa de ajuda? Responda *atendente*.");
         else
-            sb.AppendLine("\nQualquer dúvida, responda *atendente* para falar com a equipe.");
+            sb.AppendLine($"\nQualquer dúvida, responda *atendente* para falar com a equipe da {branding.StoreName}.");
 
         return sb.ToString().TrimEnd();
     }
 
-    private static string HandleReturn() =>
+    private static string HandleReturn(TenantBrandingSnapshot branding) =>
         "Entendemos! 😊 Para solicitar uma troca ou devolução:\n\n" +
         "1️⃣ Guarde o produto na embalagem original\n" +
-        "2️⃣ Responda *atendente* para falar com nossa equipe\n" +
+        $"2️⃣ Responda *atendente* para falar com a equipe da {branding.StoreName}\n" +
         "3️⃣ Informe o número do pedido e o motivo\n\n" +
         "Prazo de troca: até *7 dias* após o recebimento (Código de Defesa do Consumidor).";
 
-    private async Task<string?> HandleHistoryAsync(string waId, Guid companyId, CancellationToken ct)
+    private async Task<string?> HandleHistoryAsync(
+        string waId,
+        Guid companyId,
+        TenantBrandingSnapshot branding,
+        CancellationToken ct)
     {
         var orders = await FindOrdersByPhoneAsync(waId, companyId, ct);
 
@@ -144,25 +157,28 @@ public class WhatsAppInboundRouter
             sb.AppendLine($"  R$ {o.TotalCents / 100m:N2} | {o.CreatedAtUtc.ToLocalTime():dd/MM/yy}".Replace('.', ','));
         }
 
-        sb.AppendLine("\nPara detalhes de um pedido específico, responda *rastrear*.");
+        sb.AppendLine($"\nPara detalhes de um pedido específico na {branding.StoreName}, responda *rastrear*.");
         return sb.ToString().TrimEnd();
     }
 
-    private async Task<string?> HandleHumanHandoffAsync(WhatsAppContact contact, CancellationToken ct)
+    private async Task<string?> HandleHumanHandoffAsync(
+        WhatsAppContact contact,
+        TenantBrandingSnapshot branding,
+        CancellationToken ct)
     {
         contact.ConversationState = WhatsAppConversationState.HumanHandoff;
         await _db.SaveChangesAsync(ct);
 
         return "👤 Você foi direcionado para atendimento humano!\n\n" +
-               "Nossa equipe entrará em contato em breve. " +
+               $"A equipe da {branding.StoreName} entrará em contato em breve. " +
                "Em horário comercial o retorno é em até *30 minutos*. ⏱️\n\n" +
                "Enquanto isso, você pode nos informar já aqui:\n" +
                "• Número do pedido\n" +
                "• Qual a sua dúvida ou problema";
     }
 
-    private static string HandleHelp() =>
-        "Olá! 👋 Posso te ajudar com:\n\n" +
+    private static string HandleHelp(TenantBrandingSnapshot branding) =>
+        $"Olá! 👋 Você está falando com a {branding.StoreName}. Posso te ajudar com:\n\n" +
         "📦 *rastrear* — Ver status do seu pedido\n" +
         "🔄 *troca* — Solicitar troca ou devolução\n" +
         "📋 *histórico* — Ver seus pedidos anteriores\n" +
