@@ -346,6 +346,14 @@ VITE_API_URL=https://vendapps.onrender.com
 
 ---
 
+## Documentação Interna
+
+| Documento | Descrição |
+|---|---|
+| [docs/SAAS_OPERATIONS.md](docs/SAAS_OPERATIONS.md) | Onboarding de tenant, domínio próprio, planos, feature flags, branding, operações SQL e troubleshooting |
+
+---
+
 ## Licença
 
 Projeto proprietário — todos os direitos reservados.
