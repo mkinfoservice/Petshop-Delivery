@@ -553,8 +553,10 @@ public class DavController : ControllerBase
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
     {
+        page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
-        var cutoff = DateTime.UtcNow.AddHours(-Math.Abs(olderThanHours));
+        var now = DateTime.UtcNow;
+        var cutoff = now.AddHours(-Math.Abs(olderThanHours));
 
         var q = _db.SalesQuotes
             .AsNoTracking()
@@ -563,7 +565,8 @@ public class DavController : ControllerBase
                      && s.Status == SalesQuoteStatus.Draft
                      && s.SaleOrderId == null
                      && s.FiscalDocumentId == null
-                     && s.CreatedAtUtc < cutoff);
+                     && ((s.ExpiresAtUtc != null && s.ExpiresAtUtc <= now)
+                         || ((s.UpdatedAtUtc ?? s.CreatedAtUtc) < cutoff)));
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -596,29 +599,25 @@ public class DavController : ControllerBase
         CancellationToken ct)
     {
         var olderThanHours = req.OlderThanHours < 1 ? 24 : req.OlderThanHours;
-        var cutoff = DateTime.UtcNow.AddHours(-olderThanHours);
         var now = DateTime.UtcNow;
+        var cutoff = now.AddHours(-olderThanHours);
 
-        var toArchive = await _db.SalesQuotes
+        var archived = await _db.SalesQuotes
             .Where(s => s.CompanyId == CompanyId
                      && !s.IsArchived
                      && s.Status == SalesQuoteStatus.Draft
                      && s.SaleOrderId == null
                      && s.FiscalDocumentId == null
-                     && s.CreatedAtUtc < cutoff)
-            .ToListAsync(ct);
+                     && ((s.ExpiresAtUtc != null && s.ExpiresAtUtc <= now)
+                         || ((s.UpdatedAtUtc ?? s.CreatedAtUtc) < cutoff)))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.IsArchived, true)
+                .SetProperty(s => s.ArchivedAtUtc, now)
+                .SetProperty(s => s.UpdatedAtUtc, now), ct);
 
-        foreach (var q in toArchive)
-        {
-            q.IsArchived    = true;
-            q.ArchivedAtUtc = now;
-            q.UpdatedAtUtc  = now;
-        }
+        await LogCompanyAsync("dav.archive.abandoned.batch", new { archived, cutoff, olderThanHours }, ct);
 
-        await _db.SaveChangesAsync(ct);
-        await LogCompanyAsync("dav.archive.abandoned.batch", new { archived = toArchive.Count, cutoff, olderThanHours }, ct);
-
-        return Ok(new { archived = toArchive.Count, cutoff, olderThanHours });
+        return Ok(new { archived, cutoff, olderThanHours });
     }
 
     // -- POST /admin/dav/{id}/archive --------------------------------------------
@@ -666,19 +665,17 @@ public class DavController : ControllerBase
         var olderThanDays = req.OlderThanDays < 1 ? 30 : req.OlderThanDays;
         var cutoff = DateTime.UtcNow.AddDays(-olderThanDays);
 
-        var toPurge = await _db.SalesQuotes
+        var purged = await _db.SalesQuotes
             .Where(s => s.CompanyId == CompanyId
                      && s.IsArchived
                      && s.ArchivedAtUtc < cutoff
                      && s.SaleOrderId == null
                      && s.FiscalDocumentId == null)
-            .ToListAsync(ct);
+            .ExecuteDeleteAsync(ct);
 
-        _db.SalesQuotes.RemoveRange(toPurge);
-        await _db.SaveChangesAsync(ct);
-        await LogCompanyAsync("dav.purge.archived", new { purged = toPurge.Count, cutoff, olderThanDays }, ct);
+        await LogCompanyAsync("dav.purge.archived", new { purged, cutoff, olderThanDays }, ct);
 
-        return Ok(new { purged = toPurge.Count, cutoff, olderThanDays });
+        return Ok(new { purged, cutoff, olderThanDays });
     }
 }
 

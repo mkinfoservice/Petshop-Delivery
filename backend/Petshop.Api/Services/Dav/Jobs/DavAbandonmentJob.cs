@@ -35,35 +35,29 @@ public class DavAbandonmentJob
     /// </summary>
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
-        var cutoff  = DateTime.UtcNow.AddHours(-DefaultAbandonAfterHours);
-        var now     = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        var cutoff = now.AddHours(-DefaultAbandonAfterHours);
 
-        // Busca apenas DAVs seguros para arquivamento
-        var toArchive = await _db.SalesQuotes
+        var archived = await _db.SalesQuotes
             .Where(s => !s.IsArchived
                      && s.Status == SalesQuoteStatus.Draft
                      && s.SaleOrderId == null
                      && s.FiscalDocumentId == null
-                     && s.CreatedAtUtc < cutoff)
-            .ToListAsync(ct);
+                     && ((s.ExpiresAtUtc != null && s.ExpiresAtUtc <= now)
+                         || ((s.UpdatedAtUtc ?? s.CreatedAtUtc) < cutoff)))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.IsArchived, true)
+                .SetProperty(s => s.ArchivedAtUtc, now)
+                .SetProperty(s => s.UpdatedAtUtc, now), ct);
 
-        if (toArchive.Count == 0)
+        if (archived == 0)
         {
             _logger.LogDebug("DavAbandonmentJob: nenhum DAV para arquivar.");
             return;
         }
 
-        foreach (var dav in toArchive)
-        {
-            dav.IsArchived    = true;
-            dav.ArchivedAtUtc = now;
-            dav.UpdatedAtUtc  = now;
-        }
-
-        await _db.SaveChangesAsync(ct);
-
         _logger.LogInformation(
             "DavAbandonmentJob: {Count} DAV(s) arquivados (cutoff: {Cutoff:u}).",
-            toArchive.Count, cutoff);
+            archived, cutoff);
     }
 }
