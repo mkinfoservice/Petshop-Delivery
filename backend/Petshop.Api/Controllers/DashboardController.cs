@@ -33,6 +33,7 @@ public class DashboardController : ControllerBase
 
         // Pedidos por status
         var orderCounts = await _db.Orders
+            .AsNoTracking()
             .Where(o => o.CompanyId == companyId)
             .GroupBy(o => o.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -42,6 +43,7 @@ public class DashboardController : ControllerBase
 
         // Rotas por status — filtra por rotas que possuem paradas de pedidos desta empresa
         var routeCounts = await _db.Routes
+            .AsNoTracking()
             .Where(r => r.Stops.Any(s => s.Order.CompanyId == companyId))
             .GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -50,11 +52,16 @@ public class DashboardController : ControllerBase
         var rd = routeCounts.ToDictionary(x => x.Status, x => x.Count);
 
         // Entregadores (Deliverer não tem CompanyId — mostra todos os ativos da plataforma)
-        var totalDeliverers = await _db.Deliverers.CountAsync(ct);
-        var activeDeliverers = await _db.Deliverers.CountAsync(d => d.IsActive, ct);
+        var totalDeliverers = await _db.Deliverers
+            .AsNoTracking()
+            .CountAsync(ct);
+        var activeDeliverers = await _db.Deliverers
+            .AsNoTracking()
+            .CountAsync(d => d.IsActive, ct);
 
         // Entregadores com rota ativa desta empresa
         var deliverersWithRoute = await _db.Routes
+            .AsNoTracking()
             .Where(r => r.Stops.Any(s => s.Order.CompanyId == companyId) &&
                 (r.Status == RouteStatus.Criada ||
                  r.Status == RouteStatus.Atribuida ||
@@ -63,14 +70,14 @@ public class DashboardController : ControllerBase
             .Distinct()
             .CountAsync(ct);
 
-        // Pedidos PRONTO_PARA_ENTREGA com e sem coordenadas
-        var readyCoords = await _db.Orders
-            .Where(o => o.CompanyId == companyId && o.Status == OrderStatus.PRONTO_PARA_ENTREGA)
-            .Select(o => new { o.Latitude, o.Longitude })
-            .ToListAsync(ct);
+        var readyOrdersQuery = _db.Orders
+            .AsNoTracking()
+            .Where(o => o.CompanyId == companyId && o.Status == OrderStatus.PRONTO_PARA_ENTREGA);
 
-        var readyWithCoords = readyCoords.Count(o => o.Latitude.HasValue && o.Longitude.HasValue);
-        var readyWithoutCoords = readyCoords.Count - readyWithCoords;
+        var readyWithCoords = await readyOrdersQuery
+            .CountAsync(o => o.Latitude.HasValue && o.Longitude.HasValue, ct);
+        var readyWithoutCoords = await readyOrdersQuery
+            .CountAsync(o => !o.Latitude.HasValue || !o.Longitude.HasValue, ct);
 
         return Ok(new AdminDashboardResponse(
             Orders: new OrderCountsDto(
