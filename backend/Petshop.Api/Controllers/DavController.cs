@@ -44,6 +44,7 @@ public class DavController : ControllerBase
         [FromQuery] bool includeArchived = false,
         CancellationToken ct = default)
     {
+        page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var q = _db.SalesQuotes
@@ -67,11 +68,12 @@ public class DavController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Trim().ToLower();
+            var s = search.Trim();
+            var pattern = $"%{s}%";
             q = q.Where(x =>
-                x.PublicId.ToLower().Contains(s) ||
-                x.CustomerName.ToLower().Contains(s) ||
-                (x.CustomerPhone != null && x.CustomerPhone.Contains(s)));
+                EF.Functions.ILike(x.PublicId, pattern) ||
+                EF.Functions.ILike(x.CustomerName, pattern) ||
+                (x.CustomerPhone != null && EF.Functions.ILike(x.CustomerPhone, pattern)));
         }
 
         var total = await q.CountAsync(ct);
