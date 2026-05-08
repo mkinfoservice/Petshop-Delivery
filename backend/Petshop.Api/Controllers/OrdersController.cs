@@ -14,6 +14,7 @@ using Petshop.Api.Services.Dav.Jobs;
 using Petshop.Api.Services.Geocoding;
 using Petshop.Api.Services.Print;
 using Petshop.Api.Services.Promotions;
+using Petshop.Api.Services.Audit;
 using Petshop.Api.Services.WhatsApp;
 using Petshop.Api.Entities.StoreFront;
 using Petshop.Api.Entities.Dav;
@@ -36,8 +37,9 @@ public class OrdersController : ControllerBase
     private readonly LoyaltyService _loyalty;
     private readonly PlanFeatureService _planFeatures;
     private readonly PromotionEngine _promotionEngine;
+    private readonly OperationalAuditService _audit;
 
-    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty, PlanFeatureService planFeatures, PromotionEngine promotionEngine)
+    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit)
     {
         _db = db;
         _geo = geo;
@@ -49,6 +51,7 @@ public class OrdersController : ControllerBase
         _loyalty = loyalty;
         _planFeatures = planFeatures;
         _promotionEngine = promotionEngine;
+        _audit = audit;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -451,6 +454,24 @@ public class OrdersController : ControllerBase
         order.UpdatedAtUtc = updatedAt;
 
         await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(
+            HttpContext,
+            action: "order.status.update",
+            targetType: "order",
+            targetId: order.Id.ToString(),
+            companyId: CompanyId,
+            targetName: order.PublicId,
+            payload: new
+            {
+                publicId = order.PublicId,
+                oldStatus = oldStatus.ToString(),
+                newStatus = order.Status.ToString(),
+                originChannel = order.OriginChannel,
+                isTableOrder = order.IsTableOrder,
+                geocodeProvider = order.GeocodeProvider
+            },
+            ct: ct);
 
         // Notificação WhatsApp — fire-and-forget, sem bloquear a resposta
         _jobs.Enqueue<WhatsAppNotificationService>(

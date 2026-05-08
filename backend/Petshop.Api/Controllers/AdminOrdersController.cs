@@ -8,6 +8,7 @@ using Petshop.Api.Data;
 using Petshop.Api.Entities;
 using Petshop.Api.Entities.Dav;
 using Petshop.Api.Services;
+using Petshop.Api.Services.Audit;
 using Petshop.Api.Services.Customers;
 using Petshop.Api.Services.Dav;
 using Petshop.Api.Services.Print;
@@ -30,14 +31,16 @@ public class AdminOrdersController : ControllerBase
     private readonly IBackgroundJobClient _jobs;
     private readonly PrintService _print;
     private readonly LoyaltyService _loyalty;
+    private readonly OperationalAuditService _audit;
 
-    public AdminOrdersController(AppDbContext db, ILogger<AdminOrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty)
+    public AdminOrdersController(AppDbContext db, ILogger<AdminOrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty, OperationalAuditService audit)
     {
         _db = db;
         _logger = logger;
         _jobs = jobs;
         _print = print;
         _loyalty = loyalty;
+        _audit = audit;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -266,6 +269,15 @@ public class AdminOrdersController : ControllerBase
         order.Status = newStatus;
         order.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "order.status.retrograde",
+            targetType: "order",
+            targetId: order.Id.ToString(),
+            companyId: CompanyId,
+            targetName: order.PublicId,
+            payload: new { publicId = order.PublicId, oldStatus = oldStatus.ToString(), newStatus = newStatus.ToString() },
+            ct: ct);
 
         _logger.LogInformation(
             "↩️ Retrocesso de status | Pedido={PublicId} | {Old} → {New}",
@@ -334,6 +346,15 @@ public class AdminOrdersController : ControllerBase
 
         _db.SalesQuotes.Add(dav);
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "dav.create.from_order",
+            targetType: "dav",
+            targetId: dav.Id.ToString(),
+            companyId: CompanyId,
+            targetName: dav.PublicId,
+            payload: new { publicId = dav.PublicId, orderId = order.Id, orderPublicId = order.PublicId, origin = dav.Origin.ToString() },
+            ct: ct);
 
         _logger.LogInformation(
             "📋 DAV {DavId} gerado manualmente para pedido {OrderId} (empresa {CompanyId})",
@@ -384,6 +405,14 @@ public class AdminOrdersController : ControllerBase
         }
 
         await tx.CommitAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "orders.purge.all",
+            targetType: "company",
+            targetId: CompanyId.ToString(),
+            companyId: CompanyId,
+            payload: new { deletedOrders, routeStopsToDelete, deletedRoutes, deletedDeliveryDavs },
+            ct: ct);
 
         _logger.LogWarning(
             "🧹 PURGE_DELIVERIES | CompanyId={CompanyId} | Orders={Orders} | RouteStops={RouteStops} | Routes={Routes} | DeliveryDavs={DeliveryDavs}",
@@ -455,6 +484,14 @@ public class AdminOrdersController : ControllerBase
         }
 
         await tx.CommitAsync(ct);
+        await _audit.LogAsync(
+            HttpContext,
+            action: "orders.purge.finalized",
+            targetType: "company",
+            targetId: CompanyId.ToString(),
+            companyId: CompanyId,
+            payload: new { deletedOrders, routeStopsToDelete, deletedRoutes, deletedDeliveryDavs },
+            ct: ct);
 
         _logger.LogWarning(
             "🧹 PURGE_DELIVERIES_CLOSED | CompanyId={CompanyId} | Orders={Orders} | RouteStops={RouteStops} | Routes={Routes} | DeliveryDavs={DeliveryDavs}",

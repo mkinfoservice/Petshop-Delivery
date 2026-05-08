@@ -7,7 +7,9 @@ using Petshop.Api.Data;
 using Petshop.Api.Entities;
 using Petshop.Api.Entities.Delivery;
 using Petshop.Api.Services;
+using Petshop.Api.Services.Audit;
 using Petshop.Api.Services.Routes;
+using System.Security.Claims;
 
 namespace Petshop.Api.Controllers;
 
@@ -21,6 +23,7 @@ public class RoutesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
     private readonly ILogger<RoutesController> _logger;
+    private readonly OperationalAuditService _audit;
 
     public RoutesController(
         DeliveryManagementService service,
@@ -28,7 +31,8 @@ public class RoutesController : ControllerBase
         RouteStopTransitionService transitions,
         AppDbContext db,
         IConfiguration config,
-        ILogger<RoutesController> logger)
+        ILogger<RoutesController> logger,
+        OperationalAuditService audit)
     {
         _service = service;
         _previewService = previewService;
@@ -36,6 +40,7 @@ public class RoutesController : ControllerBase
         _db = db;
         _config = config;
         _logger = logger;
+        _audit = audit;
     }
 
     // =========================================
@@ -91,6 +96,7 @@ public class RoutesController : ControllerBase
                 request.OrderIds,
                 request.RouteSide,
                 ct);
+            await LogRouteAsync("route.create", route, new { route.DelivererId, route.TotalStops, routeSide = request.RouteSide }, ct);
 
             // Se a rota nasceu Criada/Atribuida, as stops normalmente nascem Pendente.
             // (o Start vai marcar a primeira como Proxima)
@@ -396,6 +402,54 @@ public class RoutesController : ControllerBase
         return url;
     }
 
+    private Guid? ResolveCompanyIdFromClaims()
+    {
+        var raw = User.FindFirstValue("companyId");
+        return Guid.TryParse(raw, out var companyId) ? companyId : null;
+    }
+
+    private Task LogRouteAsync(
+        string action,
+        Petshop.Api.Entities.Delivery.Route route,
+        object? payload,
+        CancellationToken ct)
+    {
+        return _audit.LogAsync(
+            HttpContext,
+            action: action,
+            targetType: "route",
+            targetId: route.Id.ToString(),
+            companyId: ResolveCompanyIdFromClaims(),
+            targetName: route.RouteNumber,
+            payload: new { routeNumber = route.RouteNumber, payload },
+            ct: ct);
+    }
+
+    private Task LogStopAsync(
+        string action,
+        Petshop.Api.Entities.Delivery.Route route,
+        RouteStop stop,
+        object? payload,
+        CancellationToken ct)
+    {
+        return _audit.LogAsync(
+            HttpContext,
+            action: action,
+            targetType: "route_stop",
+            targetId: stop.Id.ToString(),
+            companyId: ResolveCompanyIdFromClaims(),
+            targetName: stop.OrderNumberSnapshot,
+            payload: new
+            {
+                routeId = route.Id,
+                routeNumber = route.RouteNumber,
+                orderId = stop.OrderId,
+                orderNumber = stop.OrderNumberSnapshot,
+                payload
+            },
+            ct: ct);
+    }
+
     // =========================================
     // GET /routes/{routeId}/navigation/qr
     // =========================================
@@ -497,6 +551,7 @@ public class RoutesController : ControllerBase
             return BadRequest(result.Error);
 
         await _db.SaveChangesAsync(ct);
+        await LogRouteAsync("route.start", route, new { status = route.Status.ToString(), route.TotalStops }, ct);
 
         return Ok(new
         {
@@ -531,6 +586,7 @@ public class RoutesController : ControllerBase
             return BadRequest(result.Error);
 
         await _db.SaveChangesAsync(ct);
+        await LogStopAsync("route.stop.delivered", route, result.Stop!, new { routeCompleted = result.RouteCompleted }, ct);
 
         return Ok(new
         {
@@ -572,6 +628,7 @@ public class RoutesController : ControllerBase
             return BadRequest(result.Error);
 
         await _db.SaveChangesAsync(ct);
+        await LogStopAsync("route.stop.failed", route, result.Stop!, new { routeCompleted = result.RouteCompleted }, ct);
 
         return Ok(new
         {
@@ -611,6 +668,7 @@ public class RoutesController : ControllerBase
             return BadRequest(result.Error);
 
         await _db.SaveChangesAsync(ct);
+        await LogStopAsync("route.stop.skipped", route, result.Stop!, new { routeCompleted = result.RouteCompleted }, ct);
 
         return Ok(new
         {
@@ -644,6 +702,7 @@ public class RoutesController : ControllerBase
 
         _db.Routes.Remove(route);
         await _db.SaveChangesAsync(ct);
+        await LogRouteAsync("route.delete", route, new { status = route.Status.ToString(), route.TotalStops }, ct);
 
         return NoContent();
     }
@@ -703,6 +762,7 @@ public class RoutesController : ControllerBase
         }
 
         await _db.SaveChangesAsync(ct);
+        await LogRouteAsync("route.cancel", route, new { revertedOrders = orders.Count, route.TotalStops }, ct);
 
         return Ok(new
         {

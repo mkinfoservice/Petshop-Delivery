@@ -5,6 +5,7 @@ using Petshop.Api.Contracts.Admin.Dav;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Dav;
 using Petshop.Api.Entities.Pdv;
+using Petshop.Api.Services.Audit;
 using Petshop.Api.Services.Dav;
 using System.Security.Claims;
 
@@ -20,10 +21,12 @@ namespace Petshop.Api.Controllers;
 public class DavController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly OperationalAuditService _audit;
 
-    public DavController(AppDbContext db)
+    public DavController(AppDbContext db, OperationalAuditService audit)
     {
         _db = db;
+        _audit = audit;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -177,6 +180,7 @@ public class DavController : ControllerBase
 
         _db.SalesQuotes.Add(quote);
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.create.manual", quote, new { itemCount = quote.Items.Count, totalCents = quote.TotalCents }, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = quote.Id }, new { quote.Id, quote.PublicId });
     }
@@ -212,6 +216,7 @@ public class DavController : ControllerBase
 
         quote.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.update", quote, new { status = quote.Status.ToString(), totalCents = quote.TotalCents }, ct);
 
         return Ok(ToDetailResponse(quote));
     }
@@ -267,6 +272,7 @@ public class DavController : ControllerBase
         quote.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.item.add", quote, new { itemId = item.Id, itemCount = quote.Items.Count, totalCents = quote.TotalCents }, ct);
         return Ok(new { item.Id });
     }
 
@@ -307,6 +313,7 @@ public class DavController : ControllerBase
         quote.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.item.update", quote, new { itemId = item.Id, totalCents = quote.TotalCents }, ct);
         return NoContent();
     }
 
@@ -333,6 +340,7 @@ public class DavController : ControllerBase
         quote.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.item.remove", quote, new { itemId, itemCount = quote.Items.Count, totalCents = quote.TotalCents }, ct);
         return NoContent();
     }
 
@@ -365,6 +373,7 @@ public class DavController : ControllerBase
         quote.UpdatedAtUtc           = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.fiscal.confirm", quote, new { status = quote.Status.ToString(), origin = quote.Origin.ToString() }, ct);
         return Ok(ToDetailResponse(quote));
     }
 
@@ -388,6 +397,7 @@ public class DavController : ControllerBase
         quote.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.cancel", quote, new { status = quote.Status.ToString(), origin = quote.Origin.ToString() }, ct);
         return Ok(new { quote.Id, quote.Status });
     }
 
@@ -433,6 +443,7 @@ public class DavController : ControllerBase
         quote.UpdatedAtUtc   = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.convert", quote, new { saleOrderId = saleOrder.Id, saleOrderPublicId = saleOrder.PublicId }, ct);
 
         return Ok(new { quote.Id, SaleOrderId = saleOrder.Id, saleOrder.PublicId });
     }
@@ -478,6 +489,38 @@ public class DavController : ControllerBase
     {
         quote.SubtotalCents = quote.Items.Sum(i => i.TotalCents);
         quote.TotalCents    = Math.Max(0, quote.SubtotalCents - quote.DiscountCents);
+    }
+
+    private Task LogDavAsync(string action, SalesQuote quote, object? payload, CancellationToken ct)
+    {
+        var enrichedPayload = new
+        {
+            publicId = quote.PublicId,
+            origin = quote.Origin.ToString(),
+            payload
+        };
+
+        return _audit.LogAsync(
+            HttpContext,
+            action: action,
+            targetType: "dav",
+            targetId: quote.Id.ToString(),
+            companyId: CompanyId,
+            targetName: quote.PublicId,
+            payload: enrichedPayload,
+            ct: ct);
+    }
+
+    private Task LogCompanyAsync(string action, object payload, CancellationToken ct)
+    {
+        return _audit.LogAsync(
+            HttpContext,
+            action: action,
+            targetType: "company",
+            targetId: CompanyId.ToString(),
+            companyId: CompanyId,
+            payload: payload,
+            ct: ct);
     }
 
     private static SalesQuoteDetailResponse ToDetailResponse(SalesQuote q) =>
@@ -571,6 +614,7 @@ public class DavController : ControllerBase
         }
 
         await _db.SaveChangesAsync(ct);
+        await LogCompanyAsync("dav.archive.abandoned.batch", new { archived = toArchive.Count, cutoff, olderThanHours }, ct);
 
         return Ok(new { archived = toArchive.Count, cutoff, olderThanHours });
     }
@@ -601,6 +645,7 @@ public class DavController : ControllerBase
         quote.ArchivedAtUtc = DateTime.UtcNow;
         quote.UpdatedAtUtc  = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await LogDavAsync("dav.archive", quote, null, ct);
 
         return Ok(new { archived = true, id, quote.PublicId });
     }
@@ -629,6 +674,7 @@ public class DavController : ControllerBase
 
         _db.SalesQuotes.RemoveRange(toPurge);
         await _db.SaveChangesAsync(ct);
+        await LogCompanyAsync("dav.purge.archived", new { purged = toPurge.Count, cutoff, olderThanDays }, ct);
 
         return Ok(new { purged = toPurge.Count, cutoff, olderThanDays });
     }
