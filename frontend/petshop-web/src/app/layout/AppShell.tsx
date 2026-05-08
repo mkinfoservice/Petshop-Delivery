@@ -3,6 +3,8 @@ import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
 import { SupplyAlertsPopup } from "./SupplyAlertsPopup";
 import { useAdminBrandVars } from "@/hooks/useAdminBrandVars";
+import { useStoreFrontConfig } from "@/features/admin/storefront/queries";
+import { useTenantDocumentBranding } from "@/hooks/useTenantDocumentBranding";
 
 interface Props {
   children: ReactNode;
@@ -10,6 +12,8 @@ interface Props {
 
 export function AppShell({ children }: Props) {
   useAdminBrandVars();
+  const { data: storeFront } = useStoreFrontConfig();
+  useTenantDocumentBranding(storeFront);
 
   return (
     <div

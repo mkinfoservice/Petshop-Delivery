@@ -19,6 +19,7 @@ import { TopBar } from "@/components/TopBar";
 import { ToastProvider } from "@/components/Toast";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { applyBrandVars } from "@/hooks/applyBrandVars";
+import { useTenantDocumentBranding } from "@/hooks/useTenantDocumentBranding";
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -66,6 +67,7 @@ export default function App() {
 
   // Lê config da loja (cor, logo, nome, slogan, paleta completa)
   const { data: storeFront } = useStoreFront();
+  useTenantDocumentBranding(storeFront);
 
   // Propaga toda a paleta da tenant para o documento (Checkout, ProductDetail etc. herdam)
   useEffect(() => {
