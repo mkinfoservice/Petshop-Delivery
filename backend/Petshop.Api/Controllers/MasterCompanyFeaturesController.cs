@@ -62,6 +62,37 @@ public class MasterCompanyFeaturesController : ControllerBase
         var normalized = req.Features
             .ToDictionary(k => k.Key.Trim().ToLowerInvariant(), v => v.Value, StringComparer.OrdinalIgnoreCase);
 
+        var beforeResolved = await _features.ResolveFeaturesAsync(company, ct);
+        var changedFeatures = normalized
+            .Where(pair => beforeResolved.TryGetValue(pair.Key, out var currentValue) && currentValue != pair.Value)
+            .Select(pair =>
+            {
+                var definition = PlanFeatureService.FindDefinition(pair.Key);
+                return new FeatureFlagChange(
+                    pair.Key,
+                    beforeResolved[pair.Key],
+                    pair.Value,
+                    definition?.Label ?? pair.Key,
+                    definition?.Group ?? "unknown",
+                    definition?.RiskLevel ?? "unknown",
+                    definition?.RequiresExplicitOptIn ?? false);
+            })
+            .ToList();
+
+        var highRiskChanges = changedFeatures
+            .Where(change => string.Equals(change.RiskLevel, "high", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (highRiskChanges.Count > 0 && req.ConfirmHighRisk != true)
+        {
+            return BadRequest(new
+            {
+                error = "Alteracao de feature flag de alto risco requer confirmacao explicita.",
+                requiredField = nameof(UpdateCompanyFeaturesRequest.ConfirmHighRisk),
+                highRiskChanges
+            });
+        }
+
         var current = await _db.CompanyFeatureOverrides
             .Where(f => f.CompanyId == companyId)
             .ToListAsync(ct);
@@ -96,7 +127,12 @@ public class MasterCompanyFeaturesController : ControllerBase
             companyId: company.Id,
             companySlug: company.Slug,
             targetName: company.Name,
-            payload: new { features = normalized },
+            payload: new
+            {
+                confirmedHighRisk = req.ConfirmHighRisk == true,
+                changes = changedFeatures,
+                requestedCount = normalized.Count
+            },
             ct: ct);
 
         var resolved = await _features.ResolveFeaturesAsync(company, ct);
@@ -105,4 +141,15 @@ public class MasterCompanyFeaturesController : ControllerBase
     }
 }
 
-public record UpdateCompanyFeaturesRequest(Dictionary<string, bool> Features);
+public record UpdateCompanyFeaturesRequest(
+    Dictionary<string, bool> Features,
+    bool? ConfirmHighRisk = null);
+
+public record FeatureFlagChange(
+    string Key,
+    bool OldEnabled,
+    bool NewEnabled,
+    string Label,
+    string Group,
+    string RiskLevel,
+    bool RequiresExplicitOptIn);

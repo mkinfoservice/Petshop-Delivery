@@ -128,6 +128,17 @@ public class PlanFeatureService
 
     public static IReadOnlyList<FeatureDefinition> GetDefinitions() => FeatureDefinitions;
 
+    public static FeatureDefinition? FindDefinition(string key)
+    {
+        return FeatureDefinitions.FirstOrDefault(f =>
+            string.Equals(f.Key, (key ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static bool IsHighRiskFeature(string key)
+    {
+        return string.Equals(FindDefinition(key)?.RiskLevel, "high", StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task<Dictionary<string, bool>> ResolveFeaturesAsync(Company company, CancellationToken ct = default)
     {
         var features = BuildPlanDefaults(company.Plan);
