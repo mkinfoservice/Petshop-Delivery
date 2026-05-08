@@ -344,7 +344,7 @@ export const APP_MODULES: AppModule[] = [
     group: "GESTAO",
     roles: ["admin", "gerente"],
     featureKey: "financial_menu",
-    isActive: true,
+    isActive: false,
   },
   {
     id: "caixa",

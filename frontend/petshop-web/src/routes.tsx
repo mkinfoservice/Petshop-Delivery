@@ -25,7 +25,6 @@ const DelivererForm = lazy(() => import("./pages/admin/DelivererForm"));
 const RoutesList = lazy(() => import("./pages/admin/RoutesList"));
 const RouteDetail = lazy(() => import("./pages/admin/RouteDetail"));
 const RoutePlanner = lazy(() => import("./pages/admin/RoutePlanner"));
-const Financeiro = lazy(() => import("./pages/admin/Financeiro"));
 const StoreTeam = lazy(() => import("./pages/admin/StoreTeam"));
 const PrintQueue = lazy(() => import("./pages/admin/PrintQueue"));
 const MobilePrintAgentPage = lazy(() => import("./pages/admin/MobilePrintAgentPage"));
@@ -154,7 +153,7 @@ export function AppRoutes() {
           <Route path="/app/fornecedores" element={<AppPage roles={["admin", "gerente"]}><SuppliersPage /></AppPage>} />
           <Route path="/app/insumos" element={<AppPage roles={["admin", "gerente"]}><SuppliesPage /></AppPage>} />
 
-          <Route path="/app/financeiro" element={<AppPage roles={["admin", "gerente"]} featureKey="financial_menu"><Financeiro /></AppPage>} />
+          <Route path="/app/financeiro" element={<Navigate to="/app/relatorios" replace />} />
           <Route path="/app/financeiro/lancamentos" element={<AppPage roles={["admin", "gerente"]} featureKey="financial_menu"><FinancialEntriesPage /></AppPage>} />
 
           <Route path="/app/caixa" element={<AppPage><CashRegistersPage /></AppPage>} />
