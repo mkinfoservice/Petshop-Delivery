@@ -34,6 +34,8 @@ public class PrintService
             await _db.Entry(order).Collection(o => o.Items).LoadAsync(ct);
         }
 
+        var branding = await ResolveBrandingAsync(order.CompanyId, ct);
+
         var payload = new PrintOrderPayload
         {
             OrderId     = order.Id,
@@ -51,6 +53,7 @@ public class PrintService
             ChangeCents  = order.ChangeCents,
             IsPhoneOrder = order.IsPhoneOrder,
             CreatedAtUtc = order.CreatedAtUtc,
+            Branding = branding,
             Items = order.Items.Select(i => new PrintItemPayload
             {
                 Name     = i.ProductNameSnapshot,
@@ -85,6 +88,49 @@ public class PrintService
             // SignalR offline — job permanece na fila para replay
         }
     }
+
+    private async Task<PrintBrandingPayload> ResolveBrandingAsync(Guid? companyId, CancellationToken ct)
+    {
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            return PrintBrandingPayload.Default;
+
+        var company = await _db.Companies
+            .AsNoTracking()
+            .Where(c => c.Id == companyId.Value)
+            .Select(c => new { c.Name })
+            .FirstOrDefaultAsync(ct);
+
+        var config = await _db.StoreFrontConfigs
+            .AsNoTracking()
+            .Where(c => c.CompanyId == companyId.Value)
+            .Select(c => new
+            {
+                c.LogoUrl,
+                c.StoreName,
+                c.StoreSlogan,
+                c.PrimaryColor,
+                c.SecondaryColor,
+                c.AccentColor
+            })
+            .FirstOrDefaultAsync(ct);
+
+        var storeName = FirstNonEmpty(config?.StoreName, company?.Name) ?? "vendApps";
+
+        return new PrintBrandingPayload
+        {
+            StoreName = storeName,
+            StoreSlogan = FirstNonEmpty(config?.StoreSlogan, null),
+            LogoUrl = FirstNonEmpty(config?.LogoUrl, null),
+            PrimaryColor = FirstNonEmpty(config?.PrimaryColor) ?? "#111827",
+            SecondaryColor = FirstNonEmpty(config?.SecondaryColor) ?? "#111827",
+            AccentColor = FirstNonEmpty(config?.AccentColor) ?? "#111827"
+        };
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        return values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim();
+    }
 }
 
 // ── Payloads ──────────────────────────────────────────────────────────────────
@@ -106,7 +152,20 @@ public record PrintOrderPayload
     public int? ChangeCents { get; init; }
     public bool IsPhoneOrder { get; init; }
     public DateTime CreatedAtUtc { get; init; }
+    public PrintBrandingPayload Branding { get; init; } = PrintBrandingPayload.Default;
     public List<PrintItemPayload> Items { get; init; } = new();
+}
+
+public record PrintBrandingPayload
+{
+    public static PrintBrandingPayload Default { get; } = new();
+
+    public string StoreName { get; init; } = "vendApps";
+    public string? StoreSlogan { get; init; }
+    public string? LogoUrl { get; init; }
+    public string PrimaryColor { get; init; } = "#111827";
+    public string SecondaryColor { get; init; } = "#111827";
+    public string AccentColor { get; init; } = "#111827";
 }
 
 public record PrintItemPayload

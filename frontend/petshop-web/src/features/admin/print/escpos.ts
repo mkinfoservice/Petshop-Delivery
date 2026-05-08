@@ -47,6 +47,10 @@ function separator(cols: number): Uint8Array {
   return text("-".repeat(cols));
 }
 
+function cleanLine(value: string | null | undefined): string {
+  return (value ?? "").replace(/\s+/g, " ").trim();
+}
+
 function merge(...parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((acc, p) => acc + p.length, 0);
   const out   = new Uint8Array(total);
@@ -76,6 +80,8 @@ export function buildEscPosReceipt(
   });
 
   const paymentLabel = PAYMENT_LABELS[payload.paymentMethod] ?? payload.paymentMethod;
+  const storeName = cleanLine(payload.branding?.storeName) || "vendApps";
+  const storeSlogan = cleanLine(payload.branding?.storeSlogan);
 
   const parts: Uint8Array[] = [
     // ── Inicializar ──────────────────────────────────────────────────────────
@@ -83,6 +89,11 @@ export function buildEscPosReceipt(
 
     // ── Cabeçalho ────────────────────────────────────────────────────────────
     CMD_ALIGN_CENTER,
+    CMD_BOLD_ON,
+    text(storeName.toUpperCase()), lf(),
+    CMD_BOLD_OFF,
+    ...(storeSlogan ? [text(storeSlogan), lf()] : []),
+    lf(),
     CMD_DOUBLE_ON,
     CMD_BOLD_ON,
     text("PEDIDO"), lf(),

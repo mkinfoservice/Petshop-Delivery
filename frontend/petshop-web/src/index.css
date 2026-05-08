@@ -141,6 +141,23 @@ body {
 }
 
 .receipt-header { text-align: center; margin-bottom: 4px; }
+.receipt-logo {
+  width: 18mm;
+  height: 18mm;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 2mm;
+}
+.receipt-store-name {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 0 0 1px;
+  color: var(--receipt-accent, #000);
+}
+.receipt-store-slogan {
+  font-size: 10px;
+  margin: 0 0 4px;
+}
 .receipt-title  { font-size: 14px; font-weight: bold; margin: 0 0 2px; }
 .receipt-order-id { font-size: 16px; font-weight: bold; margin: 0 0 2px; }
 .receipt-date   { font-size: 10px; margin: 0 0 2px; }

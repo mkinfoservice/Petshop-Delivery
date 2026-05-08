@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { PrintOrderPayload } from "./types";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -24,9 +25,18 @@ type Props = {
 };
 
 export function PrintReceipt({ payload }: Props) {
+  const branding = payload.branding;
+  const storeName = branding?.storeName?.trim() || "vendApps";
+  const accentColor = branding?.accentColor || branding?.primaryColor || "#000";
+
   return (
-    <div className="receipt-root">
+    <div className="receipt-root" style={{ "--receipt-accent": accentColor } as CSSProperties}>
       <div className="receipt-header">
+        {branding?.logoUrl && (
+          <img className="receipt-logo" src={branding.logoUrl} alt="" />
+        )}
+        <p className="receipt-store-name">{storeName}</p>
+        {branding?.storeSlogan && <p className="receipt-store-slogan">{branding.storeSlogan}</p>}
         <p className="receipt-title">PEDIDO CONFIRMADO</p>
         <p className="receipt-order-id">{payload.publicId}</p>
         <p className="receipt-date">{fmtDate(payload.createdAtUtc)}</p>

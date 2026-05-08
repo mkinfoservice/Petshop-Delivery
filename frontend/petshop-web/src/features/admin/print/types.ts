@@ -4,6 +4,15 @@ export type PrintItemPayload = {
   unitCents: number;
 };
 
+export type PrintBrandingPayload = {
+  storeName: string;
+  storeSlogan: string | null;
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+};
+
 export type PrintOrderPayload = {
   orderId: string;
   publicId: string;
@@ -20,6 +29,7 @@ export type PrintOrderPayload = {
   changeCents: number | null;
   isPhoneOrder: boolean;
   createdAtUtc: string;
+  branding?: PrintBrandingPayload | null;
   items: PrintItemPayload[];
 };
 
