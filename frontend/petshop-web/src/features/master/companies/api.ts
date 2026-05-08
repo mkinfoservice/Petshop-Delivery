@@ -8,6 +8,8 @@ import type {
   WhatsappIntegrationDto,
   PlatformWhatsappConfigDto,
   ProvisionResultDto,
+  ListCompanyCustomDomainsResponse,
+  CompanyCustomDomainDto,
 } from "./types";
 
 // ── Companies ─────────────────────────────────────────────────
@@ -163,6 +165,30 @@ export function updateWhatsappPrefs(
   return masterFetch<CompanyDetailDto>(`/master/companies/${companyId}/whatsapp-prefs`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export function fetchCompanyDomains(companyId: string) {
+  return masterFetch<ListCompanyCustomDomainsResponse>(`/master/companies/${companyId}/domains`);
+}
+
+export function createCompanyDomain(companyId: string, hostname: string) {
+  return masterFetch<CompanyCustomDomainDto>(`/master/companies/${companyId}/domains`, {
+    method: "POST",
+    body: JSON.stringify({ hostname }),
+  });
+}
+
+export function verifyCompanyDomain(companyId: string, domainId: string) {
+  return masterFetch<CompanyCustomDomainDto>(
+    `/master/companies/${companyId}/domains/${domainId}/verify`,
+    { method: "POST", body: "{}" },
+  );
+}
+
+export function deleteCompanyDomain(companyId: string, domainId: string) {
+  return masterFetch<void>(`/master/companies/${companyId}/domains/${domainId}`, {
+    method: "DELETE",
   });
 }
 

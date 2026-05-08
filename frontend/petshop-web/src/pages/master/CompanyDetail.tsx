@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, LogOut, ChevronLeft, KeyRound, UserX, Plus } from "lucide-react";
+import { ShieldCheck, LogOut, ChevronLeft, KeyRound, UserX, Plus, Globe2, CheckCircle2, Copy, Trash2 } from "lucide-react";
 import { clearMasterToken } from "@/features/master/auth/auth";
 import {
   fetchCompany, updateCompany, suspendCompany, reactivateCompany, deleteCompany,
@@ -11,10 +11,11 @@ import {
   updateWhatsappPrefs,
   provisionCompany,
   fetchCompanyFeatures, updateCompanyFeatures,
+  fetchCompanyDomains, createCompanyDomain, verifyCompanyDomain, deleteCompanyDomain,
 } from "@/features/master/companies/api";
 import type { CompanyDetailDto, AdminUserDto } from "@/features/master/companies/types";
 
-type Tab = "overview" | "settings" | "admins" | "whatsapp" | "features";
+type Tab = "overview" | "settings" | "admins" | "whatsapp" | "features" | "domains";
 
 // ── Status badge ──────────────────────────────────────────────
 
@@ -1254,6 +1255,183 @@ function WhatsappTab({ companyId, company }: { companyId: string; company: Compa
   );
 }
 
+function DomainsTab({ companyId }: { companyId: string }) {
+  const qc = useQueryClient();
+  const [hostname, setHostname] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["master", "domains", companyId],
+    queryFn: () => fetchCompanyDomains(companyId),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["master", "domains", companyId] });
+
+  const createMut = useMutation({
+    mutationFn: () => createCompanyDomain(companyId, hostname),
+    onSuccess: () => {
+      setHostname("");
+      setError(null);
+      invalidate();
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const verifyMut = useMutation({
+    mutationFn: (domainId: string) => verifyCompanyDomain(companyId, domainId),
+    onSuccess: invalidate,
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (domainId: string) => deleteCompanyDomain(companyId, domainId),
+    onSuccess: invalidate,
+    onError: (e: Error) => setError(e.message),
+  });
+
+  function copy(value: string) {
+    navigator.clipboard?.writeText(value);
+    setCopied(value);
+    setTimeout(() => setCopied(null), 1800);
+  }
+
+  if (isLoading || !data) {
+    return <div className="h-8 w-56 bg-gray-200 animate-pulse rounded-xl" />;
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+            <Globe2 size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-gray-900">Endereços da tenant</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              O endereço padrão sempre funciona sem custo de domínio próprio.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-500">Subdomínio padrão vendApps</p>
+            <code className="text-sm text-gray-900">{data.defaultSubdomain}</code>
+          </div>
+          <button
+            type="button"
+            onClick={() => copy(data.defaultSubdomain)}
+            className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            <Copy size={13} className="inline mr-1" />
+            {copied === data.defaultSubdomain ? "Copiado" : "Copiar"}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-black text-gray-900">Domínio próprio</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Disponível a partir do plano {data.requiredPlan}. Cadastre um host como pedidos.sualoja.com.br.
+          </p>
+        </div>
+
+        {!data.canUseCustomDomains ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Esta empresa ainda está em um plano sem domínio próprio. Ela continua usando {data.defaultSubdomain}.
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              value={hostname}
+              onChange={(e) => setHostname(e.target.value)}
+              placeholder="pedidos.sualoja.com.br"
+              className="flex-1 h-10 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-[#7c5cf8]"
+            />
+            <button
+              onClick={() => createMut.mutate()}
+              disabled={createMut.isPending || !hostname.trim()}
+              className="h-10 px-4 rounded-xl font-semibold text-sm text-white disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #7c5cf8, #6d4df2)" }}
+            >
+              Adicionar
+            </button>
+          </div>
+        )}
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <div className="space-y-3">
+          {data.items.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-400">
+              Nenhum domínio próprio cadastrado.
+            </div>
+          ) : data.items.map((item) => (
+            <div key={item.id} className="rounded-xl border border-gray-200 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-semibold text-gray-900">{item.hostname}</code>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                      item.status === "active" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {item.status === "active" ? "ativo" : item.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Configure um CNAME apontando para o domínio público do vendApps e mantenha o TXT abaixo para verificação.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {item.status !== "active" && (
+                    <button
+                      type="button"
+                      onClick={() => verifyMut.mutate(item.id)}
+                      disabled={verifyMut.isPending}
+                      className="h-8 px-3 rounded-lg border border-green-200 text-xs font-semibold text-green-700 hover:bg-green-50"
+                    >
+                      <CheckCircle2 size={13} className="inline mr-1" />
+                      Ativar
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Remover ${item.hostname}?`)) deleteMut.mutate(item.id);
+                    }}
+                    disabled={deleteMut.isPending}
+                    className="h-8 px-3 rounded-lg border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 size={13} className="inline mr-1" />
+                    Remover
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                <p className="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-1">TXT de verificação</p>
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-xs text-gray-700 break-all">{item.verificationToken}</code>
+                  <button
+                    type="button"
+                    onClick={() => copy(item.verificationToken)}
+                    className="h-7 px-2 rounded-md border border-gray-200 text-[11px] font-semibold text-gray-600 bg-white"
+                  >
+                    {copied === item.verificationToken ? "Copiado" : "Copiar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Features Tab ──────────────────────────────────────────────
 
 const FEATURE_META: Record<string, { label: string; description: string }> = {
@@ -1357,6 +1535,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "settings",  label: "Settings"       },
   { key: "admins",    label: "Admins"         },
   { key: "whatsapp",  label: "WhatsApp"       },
+  { key: "domains",   label: "Domínios"       },
   { key: "features",  label: "Feature Flags"  },
 ];
 
@@ -1452,6 +1631,7 @@ export default function CompanyDetail() {
             {tab === "settings"  && <SettingsTab  companyId={company.id} />}
             {tab === "admins"    && <AdminsTab    companyId={company.id} />}
             {tab === "whatsapp"  && <WhatsappTab  companyId={company.id} company={company} />}
+            {tab === "domains"   && <DomainsTab   companyId={company.id} />}
             {tab === "features"  && <FeaturesTab  companyId={company.id} />}
           </>
         )}

@@ -38,6 +38,24 @@ export type CompanyDetailDto = {
   ownerAlertPhone: string | null;
 };
 
+export type CompanyCustomDomainDto = {
+  id: string;
+  companyId: string;
+  hostname: string;
+  status: "pending" | "verified" | "active" | "disabled";
+  verificationToken: string;
+  verifiedAtUtc: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+};
+
+export type ListCompanyCustomDomainsResponse = {
+  defaultSubdomain: string;
+  canUseCustomDomains: boolean;
+  requiredPlan: string;
+  items: CompanyCustomDomainDto[];
+};
+
 export type PlatformWhatsappConfigDto = {
   wabaId: string | null;
   phoneNumberId: string | null;
