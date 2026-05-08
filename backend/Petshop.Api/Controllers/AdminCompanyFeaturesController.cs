@@ -37,6 +37,7 @@ public class AdminCompanyFeaturesController : ControllerBase
         if (company is null) return NotFound();
 
         var resolved = await _features.ResolveFeaturesAsync(company, ct);
-        return Ok(new { features = resolved });
+        var definitions = await _features.ResolveFeatureDefinitionsAsync(company, ct);
+        return Ok(new { features = resolved, definitions });
     }
 }

@@ -37,7 +37,8 @@ public class MasterCompanyFeaturesController : ControllerBase
         if (company is null) return NotFound();
 
         var resolved = await _features.ResolveFeaturesAsync(company, ct);
-        return Ok(new { companyId = company.Id, plan = company.Plan, features = resolved });
+        var definitions = await _features.ResolveFeatureDefinitionsAsync(company, ct);
+        return Ok(new { companyId = company.Id, plan = company.Plan, features = resolved, definitions });
     }
 
     [HttpPut]
@@ -99,7 +100,8 @@ public class MasterCompanyFeaturesController : ControllerBase
             ct: ct);
 
         var resolved = await _features.ResolveFeaturesAsync(company, ct);
-        return Ok(new { companyId = company.Id, plan = company.Plan, features = resolved });
+        var definitions = await _features.ResolveFeatureDefinitionsAsync(company, ct);
+        return Ok(new { companyId = company.Id, plan = company.Plan, features = resolved, definitions });
     }
 }
 
