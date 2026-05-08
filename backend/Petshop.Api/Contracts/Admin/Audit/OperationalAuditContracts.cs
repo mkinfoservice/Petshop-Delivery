@@ -32,3 +32,15 @@ public record OperationalAuditDetailResponse(
     string? PayloadJson,
     string? CorrelationId,
     DateTime CreatedAtUtc);
+
+public record OperationalAuditSummaryResponse(
+    int Last24Hours,
+    int Last7Days,
+    int SensitiveLast24Hours,
+    int UniqueActorsLast24Hours,
+    DateTime? LatestEventAtUtc,
+    IReadOnlyList<OperationalAuditActionSummaryItem> TopActionsLast24Hours);
+
+public record OperationalAuditActionSummaryItem(
+    string Action,
+    int Total);

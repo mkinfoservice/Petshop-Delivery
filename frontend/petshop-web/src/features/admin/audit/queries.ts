@@ -9,6 +9,13 @@ export function useOperationalAudit(filters: OperationalAuditFilters) {
   });
 }
 
+export function useOperationalAuditSummary() {
+  return useQuery({
+    queryKey: ["operational-audit-summary"],
+    queryFn: api.fetchOperationalAuditSummary,
+  });
+}
+
 export function useOperationalAuditDetail(id: string | null) {
   return useQuery({
     queryKey: ["operational-audit-detail", id],

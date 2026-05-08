@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Copy, Eye, Filter, RotateCw, Search, X } from "lucide-react";
+import { AlertTriangle, Clock3, Copy, Eye, Filter, RotateCw, Search, ShieldCheck, Users, X } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
   useOperationalAudit,
   useOperationalAuditDetail,
+  useOperationalAuditSummary,
 } from "@/features/admin/audit/queries";
 import type {
   OperationalAuditFilters,
@@ -117,10 +118,12 @@ export default function OperationalAuditPage() {
 
   const auditQuery = useOperationalAudit(filters);
   const detailQuery = useOperationalAuditDetail(selectedId);
+  const summaryQuery = useOperationalAuditSummary();
 
   const total = auditQuery.data?.total ?? 0;
   const items = auditQuery.data?.items ?? [];
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const summary = summaryQuery.data;
 
   function applyFilters() {
     setPage(1);
@@ -160,14 +163,115 @@ export default function OperationalAuditPage() {
         actions={
           <button
             type="button"
-            onClick={() => auditQuery.refetch()}
+            onClick={() => {
+              auditQuery.refetch();
+              summaryQuery.refetch();
+            }}
             className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surface-2)]"
           >
-            <RotateCw size={16} className={auditQuery.isFetching ? "animate-spin" : ""} />
+            <RotateCw size={16} className={auditQuery.isFetching || summaryQuery.isFetching ? "animate-spin" : ""} />
             Atualizar
           </button>
         }
       />
+
+      <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              Últimas 24h
+            </span>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-2)_14%,transparent)] text-[var(--brand-2)]">
+              <Clock3 size={18} />
+            </span>
+          </div>
+          <p className="text-3xl font-black text-[var(--text)]">
+            {summaryQuery.isLoading ? "-" : summary?.last24Hours ?? 0}
+          </p>
+          <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
+            {summary?.latestEventAtUtc ? `Último às ${formatDate(summary.latestEventAtUtc)}` : "Sem eventos recentes"}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              Últimos 7 dias
+            </span>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]">
+              <ShieldCheck size={18} />
+            </span>
+          </div>
+          <p className="text-3xl font-black text-[var(--text)]">
+            {summaryQuery.isLoading ? "-" : summary?.last7Days ?? 0}
+          </p>
+          <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
+            Eventos registrados
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              Sensíveis 24h
+            </span>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-accent)_18%,transparent)] text-[var(--brand-accent)]">
+              <AlertTriangle size={18} />
+            </span>
+          </div>
+          <p className="text-3xl font-black text-[var(--text)]">
+            {summaryQuery.isLoading ? "-" : summary?.sensitiveLast24Hours ?? 0}
+          </p>
+          <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
+            Alterações críticas
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              Atores 24h
+            </span>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-2)_14%,transparent)] text-[var(--brand-2)]">
+              <Users size={18} />
+            </span>
+          </div>
+          <p className="text-3xl font-black text-[var(--text)]">
+            {summaryQuery.isLoading ? "-" : summary?.uniqueActorsLast24Hours ?? 0}
+          </p>
+          <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
+            Usuários com eventos
+          </p>
+        </div>
+      </section>
+
+      {summary?.topActionsLast24Hours?.length ? (
+        <section className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--text-muted)]">
+            Ações mais frequentes
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {summary.topActionsLast24Hours.map((item) => (
+              <button
+                key={item.action}
+                type="button"
+                onClick={() => {
+                  const next = { ...draft, action: item.action };
+                  setDraft(next);
+                  setApplied(next);
+                  setPage(1);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-[var(--text)] hover:border-[var(--brand-2)]"
+              >
+                {formatAction(item.action)}
+                <span className="rounded-full bg-[var(--brand-2)] px-2 py-0.5 text-xs font-bold text-white">
+                  {item.total}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[var(--text-muted)]">

@@ -13,6 +13,16 @@ namespace Petshop.Api.Controllers;
 public class OperationalAuditController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private static readonly string[] SensitiveActions =
+    [
+        "order.delivery.purge",
+        "deliverer.pin.update",
+        "feature_flags.update",
+        "storefront.branding.update",
+        "storefront.slide.delete",
+        "route.delete",
+        "dav.delete"
+    ];
 
     public OperationalAuditController(AppDbContext db)
     {
@@ -20,6 +30,48 @@ public class OperationalAuditController : ControllerBase
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
+
+    [HttpGet("summary")]
+    public async Task<IActionResult> Summary(CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var last24Hours = now.AddHours(-24);
+        var last7Days = now.AddDays(-7);
+
+        var baseQuery = _db.OperationalAuditLogs
+            .AsNoTracking()
+            .Where(a => a.CompanyId == CompanyId);
+
+        var last24Query = baseQuery.Where(a => a.CreatedAtUtc >= last24Hours);
+
+        var totalLast24Hours = await last24Query.CountAsync(ct);
+        var totalLast7Days = await baseQuery.CountAsync(a => a.CreatedAtUtc >= last7Days, ct);
+        var sensitiveLast24Hours = await last24Query.CountAsync(a => SensitiveActions.Contains(a.Action), ct);
+        var uniqueActorsLast24Hours = await last24Query
+            .Select(a => a.ActorUsername)
+            .Distinct()
+            .CountAsync(ct);
+        var latestEventAtUtc = await baseQuery
+            .OrderByDescending(a => a.CreatedAtUtc)
+            .Select(a => (DateTime?)a.CreatedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        var topActionsLast24Hours = await last24Query
+            .GroupBy(a => a.Action)
+            .Select(g => new OperationalAuditActionSummaryItem(g.Key, g.Count()))
+            .OrderByDescending(a => a.Total)
+            .ThenBy(a => a.Action)
+            .Take(6)
+            .ToListAsync(ct);
+
+        return Ok(new OperationalAuditSummaryResponse(
+            totalLast24Hours,
+            totalLast7Days,
+            sensitiveLast24Hours,
+            uniqueActorsLast24Hours,
+            latestEventAtUtc,
+            topActionsLast24Hours));
+    }
 
     [HttpGet]
     public async Task<IActionResult> List(

@@ -44,3 +44,17 @@ export interface OperationalAuditDetailResponse {
   correlationId: string | null;
   createdAtUtc: string;
 }
+
+export interface OperationalAuditActionSummaryItem {
+  action: string;
+  total: number;
+}
+
+export interface OperationalAuditSummaryResponse {
+  last24Hours: number;
+  last7Days: number;
+  sensitiveLast24Hours: number;
+  uniqueActorsLast24Hours: number;
+  latestEventAtUtc: string | null;
+  topActionsLast24Hours: OperationalAuditActionSummaryItem[];
+}

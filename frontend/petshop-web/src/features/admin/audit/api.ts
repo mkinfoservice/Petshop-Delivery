@@ -3,6 +3,7 @@ import type {
   OperationalAuditDetailResponse,
   OperationalAuditFilters,
   OperationalAuditListResponse,
+  OperationalAuditSummaryResponse,
 } from "./types";
 
 function buildQuery(filters: OperationalAuditFilters) {
@@ -21,6 +22,10 @@ export function fetchOperationalAudit(filters: OperationalAuditFilters) {
   return adminFetch<OperationalAuditListResponse>(
     `/admin/audit/operational${buildQuery(filters)}`,
   );
+}
+
+export function fetchOperationalAuditSummary() {
+  return adminFetch<OperationalAuditSummaryResponse>("/admin/audit/operational/summary");
 }
 
 export function fetchOperationalAuditDetail(id: string) {
