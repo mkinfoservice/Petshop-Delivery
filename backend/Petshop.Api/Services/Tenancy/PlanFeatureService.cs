@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Catalog;
 
@@ -39,11 +40,15 @@ public sealed record ResolvedFeatureDefinition(
 
 public class PlanFeatureService
 {
-    private readonly AppDbContext _db;
+    private static readonly TimeSpan FeatureCacheTtl = TimeSpan.FromMinutes(5);
 
-    public PlanFeatureService(AppDbContext db)
+    private readonly AppDbContext _db;
+    private readonly IMemoryCache _cache;
+
+    public PlanFeatureService(AppDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     private static readonly FeatureDefinition[] FeatureDefinitions =
@@ -141,6 +146,10 @@ public class PlanFeatureService
 
     public async Task<Dictionary<string, bool>> ResolveFeaturesAsync(Company company, CancellationToken ct = default)
     {
+        var cacheKey = BuildFeaturesCacheKey(company.Id, company.Plan);
+        if (_cache.TryGetValue(cacheKey, out Dictionary<string, bool>? cached) && cached is not null)
+            return new Dictionary<string, bool>(cached, StringComparer.OrdinalIgnoreCase);
+
         var features = BuildPlanDefaults(company.Plan);
 
         var overrides = await _db.CompanyFeatureOverrides
@@ -153,7 +162,13 @@ public class PlanFeatureService
             features[ov.FeatureKey] = ov.IsEnabled;
         }
 
-        return features;
+        _cache.Set(cacheKey, features, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = FeatureCacheTtl,
+            Size = 1
+        });
+
+        return new Dictionary<string, bool>(features, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<IReadOnlyList<ResolvedFeatureDefinition>> ResolveFeatureDefinitionsAsync(
@@ -183,6 +198,15 @@ public class PlanFeatureService
             .ToList();
     }
 
+    public void InvalidateCompany(Guid companyId, string? plan = null)
+    {
+        if (!string.IsNullOrWhiteSpace(plan))
+            _cache.Remove(BuildFeaturesCacheKey(companyId, plan));
+
+        foreach (var knownPlan in KnownPlanKeys)
+            _cache.Remove(BuildFeaturesCacheKey(companyId, knownPlan));
+    }
+
     public static Dictionary<string, bool> BuildPlanDefaults(string? plan)
     {
         return FeatureDefinitions.ToDictionary(
@@ -207,6 +231,21 @@ public class PlanFeatureService
             "never" => false,
             _ => IsPlanAtLeast(plan, defaultPlan)
         };
+    }
+
+    private static readonly string[] KnownPlanKeys =
+    [
+        "",
+        "trial",
+        "starter",
+        "pro",
+        "enterprise"
+    ];
+
+    private static string BuildFeaturesCacheKey(Guid companyId, string? plan)
+    {
+        var normalizedPlan = (plan ?? "").Trim().ToLowerInvariant();
+        return $"company-features:{companyId:N}:{normalizedPlan}";
     }
 
     private static int PlanRank(string? plan)

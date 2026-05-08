@@ -144,6 +144,10 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 10_000;
+});
 
 // ===============================
 // EF Core + PostgreSQL

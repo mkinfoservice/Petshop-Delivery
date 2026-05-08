@@ -119,6 +119,8 @@ public class MasterCompanyFeaturesController : ControllerBase
         }
 
         await _db.SaveChangesAsync(ct);
+        _features.InvalidateCompany(company.Id, company.Plan);
+
         await _audit.LogAsync(
             HttpContext,
             action: "company.features.update",
