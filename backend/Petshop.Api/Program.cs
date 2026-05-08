@@ -31,7 +31,9 @@ using Petshop.Api.Services.Branding;
 using Petshop.Api.Services.Accounting;
 using Petshop.Api.Services.Accounting.Jobs;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Caching.Memory;
 using Petshop.Api.Middleware;
+using Petshop.Api.Entities.Catalog;
 
 // QuestPDF Community license — deve ser configurado antes de qualquer uso
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -445,6 +447,52 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+async Task<bool> IsAllowedCustomTenantOriginAsync(string origin)
+{
+    if (string.IsNullOrWhiteSpace(origin)
+        || !Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+        || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        return false;
+
+    var host = uri.IdnHost.ToLowerInvariant().Trim('.');
+    if (host is "localhost" or "127.0.0.1")
+        return false;
+
+    var tenantBaseDomain = (app.Configuration["TENANT_BASE_DOMAIN"] ?? "vendapps.com.br")
+        .ToLowerInvariant()
+        .Trim('.');
+
+    if (string.Equals(host, tenantBaseDomain, StringComparison.OrdinalIgnoreCase)
+        || host.EndsWith("." + tenantBaseDomain, StringComparison.OrdinalIgnoreCase)
+        || !host.Contains('.'))
+        return false;
+
+    var cache = app.Services.GetRequiredService<IMemoryCache>();
+    var cacheKey = $"cors:custom-domain:{host}";
+    if (cache.TryGetValue(cacheKey, out bool cached))
+        return cached;
+
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var isAllowed = await db.CompanyCustomDomains
+        .AsNoTracking()
+        .AnyAsync(domain =>
+            domain.Hostname == host
+            && (domain.Status == CompanyCustomDomainStatus.Active
+                || domain.Status == CompanyCustomDomainStatus.Verified));
+
+    cache.Set(
+        cacheKey,
+        isAllowed,
+        new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = isAllowed ? TimeSpan.FromMinutes(10) : TimeSpan.FromMinutes(1),
+            Size = 1
+        });
+
+    return isAllowed;
+}
 
 // ===============================
 // Global Exception Handler
@@ -996,6 +1044,31 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Rate limiting após ForwardedHeaders para que o IP real seja lido corretamente
 app.UseRateLimiter();
+
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers.Origin.ToString();
+    if (await IsAllowedCustomTenantOriginAsync(origin))
+    {
+        context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+        context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+        context.Response.Headers["Access-Control-Allow-Headers"] =
+            context.Request.Headers.AccessControlRequestHeaders.ToString() is { Length: > 0 } requestedHeaders
+                ? requestedHeaders
+                : "Authorization,Content-Type,X-Requested-With";
+        context.Response.Headers["Access-Control-Max-Age"] = "600";
+        context.Response.Headers.Append("Vary", "Origin");
+
+        if (HttpMethods.IsOptions(context.Request.Method))
+        {
+            context.Response.StatusCode = StatusCodes.Status204NoContent;
+            return;
+        }
+    }
+
+    await next();
+});
 
 app.UseCors("Frontend");
 
