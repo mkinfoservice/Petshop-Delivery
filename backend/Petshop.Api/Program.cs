@@ -811,6 +811,26 @@ using (var scope = app.Services.CreateScope())
             ON "CompanyFeatureOverrides" ("CompanyId", "FeatureKey");
         """);
 
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE TABLE IF NOT EXISTS "CompanyCustomDomains" (
+            "Id" uuid NOT NULL,
+            "CompanyId" uuid NOT NULL,
+            "Hostname" character varying(253) NOT NULL,
+            "Status" character varying(20) NOT NULL DEFAULT 'pending',
+            "VerificationToken" character varying(80) NOT NULL,
+            "VerifiedAtUtc" timestamp with time zone,
+            "CreatedAtUtc" timestamp with time zone NOT NULL DEFAULT now(),
+            "UpdatedAtUtc" timestamp with time zone,
+            CONSTRAINT "PK_CompanyCustomDomains" PRIMARY KEY ("Id"),
+            CONSTRAINT "FK_CompanyCustomDomains_Companies_CompanyId"
+                FOREIGN KEY ("CompanyId") REFERENCES "Companies" ("Id") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS "IX_CompanyCustomDomains_Hostname"
+            ON "CompanyCustomDomains" ("Hostname");
+        CREATE INDEX IF NOT EXISTS "IX_CompanyCustomDomains_CompanyId_Status"
+            ON "CompanyCustomDomains" ("CompanyId", "Status");
+        """);
+
     // Comissões e gorjetas
     await db.Database.ExecuteSqlRawAsync("""
         CREATE TABLE IF NOT EXISTS "CommissionConfigs" (

@@ -1,4 +1,4 @@
-import { resolveTenantFromHost } from "@/utils/tenant";
+import { fetchTenantInfo, resolveTenantFromHost } from "@/utils/tenant";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5082";
 
@@ -7,10 +7,27 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5082";
 // Por isso usamos sempre slug explícito na URL do catálogo.
 //   Subdomínio válido → slug extraído do hostname do browser
 //   localhost / apex  → VITE_COMPANY_SLUG ou "petshop-demo"
-const activeSlug =
-  resolveTenantFromHost() ?? (import.meta.env.VITE_COMPANY_SLUG ?? "petshop-demo");
+let activeSlugPromise: Promise<string> | null = null;
 
-const catalogBase = `${API_URL}/catalog/${activeSlug}`;
+async function getActiveSlug() {
+  const slug = resolveTenantFromHost();
+  if (slug) return slug;
+
+  const fallback = (import.meta.env.VITE_COMPANY_SLUG ?? "").trim().toLowerCase();
+  const hostname = window.location.hostname.toLowerCase();
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  if (fallback && isLocal) return fallback;
+
+  activeSlugPromise ??= fetchTenantInfo()
+    .then((tenant) => tenant.slug)
+    .catch(() => fallback || "petshop-demo");
+  return activeSlugPromise;
+}
+
+async function getCatalogBase() {
+  const activeSlug = await getActiveSlug();
+  return `${API_URL}/catalog/${activeSlug}`;
+}
 
 export type Category = {
   id: string;
@@ -63,6 +80,7 @@ export type Product = {
 };
 
 export async function fetchCategories(): Promise<Category[]> {
+  const catalogBase = await getCatalogBase();
   const r = await fetch(`${catalogBase}/categories`);
   if (!r.ok) throw new Error("Erro ao buscar categorias");
   return r.json();
@@ -138,6 +156,7 @@ function normalizeProductGroups(p: Product): Product {
 }
 
 export async function fetchProducts(categorySlug?: string, search?: string): Promise<Product[]> {
+  const catalogBase = await getCatalogBase();
   const params = new URLSearchParams();
   if (categorySlug) params.set("categorySlug", categorySlug);
   if (search) params.set("search", search);
@@ -186,6 +205,7 @@ export type StoreFrontConfig = {
 };
 
 export async function fetchStoreFront(): Promise<StoreFrontConfig> {
+  const catalogBase = await getCatalogBase();
   const r = await fetch(`${catalogBase}/storefront`);
   if (!r.ok) throw new Error("Erro ao buscar configuração da loja");
   return r.json();

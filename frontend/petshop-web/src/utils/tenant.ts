@@ -31,6 +31,14 @@ export function resolveTenantFromHost(): string | null {
   return subdomain;
 }
 
+export function shouldResolveTenantFromHost(): boolean {
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname === "localhost" || hostname === "127.0.0.1") return false;
+  if (hostname === BASE_DOMAIN) return false;
+  if (resolveTenantFromHost()) return true;
+  return hostname.includes(".");
+}
+
 export type TenantInfo = {
   slug: string;
   name: string;
@@ -50,14 +58,16 @@ export type TenantInfo = {
  */
 export async function fetchTenantInfo(): Promise<TenantInfo> {
   const slug = resolveTenantFromHost();
-  if (!slug) {
+  const host = window.location.hostname.toLowerCase();
+  if (!slug && !shouldResolveTenantFromHost()) {
     const err = new Error("Sem subdomínio de tenant") as Error & { status: number };
     err.status = 400;
     throw err;
   }
-  const r = await fetch(
-    `${API_URL}/public/tenant/resolve?slug=${encodeURIComponent(slug)}`
-  );
+  const qs = slug
+    ? `slug=${encodeURIComponent(slug)}`
+    : `host=${encodeURIComponent(host)}`;
+  const r = await fetch(`${API_URL}/public/tenant/resolve?${qs}`);
   if (!r.ok) {
     const body = await r.json().catch(() => ({}));
     const err = new Error(

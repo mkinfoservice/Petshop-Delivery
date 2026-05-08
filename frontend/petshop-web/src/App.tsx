@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { ShoppingCart, Search, X, AlertTriangle, LayoutGrid, Coffee, Snowflake, Sandwich, CupSoda, ShoppingBag, PawPrint, Bird, Fish, Pill, Droplets, Tag, Bone, Utensils, type LucideIcon } from "lucide-react";
-import { resolveTenantFromHost, fetchTenantInfoBySlug } from "@/utils/tenant";
+import { fetchTenantInfo, fetchTenantInfoBySlug, resolveTenantFromHost, shouldResolveTenantFromHost } from "@/utils/tenant";
 import { useCategories, useProducts, useStoreFront } from "./features/catalog/queries";
 import { useCart } from "./features/cart/cart";
 import { CartSheet } from "@/features/cart/CartSheet";
@@ -52,6 +52,7 @@ function ProductSkeleton() {
 // Slug resolvido ao nível de módulo (mesma lógica de catalog/api.ts)
 const _tenantSlug = resolveTenantFromHost();
 const _fallbackTenantSlug = (import.meta.env.VITE_COMPANY_SLUG ?? "").trim().toLowerCase();
+const _shouldResolveTenant = shouldResolveTenantFromHost();
 
 export default function App() {
   const [categorySlug, setCategorySlug] = useState<string>("");
@@ -79,10 +80,12 @@ export default function App() {
   const catalogStyle = storeFront?.catalogStyle ?? "default";
 
   // Verifica status do tenant (só em subdomínio válido)
-  const effectiveTenantSlug = _tenantSlug ?? (_fallbackTenantSlug || null);
+  const effectiveTenantSlug = _tenantSlug ?? (_shouldResolveTenant ? "__host__" : (_fallbackTenantSlug || null));
   const tenantQuery = useQuery({
     queryKey: ["tenant", effectiveTenantSlug],
-    queryFn: () => fetchTenantInfoBySlug(effectiveTenantSlug!),
+    queryFn: () => _tenantSlug || (!_shouldResolveTenant && _fallbackTenantSlug)
+      ? fetchTenantInfoBySlug(_tenantSlug ?? _fallbackTenantSlug)
+      : fetchTenantInfo(),
     enabled: !!effectiveTenantSlug,
     retry: false,
     staleTime: 5 * 60 * 1000,

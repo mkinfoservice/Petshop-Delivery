@@ -36,6 +36,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     // ── Tenant ───────────────────────────────────────────────
     public DbSet<Company> Companies => Set<Company>();
+    public DbSet<CompanyCustomDomain> CompanyCustomDomains => Set<CompanyCustomDomain>();
     public DbSet<CompanyFeatureOverride> CompanyFeatureOverrides => Set<CompanyFeatureOverride>();
 
     // ── Catálogo ─────────────────────────────────────────────
@@ -174,6 +175,19 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<Company>()
             .HasIndex(c => c.Slug)
             .IsUnique();
+
+        modelBuilder.Entity<CompanyCustomDomain>()
+            .HasOne(d => d.Company)
+            .WithMany()
+            .HasForeignKey(d => d.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CompanyCustomDomain>()
+            .HasIndex(d => d.Hostname)
+            .IsUnique();
+
+        modelBuilder.Entity<CompanyCustomDomain>()
+            .HasIndex(d => new { d.CompanyId, d.Status });
 
         modelBuilder.Entity<CompanyFeatureOverride>()
             .HasOne(f => f.Company)

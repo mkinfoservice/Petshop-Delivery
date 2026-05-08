@@ -45,6 +45,26 @@ public record CompanyDetailDto(
     string? OwnerAlertPhone
 );
 
+public record CompanyCustomDomainDto(
+    Guid Id,
+    Guid CompanyId,
+    string Hostname,
+    string Status,
+    string VerificationToken,
+    DateTime? VerifiedAtUtc,
+    DateTime CreatedAtUtc,
+    DateTime? UpdatedAtUtc
+);
+
+public record ListCompanyCustomDomainsResponse(
+    string DefaultSubdomain,
+    bool CanUseCustomDomains,
+    string RequiredPlan,
+    List<CompanyCustomDomainDto> Items
+);
+
+public record CreateCompanyCustomDomainRequest(string Hostname);
+
 // ── Prefs de alerta WhatsApp ──────────────────────────────────
 
 public record UpdateWhatsappPrefsRequest(

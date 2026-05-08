@@ -38,9 +38,12 @@ public class TenantHostValidationMiddleware
             return;
         }
 
-        // 2. Extrair slug do Host — se não houver subdomínio válido, pular
-        var slug = tenantResolver.ExtractSlug(context.Request.Host.Host);
-        if (slug is null)
+        // 2. Resolver tenant pelo subdominio padrao ou por dominio proprio ativo.
+        var company = await tenantResolver.ResolveCompanyFromHostAsync(
+            context.Request.Host.Host,
+            db,
+            context.RequestAborted);
+        if (company is null)
         {
             await _next(context);
             return;
@@ -60,20 +63,7 @@ public class TenantHostValidationMiddleware
             return;
         }
 
-        // 4. Resolver companyId pelo slug do Host
-        var company = await db.Companies
-            .AsNoTracking()
-            .Select(c => new { c.Id, c.Slug })
-            .FirstOrDefaultAsync(c => c.Slug == slug);
-
-        if (company is null)
-        {
-            // Slug no Host não existe no banco — prosseguir (o controller retornará 404)
-            await _next(context);
-            return;
-        }
-
-        // 5. Comparar com o companyId do JWT
+        // 4. Comparar com o companyId do JWT
         var jwtCompanyId = context.User.FindFirstValue("companyId");
 
         if (!string.IsNullOrEmpty(jwtCompanyId) &&

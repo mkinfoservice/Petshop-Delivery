@@ -381,6 +381,120 @@ public class MasterCompaniesController : ControllerBase
         return Ok(await BuildDetailDtoAsync(id, ct));
     }
 
+    [HttpGet("{id:guid}/domains")]
+    public async Task<IActionResult> ListDomains(Guid id, CancellationToken ct = default)
+    {
+        var company = await _db.Companies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
+        if (company is null) return NotFound();
+
+        var items = await _db.CompanyCustomDomains
+            .AsNoTracking()
+            .Where(d => d.CompanyId == id)
+            .OrderBy(d => d.Hostname)
+            .Select(d => new CompanyCustomDomainDto(
+                d.Id,
+                d.CompanyId,
+                d.Hostname,
+                d.Status,
+                d.VerificationToken,
+                d.VerifiedAtUtc,
+                d.CreatedAtUtc,
+                d.UpdatedAtUtc))
+            .ToListAsync(ct);
+
+        return Ok(new ListCompanyCustomDomainsResponse(
+            $"{company.Slug}.vendapps.com.br",
+            CanUseCustomDomains(company.Plan),
+            "pro",
+            items));
+    }
+
+    [HttpPost("{id:guid}/domains")]
+    public async Task<IActionResult> CreateDomain(
+        Guid id,
+        [FromBody] CreateCompanyCustomDomainRequest req,
+        CancellationToken ct = default)
+    {
+        var company = await _db.Companies
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
+        if (company is null) return NotFound();
+
+        if (!CanUseCustomDomains(company.Plan))
+            return StatusCode(403, new { error = "Domínio próprio está disponível apenas nos planos pro e enterprise." });
+
+        var validation = _tenantResolver.ValidateCustomDomain(req.Hostname);
+        if (validation is not null)
+            return BadRequest(new { error = validation });
+
+        var hostname = _tenantResolver.NormalizeCustomDomain(req.Hostname)!;
+        if (await _db.CompanyCustomDomains.AnyAsync(d => d.Hostname == hostname, ct))
+            return Conflict(new { error = $"Domínio '{hostname}' já está cadastrado." });
+
+        var domain = new CompanyCustomDomain
+        {
+            CompanyId = id,
+            Hostname = hostname,
+            Status = CompanyCustomDomainStatus.Pending,
+            VerificationToken = $"vendapps-domain-verification={Guid.NewGuid():N}",
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _db.CompanyCustomDomains.Add(domain);
+        await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(User, GetIp(), "company.domain.create", "company",
+            id.ToString(), company.Name, new { domain.Hostname, domain.Status }, ct);
+
+        return Ok(MapDomain(domain));
+    }
+
+    [HttpPost("{id:guid}/domains/{domainId:guid}/verify")]
+    public async Task<IActionResult> VerifyDomain(Guid id, Guid domainId, CancellationToken ct = default)
+    {
+        var company = await _db.Companies
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
+        if (company is null) return NotFound();
+
+        if (!CanUseCustomDomains(company.Plan))
+            return StatusCode(403, new { error = "Domínio próprio está disponível apenas nos planos pro e enterprise." });
+
+        var domain = await _db.CompanyCustomDomains
+            .FirstOrDefaultAsync(d => d.Id == domainId && d.CompanyId == id, ct);
+        if (domain is null) return NotFound();
+
+        domain.Status = CompanyCustomDomainStatus.Active;
+        domain.VerifiedAtUtc ??= DateTime.UtcNow;
+        domain.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(User, GetIp(), "company.domain.verify", "company",
+            id.ToString(), company.Name, new { domain.Hostname, domain.Status }, ct);
+
+        return Ok(MapDomain(domain));
+    }
+
+    [HttpDelete("{id:guid}/domains/{domainId:guid}")]
+    public async Task<IActionResult> DeleteDomain(Guid id, Guid domainId, CancellationToken ct = default)
+    {
+        var company = await _db.Companies
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
+        if (company is null) return NotFound();
+
+        var domain = await _db.CompanyCustomDomains
+            .FirstOrDefaultAsync(d => d.Id == domainId && d.CompanyId == id, ct);
+        if (domain is null) return NotFound();
+
+        _db.CompanyCustomDomains.Remove(domain);
+        await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(User, GetIp(), "company.domain.delete", "company",
+            id.ToString(), company.Name, new { domain.Hostname }, ct);
+
+        return NoContent();
+    }
+
     // ── GET /master/companies/{id}/settings ───────────────────
 
     [HttpGet("{id:guid}/settings")]
@@ -530,6 +644,20 @@ public class MasterCompaniesController : ControllerBase
             c.WhatsappMode, c.OwnerAlertPhone
         );
     }
+
+    private static bool CanUseCustomDomains(string? plan) =>
+        string.Equals(plan, "pro", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(plan, "enterprise", StringComparison.OrdinalIgnoreCase);
+
+    private static CompanyCustomDomainDto MapDomain(CompanyCustomDomain d) => new(
+        d.Id,
+        d.CompanyId,
+        d.Hostname,
+        d.Status,
+        d.VerificationToken,
+        d.VerifiedAtUtc,
+        d.CreatedAtUtc,
+        d.UpdatedAtUtc);
 
     private static CompanySettingsDto MapSettings(CompanySettings s) => new(
         s.Id, s.CompanyId,

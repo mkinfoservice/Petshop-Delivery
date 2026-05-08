@@ -26,20 +26,26 @@ public class PublicTenantController : ControllerBase
     /// Resolve o tenant pelo slug (query param) ou pelo Host header.
     /// Aceita ?slug=novaempresa para frontends em domínio diferente do API
     /// (ex: Vercel SPA + Render API). Fallback: extrai do Host header.
+    /// Aceita ?host=loja.exemplo.com.br para dominios proprios atendidos pelo frontend.
     /// </summary>
     [HttpGet("resolve")]
     [EnableRateLimiting("public_api")]
-    public async Task<IActionResult> Resolve([FromQuery] string? slug, CancellationToken ct)
+    public async Task<IActionResult> Resolve(
+        [FromQuery] string? slug,
+        [FromQuery] string? host,
+        CancellationToken ct)
     {
-        var resolvedSlug = slug?.Trim().ToLowerInvariant()
-                           ?? _resolver.ExtractSlug(Request.Host.Host);
+        var company = !string.IsNullOrWhiteSpace(slug)
+            ? await _db.Companies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Slug == slug.Trim().ToLowerInvariant(), ct)
+            : await _resolver.ResolveCompanyFromHostAsync(
+                string.IsNullOrWhiteSpace(host) ? Request.Host.Host : host,
+                _db,
+                ct);
 
-        if (resolvedSlug is null)
+        if (company is null)
             return NotFound(new { error = "Tenant não identificado." });
-
-        var company = await _db.Companies
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Slug == resolvedSlug, ct);
 
         if (company is null || company.IsDeleted || !company.IsActive)
             return NotFound(new { error = "Empresa não encontrada." });
