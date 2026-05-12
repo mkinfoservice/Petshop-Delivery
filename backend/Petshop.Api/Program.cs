@@ -34,6 +34,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Memory;
 using Petshop.Api.Middleware;
 using Petshop.Api.Entities.Catalog;
+using Petshop.Api.Messaging.Configuration;
 
 // QuestPDF Community license — deve ser configurado antes de qualquer uso
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -172,6 +173,13 @@ builder.Services.AddHangfire(config => config
     .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(cs)));
 
 builder.Services.AddHangfireServer();
+
+// ===============================
+// Messaging — MassTransit / RabbitMQ
+// RabbitMq__Enabled=false → bus em memória, sem conexão real (default dev/prod sem config)
+// RabbitMq__Enabled=true  → conecta ao RabbitMQ configurado via RabbitMq__Host/Port/etc.
+// ===============================
+builder.Services.AddMessaging(builder.Configuration);
 
 // ===============================
 // Services — Delivery

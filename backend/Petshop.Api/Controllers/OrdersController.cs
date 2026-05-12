@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Hangfire;
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -7,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Contracts.Orders;
 using Petshop.Api.Data;
 using Petshop.Api.Entities;
+using Petshop.Api.Messaging.Contracts;
+using Petshop.Api.Middleware;
 using Petshop.Api.Services;
 using Petshop.Api.Services.Customers;
 using Petshop.Api.Services.Dav;
@@ -38,8 +41,9 @@ public class OrdersController : ControllerBase
     private readonly PlanFeatureService _planFeatures;
     private readonly PromotionEngine _promotionEngine;
     private readonly OperationalAuditService _audit;
+    private readonly IPublishEndpoint _publisher;
 
-    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit)
+    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit, IPublishEndpoint publisher)
     {
         _db = db;
         _geo = geo;
@@ -52,6 +56,7 @@ public class OrdersController : ControllerBase
         _planFeatures = planFeatures;
         _promotionEngine = promotionEngine;
         _audit = audit;
+        _publisher = publisher;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -360,92 +365,30 @@ public class OrdersController : ControllerBase
         if (!IsValidTransition(oldStatus, newStatus, ownDelivery))
             return BadRequest($"Transição inválida: {oldStatus} → {newStatus}.");
 
-        // ✅ PASSO 5: ao marcar PRONTO_PARA_ENTREGA, tenta geocoding (sem travar o fluxo se falhar)
-        if (newStatus == OrderStatus.PRONTO_PARA_ENTREGA && !order.IsTableOrder)
+        // Ao marcar PRONTO_PARA_ENTREGA, agenda geocoding assíncrono via mensageria.
+        // O consumer GeocodingRequestedConsumer busca as coordenadas e salva no pedido
+        // sem bloquear esta requisição. Idempotente: consumer ignora se já geocodificado.
+        if (newStatus == OrderStatus.PRONTO_PARA_ENTREGA && !order.IsTableOrder
+            && (order.Latitude is null || order.Longitude is null))
         {
-            var needsGeo = order.Latitude is null || order.Longitude is null;
+            var correlationId = HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var cid)
+                ? cid?.ToString()
+                : HttpContext.TraceIdentifier;
 
-            if (needsGeo)
+            await _publisher.Publish(new GeocodingRequestedEvent
             {
-                var providerName = (_config["Geocoding:Provider"] ?? "NOMINATIM").ToUpperInvariant();
+                OrderId       = order.Id,
+                CompanyId     = CompanyId,
+                PublicId      = order.PublicId,
+                Address       = order.Address,
+                Cep           = order.Cep,
+                CorrelationId = correlationId,
+                OccurredAtUtc = DateTime.UtcNow
+            }, ct);
 
-                // ✅ Validação do endereço ANTES de geocodificar
-                var hasAddress = !string.IsNullOrWhiteSpace(order.Address);
-                var hasCep = !string.IsNullOrWhiteSpace(order.Cep);
-                var cepIsValid = hasCep && order.Cep.Replace("-", "").Length == 8;
-
-                _logger.LogInformation(
-                    "📍 GEOCODING START | Pedido={OrderId} | Provider={Provider} | HasAddress={HasAddress} | HasCep={HasCep} | CepValid={CepValid}",
-                    order.PublicId, providerName, hasAddress, hasCep, cepIsValid);
-
-                if (!hasAddress || !hasCep)
-                {
-                    _logger.LogWarning(
-                        "⚠️ GEOCODING SKIPPED | Pedido={OrderId} | Motivo: Endereço ou CEP ausente | Address=\"{Address}\" | Cep=\"{Cep}\"",
-                        order.PublicId, order.Address ?? "(null)", order.Cep ?? "(null)");
-
-                    order.GeocodedAtUtc = DateTime.UtcNow;
-                    order.GeocodeProvider = $"{providerName} (incomplete_address)";
-                }
-                else if (!cepIsValid)
-                {
-                    _logger.LogWarning(
-                        "⚠️ GEOCODING SKIPPED | Pedido={OrderId} | Motivo: CEP inválido | Cep=\"{Cep}\" (esperado 8 dígitos)",
-                        order.PublicId, order.Cep);
-
-                    order.GeocodedAtUtc = DateTime.UtcNow;
-                    order.GeocodeProvider = $"{providerName} (invalid_cep)";
-                }
-                else
-                {
-                    var queryAddress = await BuildGeocodingQueryAsync(order, ct);
-
-                    _logger.LogInformation(
-                        "🌍 GEOCODING CALL | Pedido={OrderId} | Provider={Provider} | Query=\"{Query}\"",
-                        order.PublicId, providerName, queryAddress);
-
-                    try
-                    {
-                        var coords = await _geo.GeocodeAsync(queryAddress, ct);
-
-                        if (coords is not null)
-                        {
-                            order.Latitude = coords.Value.lat;
-                            order.Longitude = coords.Value.lon;
-                            order.GeocodedAtUtc = DateTime.UtcNow;
-                            order.GeocodeProvider = providerName;
-
-                            _logger.LogInformation(
-                                "✅ GEOCODING SUCCESS | Pedido={OrderId} | Lat={Lat:F6} | Lon={Lon:F6} | Provider={Provider}",
-                                order.PublicId, coords.Value.lat, coords.Value.lon, providerName);
-                        }
-                        else
-                        {
-                            order.GeocodedAtUtc = DateTime.UtcNow;
-                            order.GeocodeProvider = $"{providerName} (not_found)";
-
-                            _logger.LogWarning(
-                                "❌ GEOCODING NOT_FOUND | Pedido={OrderId} | Provider={Provider} | Query=\"{Query}\" | API retornou null",
-                                order.PublicId, providerName, queryAddress);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        order.GeocodedAtUtc = DateTime.UtcNow;
-                        order.GeocodeProvider = $"{providerName} (error)";
-
-                        _logger.LogError(ex,
-                            "🔥 GEOCODING ERROR | Pedido={OrderId} | Provider={Provider} | Query=\"{Query}\" | Exception: {Message}",
-                            order.PublicId, providerName, queryAddress, ex.Message);
-                    }
-                }
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "⏭️ GEOCODING SKIPPED | Pedido={OrderId} | Motivo: Já possui coordenadas | Lat={Lat:F6} | Lon={Lon:F6}",
-                    order.PublicId, order.Latitude, order.Longitude);
-            }
+            _logger.LogInformation(
+                "📍 GEOCODING_QUEUED | Pedido={PublicId} | CorrelationId={CorrelationId}",
+                order.PublicId, correlationId);
         }
 
         order.Status = newStatus;
@@ -473,9 +416,20 @@ public class OrdersController : ControllerBase
             },
             ct: ct);
 
-        // Notificação WhatsApp — fire-and-forget, sem bloquear a resposta
-        _jobs.Enqueue<WhatsAppNotificationService>(
-            s => s.NotifyOrderStatusAsync(order.Id, newStatus, CancellationToken.None));
+        // Notificação WhatsApp — evento assíncrono via MassTransit
+        var waCorrelationId = HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var waCid)
+            ? waCid?.ToString()
+            : HttpContext.TraceIdentifier;
+
+        await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+        {
+            OrderId       = order.Id,
+            CompanyId     = CompanyId,
+            PublicId      = order.PublicId,
+            TriggerStatus = newStatus.ToString(),
+            CorrelationId = waCorrelationId,
+            OccurredAtUtc = DateTime.UtcNow
+        }, ct);
 
         // DAV automático — pedido entregue gera DAV aguardando confirmação fiscal
         if (newStatus == OrderStatus.ENTREGUE)
@@ -1023,9 +977,16 @@ public class OrdersController : ControllerBase
         // Fila de impressão
         await _print.EnqueueAsync(order, ct);
 
-        // Notificação WhatsApp — fire-and-forget, sem bloquear a resposta
-        _jobs.Enqueue<WhatsAppNotificationService>(
-            s => s.NotifyOrderStatusAsync(order.Id, OrderStatus.RECEBIDO, CancellationToken.None));
+        // Notificação WhatsApp — evento assíncrono via MassTransit
+        await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+        {
+            OrderId       = order.Id,
+            CompanyId     = order.CompanyId!.Value,
+            PublicId      = order.PublicId,
+            TriggerStatus = OrderStatus.RECEBIDO.ToString(),
+            CorrelationId = null, // criação pública sem X-Correlation-ID de admin
+            OccurredAtUtc = DateTime.UtcNow
+        }, ct);
 
         return Ok(new CreateOrderResponse
         {
