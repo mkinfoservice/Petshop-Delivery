@@ -1,8 +1,10 @@
 using Hangfire;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Fiscal;
 using Petshop.Api.Entities.Pdv;
+using Petshop.Api.Messaging.Contracts;
 using Petshop.Api.Services.WhatsApp;
 
 namespace Petshop.Api.Services.Fiscal.Jobs;
@@ -18,6 +20,7 @@ public class FiscalQueueProcessorJob
     private readonly RealFiscalEngine                 _realEngine;
     private readonly NfceNumberService                _numberSvc;
     private readonly IBackgroundJobClient             _jobs;
+    private readonly IPublishEndpoint                 _publisher;
     private readonly ILogger<FiscalQueueProcessorJob> _logger;
     private readonly FiscalCertProtectionService      _certSvc;
 
@@ -30,6 +33,7 @@ public class FiscalQueueProcessorJob
         RealFiscalEngine realEngine,
         NfceNumberService numberSvc,
         IBackgroundJobClient jobs,
+        IPublishEndpoint publisher,
         ILogger<FiscalQueueProcessorJob> logger,
         FiscalCertProtectionService certSvc)
     {
@@ -38,6 +42,7 @@ public class FiscalQueueProcessorJob
         _realEngine   = realEngine;
         _numberSvc    = numberSvc;
         _jobs         = jobs;
+        _publisher    = publisher;
         _logger       = logger;
         _certSvc      = certSvc;
     }
@@ -258,9 +263,23 @@ public class FiscalQueueProcessorJob
                 item.Status           = FiscalQueueStatus.Completed;
                 item.FiscalDocumentId = fiscalDoc.Id;
 
-                // Envia comprovante NFC-e via WhatsApp (fire-and-forget)
-                _jobs.Enqueue<WhatsAppNotificationService>(
-                    s => s.NotifySaleCompletedAsync(sale.Id, CancellationToken.None));
+                // Envia comprovante NFC-e via WhatsApp (assíncrono via MassTransit)
+                try
+                {
+                    await _publisher.Publish(new PdvWhatsAppNotificationRequestedEvent
+                    {
+                        SaleId        = sale.Id,
+                        CompanyId     = sale.CompanyId,
+                        TriggerStatus = "SALE_COMPLETED",
+                        OccurredAtUtc = DateTime.UtcNow,
+                    }, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "[FISCAL_JOB] Falha ao publicar PdvWhatsAppNotificationRequestedEvent | SaleId={SaleId}",
+                        sale.Id);
+                }
             }
             else if (engineResult.Status == FiscalDocumentStatus.Contingency)
             {

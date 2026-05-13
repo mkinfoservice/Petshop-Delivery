@@ -81,5 +81,8 @@ public static class MessagingSetup
         // Etapa 5 — OrderDeliveredEvent: DAV automático + fidelidade
         x.AddConsumer<DavCreationConsumer, DavCreationConsumerDefinition>();
         x.AddConsumer<LoyaltyEarnConsumer, LoyaltyEarnConsumerDefinition>();
+
+        // Etapa 8 — PDV/fiscal WhatsApp: comprovante NFC-e + fidelidade PDV
+        x.AddConsumer<PdvWhatsAppNotificationConsumer, PdvWhatsAppNotificationConsumerDefinition>();
     }
 }

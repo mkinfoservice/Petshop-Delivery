@@ -1,10 +1,12 @@
 using Hangfire;
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Fiscal;
 using Petshop.Api.Entities.Pdv;
+using Petshop.Api.Messaging.Contracts;
 using Petshop.Api.Services.Fiscal;
 using Petshop.Api.Services.Fiscal.Jobs;
 using Petshop.Api.Services.WhatsApp;
@@ -20,17 +22,19 @@ namespace Petshop.Api.Controllers;
 [Authorize(Roles = "admin,gerente")]
 public class FiscalAdminController : ControllerBase
 {
-    private readonly AppDbContext        _db;
-    private readonly SefazHttpClient     _sefaz;
-    private readonly IBackgroundJobClient _jobs;
+    private readonly AppDbContext                _db;
+    private readonly SefazHttpClient             _sefaz;
+    private readonly IBackgroundJobClient        _jobs;
+    private readonly IPublishEndpoint            _publisher;
     private readonly FiscalCertProtectionService _certSvc;
 
-    public FiscalAdminController(AppDbContext db, SefazHttpClient sefaz, IBackgroundJobClient jobs, FiscalCertProtectionService certSvc)
+    public FiscalAdminController(AppDbContext db, SefazHttpClient sefaz, IBackgroundJobClient jobs, IPublishEndpoint publisher, FiscalCertProtectionService certSvc)
     {
-        _db      = db;
-        _sefaz   = sefaz;
-        _jobs    = jobs;
-        _certSvc = certSvc;
+        _db        = db;
+        _sefaz     = sefaz;
+        _jobs      = jobs;
+        _publisher = publisher;
+        _certSvc   = certSvc;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -450,10 +454,22 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
         if (!exists)
             return NotFound("Venda não encontrada.");
 
-        var jobId = _jobs.Enqueue<WhatsAppNotificationService>(
-            s => s.NotifySaleCompletedAsync(saleId, CancellationToken.None));
+        try
+        {
+            await _publisher.Publish(new PdvWhatsAppNotificationRequestedEvent
+            {
+                SaleId        = saleId,
+                CompanyId     = CompanyId,
+                TriggerStatus = "SALE_COMPLETED",
+                OccurredAtUtc = DateTime.UtcNow,
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(503, new { message = "Falha ao publicar evento WhatsApp.", detail = ex.Message });
+        }
 
-        return Ok(new { jobId, message = "Job enfileirado. Acompanhe em /hangfire." });
+        return Ok(new { message = "Evento SALE_COMPLETED publicado via MassTransit." });
     }
 
     /// <summary>

@@ -1,19 +1,21 @@
+using Hangfire;
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
+using Petshop.Api.Entities;
 using Petshop.Api.Entities.Dav;
-using Petshop.Api.Entities.Pdv;
-using Hangfire;
 using Petshop.Api.Entities.Fiscal;
+using Petshop.Api.Entities.Pdv;
+using Petshop.Api.Messaging.Contracts;
+using Petshop.Api.Services;
+using Petshop.Api.Services.Customers;
 using Petshop.Api.Services.Fiscal;
 using Petshop.Api.Services.Fiscal.Jobs;
-using Petshop.Api.Services.WhatsApp;
 using Petshop.Api.Services.Scale;
-using Petshop.Api.Services.Customers;
 using Petshop.Api.Services.Stock;
-using Petshop.Api.Entities;
-using Petshop.Api.Services;
+using Petshop.Api.Services.WhatsApp;
 using System.Security.Claims;
 
 namespace Petshop.Api.Controllers;
@@ -31,23 +33,25 @@ public class PdvController : ControllerBase
     private readonly ScaleBarcodeParser          _scale;
     private readonly FiscalDecisionService       _fiscal;
     private readonly IBackgroundJobClient        _jobs;
+    private readonly IPublishEndpoint            _publisher;
     private readonly StockService                _stock;
     private readonly LoyaltyService              _loyalty;
     private readonly CpfProtectionService        _cpfProtection;
     private readonly SupplyAlertService          _supplyAlerts;
     private readonly ILogger<PdvController>      _logger;
 
-    public PdvController(AppDbContext db, ScaleBarcodeParser scale, FiscalDecisionService fiscal, IBackgroundJobClient jobs, StockService stock, LoyaltyService loyalty, CpfProtectionService cpfProtection, SupplyAlertService supplyAlerts, ILogger<PdvController> logger)
+    public PdvController(AppDbContext db, ScaleBarcodeParser scale, FiscalDecisionService fiscal, IBackgroundJobClient jobs, IPublishEndpoint publisher, StockService stock, LoyaltyService loyalty, CpfProtectionService cpfProtection, SupplyAlertService supplyAlerts, ILogger<PdvController> logger)
     {
-        _db           = db;
-        _scale        = scale;
-        _fiscal       = fiscal;
-        _jobs         = jobs;
-        _stock        = stock;
-        _loyalty      = loyalty;
+        _db            = db;
+        _scale         = scale;
+        _fiscal        = fiscal;
+        _jobs          = jobs;
+        _publisher     = publisher;
+        _stock         = stock;
+        _loyalty       = loyalty;
         _cpfProtection = cpfProtection;
-        _supplyAlerts = supplyAlerts;
-        _logger       = logger;
+        _supplyAlerts  = supplyAlerts;
+        _logger        = logger;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -999,8 +1003,21 @@ public class PdvController : ControllerBase
                 catch { /* fidelidade nao pode derrubar a venda */ }
 
                 // Envia complemento de fidelidade via WhatsApp independente de NFC-e.
-                _jobs.Enqueue<WhatsAppNotificationService>(
-                    s => s.SendPdvLoyaltyComplementAsync(saleId, CancellationToken.None));
+                try
+                {
+                    await _publisher.Publish(new PdvWhatsAppNotificationRequestedEvent
+                    {
+                        SaleId        = saleId,
+                        CompanyId     = CompanyId,
+                        TriggerStatus = "PDV_LOYALTY_COMPLEMENT",
+                        OccurredAtUtc = DateTime.UtcNow,
+                    }, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "[PDV] Falha ao publicar PDV_LOYALTY_COMPLEMENT | SaleId={SaleId}", saleId);
+                }
             }
         }
 
@@ -1114,10 +1131,23 @@ public class PdvController : ControllerBase
 
         if (affected == 0) return NotFound();
 
-        // Dispara envio do comprovante agora que o telefone estÃ¡ salvo.
-        // IdempotÃªncia no job impede duplo envio se fiscal jÃ¡ tiver disparado antes.
-        _jobs.Enqueue<WhatsAppNotificationService>(
-            s => s.NotifySaleCompletedAsync(id, CancellationToken.None));
+        // Dispara envio do comprovante agora que o telefone está salvo.
+        // Idempotência no consumer impede duplo envio se fiscal já tiver disparado antes.
+        try
+        {
+            await _publisher.Publish(new PdvWhatsAppNotificationRequestedEvent
+            {
+                SaleId        = id,
+                CompanyId     = CompanyId,
+                TriggerStatus = "SALE_COMPLETED",
+                OccurredAtUtc = DateTime.UtcNow,
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[PDV] Falha ao publicar SALE_COMPLETED após atualização de telefone | SaleId={SaleId}", id);
+        }
 
         return NoContent();
     }
