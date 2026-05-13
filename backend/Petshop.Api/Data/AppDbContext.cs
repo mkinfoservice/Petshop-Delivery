@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Entities;
@@ -820,7 +821,8 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             .HasIndex(q => new { q.CompanyId, q.CreatedAtUtc });
 
         modelBuilder.Entity<SalesQuote>()
-            .HasIndex(q => new { q.CompanyId, q.IsArchived, q.Status, q.CreatedAtUtc });
+            .HasIndex(q => new { q.CompanyId, q.IsArchived, q.Status })
+            .HasDatabaseName("IX_SalesQuotes_CompanyId_IsArchived_Status");
 
         modelBuilder.Entity<SalesQuote>()
             .HasIndex(q => new { q.CompanyId, q.Origin, q.CreatedAtUtc });
@@ -1257,5 +1259,9 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.TableId)
             .HasFilter("\"TableId\" IS NOT NULL");
+
+        // ── MassTransit Outbox ────────────────────────────────────────────────
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
     }
 }

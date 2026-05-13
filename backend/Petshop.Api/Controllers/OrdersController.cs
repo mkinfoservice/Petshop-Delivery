@@ -357,46 +357,62 @@ public class OrdersController : ControllerBase
         if (!IsValidTransition(oldStatus, newStatus, ownDelivery))
             return BadRequest($"Transição inválida: {oldStatus} → {newStatus}.");
 
-        // Ao marcar PRONTO_PARA_ENTREGA, agenda geocoding assíncrono via mensageria.
-        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre o fluxo do pedido.
-        // Geocoding é best-effort: pode ser reprocessado via POST /{id}/reprocess-geocoding.
-        if (newStatus == OrderStatus.PRONTO_PARA_ENTREGA && !order.IsTableOrder
-            && (order.Latitude is null || order.Longitude is null))
-        {
-            var correlationId = HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var cid)
-                ? cid?.ToString()
-                : HttpContext.TraceIdentifier;
-
-            try
-            {
-                await _publisher.Publish(new GeocodingRequestedEvent
-                {
-                    OrderId       = order.Id,
-                    CompanyId     = CompanyId,
-                    PublicId      = order.PublicId,
-                    Address       = order.Address,
-                    Cep           = order.Cep,
-                    CorrelationId = correlationId,
-                    OccurredAtUtc = DateTime.UtcNow
-                }, ct);
-
-                _logger.LogInformation(
-                    "📍 GEOCODING_QUEUED | Pedido={PublicId} | CorrelationId={CorrelationId}",
-                    order.PublicId, correlationId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "📍 GEOCODING_QUEUE_FAIL | Pedido={PublicId} | Mensageria indisponível — reprocessar via /reprocess-geocoding",
-                    order.PublicId);
-            }
-        }
-
         order.Status = newStatus;
 
         var updatedAt = DateTime.UtcNow;
         order.UpdatedAtUtc = updatedAt;
 
+        var correlationId = HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var cid)
+            ? cid?.ToString()
+            : HttpContext.TraceIdentifier;
+
+        // Outbox Pattern: Publish() grava na OutboxMessage dentro do mesmo DbContext.
+        // SaveChangesAsync() confirma status + eventos atomicamente. Sem try-catch:
+        // o broker nao e contactado aqui — falha de RabbitMQ nao impacta este request.
+
+        if (newStatus == OrderStatus.PRONTO_PARA_ENTREGA && !order.IsTableOrder
+            && (order.Latitude is null || order.Longitude is null))
+        {
+            await _publisher.Publish(new GeocodingRequestedEvent
+            {
+                OrderId       = order.Id,
+                CompanyId     = CompanyId,
+                PublicId      = order.PublicId,
+                Address       = order.Address,
+                Cep           = order.Cep,
+                CorrelationId = correlationId,
+                OccurredAtUtc = DateTime.UtcNow
+            }, ct);
+
+            _logger.LogInformation(
+                "GEOCODING_QUEUED | Pedido={PublicId} | CorrelationId={CorrelationId}",
+                order.PublicId, correlationId);
+        }
+
+        await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+        {
+            OrderId       = order.Id,
+            CompanyId     = CompanyId,
+            PublicId      = order.PublicId,
+            TriggerStatus = newStatus.ToString(),
+            CorrelationId = correlationId,
+            OccurredAtUtc = DateTime.UtcNow
+        }, ct);
+
+        if (newStatus == OrderStatus.ENTREGUE)
+        {
+            await _publisher.Publish(new OrderDeliveredEvent
+            {
+                OrderId       = order.Id,
+                CompanyId     = CompanyId,
+                PublicId      = order.PublicId,
+                CustomerId    = order.CustomerId,
+                CorrelationId = correlationId,
+                OccurredAtUtc = DateTime.UtcNow
+            }, ct);
+        }
+
+        // Commit atomico: mudanca de status + OutboxMessages juntos
         await _db.SaveChangesAsync(ct);
 
         await _audit.LogAsync(
@@ -416,55 +432,6 @@ public class OrdersController : ControllerBase
                 geocodeProvider = order.GeocodeProvider
             },
             ct: ct);
-
-        // Notificação WhatsApp — evento assíncrono via MassTransit.
-        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre o fluxo do pedido.
-        var waCorrelationId = HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var waCid)
-            ? waCid?.ToString()
-            : HttpContext.TraceIdentifier;
-
-        try
-        {
-            await _publisher.Publish(new WhatsAppNotificationRequestedEvent
-            {
-                OrderId       = order.Id,
-                CompanyId     = CompanyId,
-                PublicId      = order.PublicId,
-                TriggerStatus = newStatus.ToString(),
-                CorrelationId = waCorrelationId,
-                OccurredAtUtc = DateTime.UtcNow
-            }, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "[WA] QUEUE_FAIL | Pedido={PublicId} | Status={Status} | Mensageria indisponível — WhatsApp não enviado",
-                order.PublicId, newStatus);
-        }
-
-        // DAV automático + fidelidade — evento único dispara consumers independentes.
-        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre o fluxo.
-        if (newStatus == OrderStatus.ENTREGUE)
-        {
-            try
-            {
-                await _publisher.Publish(new OrderDeliveredEvent
-                {
-                    OrderId       = order.Id,
-                    CompanyId     = CompanyId,
-                    PublicId      = order.PublicId,
-                    CustomerId    = order.CustomerId,
-                    CorrelationId = waCorrelationId,
-                    OccurredAtUtc = DateTime.UtcNow
-                }, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "[ORDER_DELIVERED] QUEUE_FAIL | Pedido={PublicId} | DAV e loyalty não agendados — mensageria indisponível",
-                    order.PublicId);
-            }
-        }
 
         return Ok(new UpdateOrderStatusResponse(
             order.Id,
@@ -995,31 +962,22 @@ public class OrdersController : ControllerBase
         }
 
         _db.Orders.Add(order);
+
+        // Outbox: evento gravado junto com o pedido no mesmo commit
+        await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+        {
+            OrderId       = order.Id,
+            CompanyId     = order.CompanyId!.Value,
+            PublicId      = order.PublicId,
+            TriggerStatus = OrderStatus.RECEBIDO.ToString(),
+            CorrelationId = null,
+            OccurredAtUtc = DateTime.UtcNow
+        }, ct);
+
         await _db.SaveChangesAsync(ct);
 
         // Fila de impressão
         await _print.EnqueueAsync(order, ct);
-
-        // Notificação WhatsApp — evento assíncrono via MassTransit.
-        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre a criação do pedido.
-        try
-        {
-            await _publisher.Publish(new WhatsAppNotificationRequestedEvent
-            {
-                OrderId       = order.Id,
-                CompanyId     = order.CompanyId!.Value,
-                PublicId      = order.PublicId,
-                TriggerStatus = OrderStatus.RECEBIDO.ToString(),
-                CorrelationId = null,
-                OccurredAtUtc = DateTime.UtcNow
-            }, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "[WA] QUEUE_FAIL | Pedido={PublicId} | Status=RECEBIDO | Mensageria indisponível — WhatsApp não enviado",
-                order.PublicId);
-        }
 
         return Ok(new CreateOrderResponse
         {

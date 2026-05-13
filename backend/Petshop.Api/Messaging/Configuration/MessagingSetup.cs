@@ -1,4 +1,5 @@
 using MassTransit;
+using Petshop.Api.Data;
 using Petshop.Api.Messaging.Consumers;
 
 namespace Petshop.Api.Messaging.Configuration;
@@ -33,6 +34,15 @@ public static class MessagingSetup
         services.AddMassTransit(x =>
         {
             RegisterConsumers(x);
+
+            // Outbox Pattern: eventos são gravados na tabela OutboxMessage dentro da mesma
+            // transação do SaveChanges. Um poller em background lê e publica no broker.
+            // Garante zero perda de eventos mesmo se o processo cair após o commit.
+            x.AddEntityFrameworkOutbox<AppDbContext>(o =>
+            {
+                o.UsePostgres();
+                o.UseBusOutbox();
+            });
 
             x.UsingRabbitMq((ctx, cfg) =>
             {

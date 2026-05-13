@@ -263,23 +263,14 @@ public class FiscalQueueProcessorJob
                 item.Status           = FiscalQueueStatus.Completed;
                 item.FiscalDocumentId = fiscalDoc.Id;
 
-                // Envia comprovante NFC-e via WhatsApp (assíncrono via MassTransit)
-                try
+                // Outbox: evento gravado junto com FiscalDocument no mesmo SaveChanges abaixo
+                await _publisher.Publish(new PdvWhatsAppNotificationRequestedEvent
                 {
-                    await _publisher.Publish(new PdvWhatsAppNotificationRequestedEvent
-                    {
-                        SaleId        = sale.Id,
-                        CompanyId     = sale.CompanyId,
-                        TriggerStatus = "SALE_COMPLETED",
-                        OccurredAtUtc = DateTime.UtcNow,
-                    }, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex,
-                        "[FISCAL_JOB] Falha ao publicar PdvWhatsAppNotificationRequestedEvent | SaleId={SaleId}",
-                        sale.Id);
-                }
+                    SaleId        = sale.Id,
+                    CompanyId     = sale.CompanyId,
+                    TriggerStatus = "SALE_COMPLETED",
+                    OccurredAtUtc = DateTime.UtcNow,
+                }, ct);
             }
             else if (engineResult.Status == FiscalDocumentStatus.Contingency)
             {
