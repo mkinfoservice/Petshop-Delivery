@@ -12,34 +12,16 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 
 ---
 
-## Como o vendApps transforma o seu negócio
+## Atualização — maio 2026
 
-### Antes
-- Cardápio no papel ou no grupo de WhatsApp, desatualizado, sem foto
-- Pedidos anotados em bloco, fácil de errar e perder
-- Pedido do iFood digitado manualmente no sistema interno
-- Impressora sem automação — barista precisa ser chamado o tempo todo
-- Caixa fechado no feeling, sem saber o que entrou de verdade
-- Nota fiscal emitida na mão, uma por uma
-- Estoque no caderno, compra feita quando acaba
+**Mensageria assíncrona completa (MassTransit + RabbitMQ + Outbox Pattern)**
 
-### Depois
-- Catálogo digital atualizado em tempo real, com foto e preço correto
-- Pedido do iFood entra direto no sistema — sem redigitar nada
-- Comanda impressa automaticamente quando o pedido chega — barista já começa
-- Caixa fechado com relatório completo em 1 clique
-- NFC-e emitida automaticamente no fechamento de cada venda
-- Estoque descontado a cada venda, alerta antes de acabar
-- Tudo no celular, sem papel, sem planilha, sem adivinhação
-
----
-
-## Atualização Recente (abril 2026)
-
-- Catálogo online: ao selecionar produto com adicionais ou variantes, agora abre o modal `ProductQuickViewModal` (igual ao PDV), em vez de navegar para página em tela cheia.
-- Catálogo público e catálogo de mesa no modo moderno agora usam o mesmo grid visual do PDV (cards compactos, badge de Top/adicionais, categorias em painel 2 colunas no desktop e chips `min-w-[150px]` no mobile).
-- Responsividade otimizada para celular e tablet no modo moderno, reduzindo rolagem vertical excessiva.
-- Mantidos os fluxos existentes de finalização (checkout delivery e fluxo de mesa) e isolamento por tenant via feature flag `modern_catalog_experience`.
+- **MassTransit 8.3** integrado ao core do backend como barramento de eventos
+- **5 consumers** em produção: geocodificação, WhatsApp delivery, DAV automático, fidelidade delivery, WhatsApp PDV
+- **Outbox Pattern (EF Core):** eventos gravados na tabela `OutboxMessage` dentro da mesma transação do `SaveChanges` — zero perda de eventos mesmo em queda de processo ou falha de rede para o broker
+- **Dev local:** bus in-memory sem necessidade de RabbitMQ (variável `RabbitMq__Enabled=false`)
+- **CloudAMQP em produção:** configurado via `RabbitMq__Uri` (URL amqps completa do painel CloudAMQP)
+- Fix de duplicata de mensagem de pontos de fidelidade PDV (idempotência cruzada entre triggers `PDV_LOYALTY_COMPLEMENT` e `ENTREGUE_LOYALTY_COMPLEMENT`)
 
 ---
 
@@ -95,11 +77,12 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 - Configuração em 3 campos: ClientId + ClientSecret + MerchantId
 
 ### WhatsApp
-- Notificação automática ao cliente quando o pedido é criado ou atualizado
-- **Complemento de fidelidade:** mensagem automática com pontos ganhos e saldo após cada compra PDV (template configurável por empresa, independente de NFC-e)
+- Notificação automática ao cliente quando o pedido é criado ou atualizado (delivery)
+- **Complemento de fidelidade delivery:** mensagem automática com pontos ganhos e saldo após pedido ENTREGUE
+- **WhatsApp PDV:** comprovante de venda e saldo de pontos enviados automaticamente após NFC-e autorizada
 - Webhook de entrada para receber e responder mensagens de clientes no painel
 - Roteamento inteligente de conversas por empresa
-- Idempotência garantida: cada notificação é enviada exatamente uma vez por evento
+- Idempotência garantida por `TriggerStatus` em `WhatsAppMessageLogs` — cada notificação enviada exatamente uma vez por evento
 
 ### Gestão de Pedidos
 - Painel em tempo real com todos os pedidos do dia por canal
@@ -114,7 +97,7 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 - Programa de fidelidade configurável: pontos por real gasto
 - Identificação por CPF **ou por telefone** — ambos acumulam pontos corretamente
 - Resgate de pontos no checkout e no balcão
-- Notificação WhatsApp de pontos acumulados após cada compra PDV, independente de NFC-e
+- Notificação WhatsApp de pontos acumulados após pedido ENTREGUE e após venda PDV
 - Relatório de clientes mais fiéis, frequência e LTV
 
 ### Fiscal — NFC-e
@@ -163,6 +146,7 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 - Criação de orçamento com itens e validade
 - Envio do orçamento por WhatsApp com resumo financeiro
 - Conversão de orçamento aprovado em pedido com 1 clique
+- Geração automática de DAV quando pedido delivery é marcado como ENTREGUE
 
 ### Rotas de Entrega
 - Planejamento de rotas com otimização por OpenRouteService (ORS)
@@ -233,6 +217,7 @@ PWA mobile-first dedicado ao entregador — sem instalação, acessível pelo na
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + Radix UI (shadcn) |
 | Backend | ASP.NET Core 8 + EF Core 8 |
 | Banco de Dados | PostgreSQL (NeonDB serverless em produção) |
+| Mensageria | MassTransit 8.3 + RabbitMQ (CloudAMQP) + Outbox Pattern (EF Core) |
 | Realtime | SignalR (WebSocket) — impressão e balança |
 | Jobs agendados | Hangfire 1.8 + PostgreSQL |
 | Autenticação | JWT — roles: `admin`, `gerente`, `atendente`, `deliverer` |
@@ -248,6 +233,7 @@ PWA mobile-first dedicado ao entregador — sem instalação, acessível pelo na
 |---|---|
 | iFood Partner API | Recepção de pedidos via webhook + sync de cardápio |
 | WhatsApp (Evolution API) | Notificações automáticas e atendimento conversacional |
+| CloudAMQP (RabbitMQ) | Broker de mensagens para eventos assíncronos |
 | ViaCEP | Preenchimento automático de endereço por CEP |
 | Cosmos (Bluesoft) | Enriquecimento de catálogo por EAN/GTIN (base brasileira) |
 | SEFAZ | Emissão de NFC-e em homologação e produção |
@@ -271,9 +257,25 @@ slug.vendapps.com.br
         (PostgreSQL)          (sync, fiscal,         (impressoras,
        dados isolados          reprocessamento)         balanças)
         por CompanyId
+               │
+               ▼
+        OutboxMessage
+       (mesma transação)
+               │
+               ▼
+          CloudAMQP
+          (RabbitMQ)
+               │
+        ┌──────┴──────────────────┐
+        │                         │
+  WhatsApp Consumer         Geocoding Consumer
+  DAV Consumer              Loyalty Consumer
+  PDV WhatsApp Consumer
 ```
 
 **Multi-tenancy:** slug do subdomínio resolvido em runtime → todos os dados filtrados por `CompanyId`. Zero cruzamento entre clientes.
+
+**Outbox Pattern:** `Publish()` é chamado antes de `SaveChangesAsync()`. O evento vai para `OutboxMessage` na mesma transação. O poller MassTransit envia ao broker em background. Falha de rede para o RabbitMQ não impacta o request HTTP.
 
 **Plug-in de marketplace:** `IMarketplaceOrderIngester` e `IMarketplaceStatusCallback` permitem adicionar novos canais (Rappi, Uber Eats) sem alterar o core — implementar a interface e registrar no DI.
 
@@ -311,6 +313,8 @@ npm run dev
 
 Na primeira execução o `DbSeeder` cria empresa, categorias e produtos de exemplo automaticamente.
 
+> **RabbitMQ em dev:** por padrão `RabbitMq__Enabled=false` — o MassTransit usa bus in-memory, sem necessidade de instalar RabbitMQ localmente.
+
 ---
 
 ## Variáveis de Ambiente (Produção)
@@ -325,6 +329,11 @@ Jwt__AdminUser=admin
 Jwt__AdminPassword=...
 Jwt__CompanyId=...
 ENABLE_SWAGGER=false
+
+# MassTransit / RabbitMQ (CloudAMQP)
+RabbitMq__Enabled=true
+RabbitMq__Uri=amqps://user:pass@host/vhost
+RabbitMq__QueuePrefix=vendapps
 ```
 
 **Frontend (Vercel):**
