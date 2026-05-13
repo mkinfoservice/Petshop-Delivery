@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Hangfire;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,14 +10,11 @@ using Petshop.Api.Entities;
 using Petshop.Api.Messaging.Contracts;
 using Petshop.Api.Middleware;
 using Petshop.Api.Services;
-using Petshop.Api.Services.Customers;
 using Petshop.Api.Services.Dav;
-using Petshop.Api.Services.Dav.Jobs;
 using Petshop.Api.Services.Geocoding;
 using Petshop.Api.Services.Print;
 using Petshop.Api.Services.Promotions;
 using Petshop.Api.Services.Audit;
-using Petshop.Api.Services.WhatsApp;
 using Petshop.Api.Entities.StoreFront;
 using Petshop.Api.Entities.Dav;
 using Petshop.Api.Services.Tenancy;
@@ -35,24 +31,20 @@ public class OrdersController : ControllerBase
     private readonly ViaCepService _viaCep;
     private readonly IConfiguration _config;
     private readonly ILogger<OrdersController> _logger;
-    private readonly IBackgroundJobClient _jobs;
     private readonly PrintService _print;
-    private readonly LoyaltyService _loyalty;
     private readonly PlanFeatureService _planFeatures;
     private readonly PromotionEngine _promotionEngine;
     private readonly OperationalAuditService _audit;
     private readonly IPublishEndpoint _publisher;
 
-    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, IBackgroundJobClient jobs, PrintService print, LoyaltyService loyalty, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit, IPublishEndpoint publisher)
+    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, PrintService print, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit, IPublishEndpoint publisher)
     {
         _db = db;
         _geo = geo;
         _viaCep = viaCep;
         _config = config;
         _logger = logger;
-        _jobs = jobs;
         _print = print;
-        _loyalty = loyalty;
         _planFeatures = planFeatures;
         _promotionEngine = promotionEngine;
         _audit = audit;
@@ -450,16 +442,28 @@ public class OrdersController : ControllerBase
                 order.PublicId, newStatus);
         }
 
-        // DAV automático — pedido entregue gera DAV aguardando confirmação fiscal
+        // DAV automático + fidelidade — evento único dispara consumers independentes.
+        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre o fluxo.
         if (newStatus == OrderStatus.ENTREGUE)
         {
-            _jobs.Enqueue<DeliveryOrderToDavJob>(
-                j => j.RunAsync(order.Id, CancellationToken.None));
-
-            // Fidelidade — acumula pontos se cliente cadastrado
-            if (order.CustomerId.HasValue)
-                _jobs.Enqueue<LoyaltyService>(
-                    s => s.EarnForOrderAsync(order.Id, CancellationToken.None));
+            try
+            {
+                await _publisher.Publish(new OrderDeliveredEvent
+                {
+                    OrderId       = order.Id,
+                    CompanyId     = CompanyId,
+                    PublicId      = order.PublicId,
+                    CustomerId    = order.CustomerId,
+                    CorrelationId = waCorrelationId,
+                    OccurredAtUtc = DateTime.UtcNow
+                }, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[ORDER_DELIVERED] QUEUE_FAIL | Pedido={PublicId} | DAV e loyalty não agendados — mensageria indisponível",
+                    order.PublicId);
+            }
         }
 
         return Ok(new UpdateOrderStatusResponse(

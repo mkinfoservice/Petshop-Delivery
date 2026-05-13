@@ -78,7 +78,8 @@ public static class MessagingSetup
         // Etapa 4 — Notificações WhatsApp (status de pedidos delivery)
         x.AddConsumer<WhatsAppNotificationConsumer, WhatsAppNotificationConsumerDefinition>();
 
-        // Próximas etapas:
-        // x.AddConsumer<OrderDeliveredConsumer, OrderDeliveredConsumerDefinition>();
+        // Etapa 5 — OrderDeliveredEvent: DAV automático + fidelidade
+        x.AddConsumer<DavCreationConsumer, DavCreationConsumerDefinition>();
+        x.AddConsumer<LoyaltyEarnConsumer, LoyaltyEarnConsumerDefinition>();
     }
 }
