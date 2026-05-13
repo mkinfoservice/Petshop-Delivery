@@ -1,61 +1,47 @@
-# vendApps â€” Handoff TÃ©cnico
+# vendApps — Handoff Técnico
 
-> Documento de onboarding para IA ou desenvolvedor. Reflete o estado atual do repositÃ³rio (abril 2026).
+> Documento de onboarding para IA ou desenvolvedor. Reflete o estado atual do repositório (**maio 2026**).  
+> Leia antes de qualquer tarefa. Atualize quando entregar algo novo.
 
 ---
 
-## 1. VisÃ£o Geral
+## 1. Visão Geral
 
-**vendApps** Ã© uma plataforma SaaS **multi-tenant** de gestÃ£o comercial. Cada empresa recebe subdomÃ­nio prÃ³prio (`empresa.vendapps.com.br`) com catÃ¡logo online, PDV, painel admin, programa de fidelidade, emissÃ£o de NFC-e e integraÃ§Ã£o WhatsApp â€” totalmente isolados por `CompanyId`.
+**vendApps** é uma plataforma SaaS **multi-tenant** de gestão comercial. Cada empresa recebe subdomínio próprio (`empresa.vendapps.com.br`) com catálogo online, PDV, painel admin, programa de fidelidade, emissão de NFC-e e integração WhatsApp — totalmente isolados por `CompanyId`.
 
-**RepositÃ³rio:** `https://github.com/mkinfoservice/vendApps`  
+**Repositório:** `https://github.com/mkinfoservice/vendApps`  
 **Branch principal:** `main`  
-**Backend (prod):** `https://vendapps.onrender.com` (Render â€” .NET + NeonDB PostgreSQL)  
-**Frontend (prod):** Vercel â€” React SPA; subdomÃ­nio detectado em runtime
+**Backend (prod):** `https://vendapps.onrender.com` (Render — .NET + NeonDB PostgreSQL)  
+**Frontend (prod):** Vercel — React SPA; subdomínio detectado em runtime
 
 ---
 
-## 2. Stack
+## 2. Stack Técnica
 
 | Camada | Tecnologia |
 |---|---|
 | Backend | ASP.NET Core .NET 8 + EF Core 8 + PostgreSQL (NeonDB) |
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + Radix UI (shadcn) |
+| Mensageria | MassTransit 8.3 + RabbitMQ (CloudAMQP) + Outbox Pattern (EF Core) |
 | Jobs | Hangfire 1.8 + PostgreSQL storage |
-| Auth | JWT â€” roles: `admin`, `gerente`, `atendente`, `deliverer` |
-| Realtime | SignalR â€” impressoras e balanÃ§as |
-| Deploy | Render (backend) + Vercel (frontend) |
+| Auth | JWT — roles: `admin`, `gerente`, `atendente`, `deliverer` |
+| Realtime | SignalR — impressoras e balanças |
+| Deploy | Render (backend auto-deploy via push) + Vercel (frontend) |
 | State/Cache | TanStack Query (React Query) v5 |
-| Ãcones | Lucide React |
-
----
-
-## 2.1 Atualização Recente (abril 2026)
-
-- **fix: catálogo online — modal em vez de tela cheia**: `ModernPublicCatalog` agora abre `ProductQuickViewModal` ao clicar em produto com adicionais/variantes (mesmo comportamento do PDV), substituindo o `navigate('/produto/${id}')` que expandia a tela inteira.
-  - Arquivos alterados: `features/catalog/ModernPublicCatalog.tsx`
-  - Componente reutilizado: `features/catalog/ProductQuickViewModal.tsx`
-- Grid do catálogo moderno (público e mesa) alinhado ao padrão do PDV:
-  - cards compactos com imagem quadrada, badge de Top e badge de adicionais;
-  - grade responsiva densa (`3/4/5/4/5/6` colunas por breakpoint);
-  - categorias em painel 2 colunas no desktop e chips `min-w-[150px]` no mobile.
-- Fluxo funcional preservado:
-  - produto com adicionais/variantes abre personalização via modal;
-  - produto simples adiciona rapidamente ao carrinho.
-- Controle por tenant mantido via feature flag `modern_catalog_experience` (isolamento por `CompanyId`).
+| Ícones | Lucide React |
 
 ---
 
 ## 3. Multi-tenancy
 
-- Slug do subdomÃ­nio resolvido em runtime em `catalog/api.ts` via `resolveCompanySlug()`
+- Slug do subdomínio resolvido em runtime em `catalog/api.ts` via `resolveCompanySlug()`
 - Todos os dados filtrados por `CompanyId` (nunca cruza entre clientes)
-- CORS automÃ¡tico para `*.vendapps.com.br` em `Program.cs:IsVendappsSubdomain()`
-- JWT do admin carrega claim `companyId` â†’ todos os controllers usam `Guid.Parse(User.FindFirstValue("companyId")!)`
+- CORS automático para `*.vendapps.com.br` em `Program.cs:IsVendappsSubdomain()`
+- JWT do admin carrega claim `companyId` → todos os controllers usam `Guid.Parse(User.FindFirstValue("companyId")!)`
 
-**Empresas de demo (DbSeeder â€” idempotente por slug):**
+**Empresas de demo (DbSeeder — idempotente por slug):**
 
-| Slug | ID | Nome |
+| Slug | ID prefix | Nome |
 |---|---|---|
 | `petshop-demo` | `11111111-...` | Petshop Demo |
 | `suaempresa` | `22222222-...` | Sua Empresa |
@@ -67,193 +53,329 @@
 
 ```
 vendApps/
-â”œâ”€â”€ backend/Petshop.Api/
-â”‚   â”œâ”€â”€ Controllers/
-â”‚   â”‚   â”œâ”€â”€ CatalogController.cs          GET /catalog/{slug}/products|categories
-â”‚   â”‚   â”œâ”€â”€ PdvController.cs              PDV â€” venda, itens, pagamento, fidelidade
-â”‚   â”‚   â”œâ”€â”€ ProductAddonsController.cs    CRUD adicionais + grupos de adicionais
-â”‚   â”‚   â”œâ”€â”€ OrdersController.cs           Pedidos delivery (pÃºblico + admin)
-â”‚   â”‚   â”œâ”€â”€ WhatsAppWebhookController.cs  Webhook Meta/Evolution
-â”‚   â”‚   â”œâ”€â”€ FiscalAdminController.cs      NFC-e manual / reprocessamento
-â”‚   â”‚   â””â”€â”€ ...
-â”‚   â”œâ”€â”€ Data/
-â”‚   â”‚   â”œâ”€â”€ AppDbContext.cs               30+ DbSets
-â”‚   â”‚   â”œâ”€â”€ DbSeeder.cs                   seed de empresas e catÃ¡logo
-â”‚   â”‚   â”œâ”€â”€ AddonGroupSeeder.cs           classifica addons em grupos na inicializaÃ§Ã£o
-â”‚   â”‚   â””â”€â”€ AddonSplitSeeder.cs           desmembra addons combinados ("A ou B" â†’ A + B)
-â”‚   â”œâ”€â”€ Entities/
-â”‚   â”‚   â”œâ”€â”€ Catalog/
-â”‚   â”‚   â”‚   â”œâ”€â”€ Product.cs
-â”‚   â”‚   â”‚   â”œâ”€â”€ ProductAddon.cs           campo IsDefault (prÃ©-seleciona no stepper)
-â”‚   â”‚   â”‚   â””â”€â”€ ProductAddonGroup.cs      grupos para fluxo step-by-step
-â”‚   â”‚   â”œâ”€â”€ Customers/
-â”‚   â”‚   â”‚   â”œâ”€â”€ Customer.cs               Phone, CpfHash, PointsBalance
-â”‚   â”‚   â”‚   â””â”€â”€ LoyaltyTransaction.cs     SaleOrderId + OrderId (PDV e delivery)
-â”‚   â”‚   â”œâ”€â”€ Pdv/
-â”‚   â”‚   â”‚   â””â”€â”€ SaleOrder.cs              venda PDV com CustomerId, CustomerPhone
-â”‚   â”‚   â””â”€â”€ ...
-â”‚   â”œâ”€â”€ Services/
-â”‚   â”‚   â”œâ”€â”€ Customers/LoyaltyService.cs   EarnAsync, EarnForOrderAsync, RedeemAsync
-â”‚   â”‚   â”œâ”€â”€ WhatsApp/
-â”‚   â”‚   â”‚   â”œâ”€â”€ WhatsAppNotificationService.cs
-â”‚   â”‚   â”‚   â”‚     NotifySaleCompletedAsync       â€” NFC-e via WhatsApp
-â”‚   â”‚   â”‚   â”‚     SendPdvLoyaltyComplementAsync  â€” pontos independente de NFC-e
-â”‚   â”‚   â”‚   â”‚     TrySendLoyaltyDeliveredComplementAsync â€” delivery
-â”‚   â”‚   â”‚   â””â”€â”€ WhatsAppClient.cs
-â”‚   â”‚   â”œâ”€â”€ Fiscal/Jobs/FiscalQueueProcessorJob.cs
-â”‚   â”‚   â””â”€â”€ ...
-â”‚   â”œâ”€â”€ Migrations/                        migraÃ§Ãµes EF Core
-â”‚   â””â”€â”€ Program.cs                         startup + safety nets SQL idempotentes
-â”‚
-â””â”€â”€ frontend/petshop-web/src/
-    â”œâ”€â”€ features/
-    â”‚   â”œâ”€â”€ catalog/
-    â”‚   â”‚   â”œâ”€â”€ api.ts                     fetchProducts + normalizeProductGroups()
-    â”‚   â”‚   â”œâ”€â”€ queries.ts                 useProducts, useProduct
-    â”‚   â”‚   â”œâ”€â”€ ProductAddonStepper.tsx    UI step-by-step de adicionais
-    â”‚   â”‚   â”œâ”€â”€ useProductStepper.ts       hook â€” estado, validaÃ§Ã£o, buildSynthetic()
-    â”‚   â”‚   â””â”€â”€ ProductQuickViewModal.tsx  modal desktop (usa stepper quando hasGroups)
-    â”‚   â”œâ”€â”€ cart/
-    â”‚   â”‚   â”œâ”€â”€ cart.tsx                   CartProvider + useCart (NÃƒO alterar)
-    â”‚   â”‚   â””â”€â”€ CartSheet.tsx / CartSidebar.tsx
-    â”‚   â””â”€â”€ pdv/
-    â”‚       â”œâ”€â”€ api.ts                     addItem, paySale, searchCustomerâ€¦
-    â”‚       â””â”€â”€ PdvContext.tsx
-    â”œâ”€â”€ pages/
-    â”‚   â”œâ”€â”€ pdv/PdvPage.tsx                PDV GoCoffee (AddonModal com stepper)
-    â”‚   â”œâ”€â”€ ProductDetail.tsx              pÃ¡gina mobile (usa stepper quando hasGroups)
-    â”‚   â”œâ”€â”€ Checkout.tsx
-    â”‚   â””â”€â”€ admin/
-    â”‚       â”œâ”€â”€ ProductForm.tsx            CRUD produto + adicionais flat
-    â”‚       â””â”€â”€ ...
-    â””â”€â”€ components/
-        â””â”€â”€ Toast.tsx                      ToastProvider + useToast
+├── backend/Petshop.Api/
+│   ├── Controllers/
+│   │   ├── OrdersController.cs           Pedidos delivery — publica eventos MassTransit
+│   │   ├── PdvController.cs              PDV — venda, itens, pagamento, fidelidade
+│   │   ├── CatalogController.cs          GET /catalog/{slug}/products|categories
+│   │   ├── WhatsAppWebhookController.cs  Webhook Meta/Evolution
+│   │   └── FiscalAdminController.cs      NFC-e manual / reprocessamento
+│   ├── Data/
+│   │   ├── AppDbContext.cs               30+ DbSets + outbox EF entities
+│   │   ├── DbSeeder.cs                   seed de empresas e catálogo
+│   │   ├── AddonGroupSeeder.cs           classifica addons em grupos na inicialização
+│   │   └── AddonSplitSeeder.cs           desmembra addons combinados ("A ou B" → A + B)
+│   ├── Entities/
+│   │   ├── Customers/Customer.cs         Phone, CpfHash, PointsBalance
+│   │   ├── Pdv/SaleOrder.cs              venda PDV com CustomerId, CustomerPhone
+│   │   └── WhatsApp/WhatsAppMessageLog.cs TriggerStatus para idempotência
+│   ├── Messaging/
+│   │   ├── Configuration/MessagingSetup.cs  AddMassTransit + Outbox config
+│   │   ├── Contracts/                       eventos (interfaces)
+│   │   └── Consumers/                       5 consumers registrados
+│   ├── Services/
+│   │   ├── WhatsApp/WhatsAppNotificationService.cs  toda lógica de notificação WA
+│   │   ├── Customers/LoyaltyService.cs              EarnAsync, EarnForOrderAsync, RedeemAsync
+│   │   └── Fiscal/Jobs/FiscalQueueProcessorJob.cs   NFC-e assíncrona (Hangfire)
+│   ├── Migrations/                        migrações EF Core
+│   └── Program.cs                         startup + safety nets SQL idempotentes
+│
+└── frontend/petshop-web/src/
+    ├── features/
+    │   ├── catalog/
+    │   │   ├── api.ts                     fetchProducts + normalizeProductGroups()
+    │   │   ├── ProductAddonStepper.tsx    UI step-by-step de adicionais
+    │   │   ├── useProductStepper.ts       hook — estado, validação, buildSynthetic()
+    │   │   └── ProductQuickViewModal.tsx  modal desktop
+    │   ├── cart/
+    │   │   ├── cart.tsx                   CartProvider + useCart (NÃO alterar)
+    │   │   └── CartSheet.tsx / CartSidebar.tsx
+    │   └── pdv/
+    │       ├── api.ts                     addItem, paySale, searchCustomer…
+    │       └── PdvContext.tsx
+    ├── pages/
+    │   ├── pdv/PdvPage.tsx                PDV GoCoffee (AddonModal com stepper)
+    │   ├── Checkout.tsx
+    │   └── admin/
+    │       ├── ProductForm.tsx            CRUD produto + adicionais
+    │       └── PromotionsPage.tsx         sistema de cupons
+    └── components/
+        └── Toast.tsx                      ToastProvider + useToast
 ```
 
 ---
 
-## 5. MÃ³dulo de Adicionais (Addon Groups + Stepper)
+## 5. Arquitetura de Mensageria (MassTransit — maio 2026)
 
-### Entidades
+### Infraestrutura
 
-**`ProductAddonGroup`** â€” grupo de opÃ§Ãµes de um produto:
-- `SelectionType`: `"single"` (radio, auto-avanÃ§a no stepper) ou `"multiple"` (checkbox)
-- `IsRequired`, `MinSelections`, `MaxSelections`, `SortOrder`
+- **Produção:** CloudAMQP (RabbitMQ) via `RabbitMq__Uri` (URL amqps completa)
+- **Dev local:** bus in-memory — `RabbitMq__Enabled=false` em `appsettings.Development.json`
+- **Outbox Pattern:** eventos gravados em `OutboxMessage` na mesma transação do `SaveChangesAsync`; poller MassTransit entrega ao broker em background
+- Configuração: `backend/Petshop.Api/Messaging/Configuration/MessagingSetup.cs`
 
-**`ProductAddon`** â€” item dentro de um grupo:
-- `AddonGroupId` â€” FK para o grupo (nulo = avulso legacy)
-- `IsDefault` â€” prÃ©-selecionado ao abrir o stepper (ex: Leite integral)
+### Eventos e Consumers
 
-### Ordem dos grupos (padrÃ£o GoCoffee)
+| Evento | Publicado em | Consumer(s) |
+|---|---|---|
+| `GeocodingRequestedEvent` | `OrdersController.UpdateStatus` (PRONTO_PARA_ENTREGA, sem coords) | `GeocodingRequestedConsumer` |
+| `WhatsAppNotificationRequestedEvent` | `OrdersController.UpdateStatus` + `Create` | `WhatsAppNotificationConsumer` |
+| `OrderDeliveredEvent` | `OrdersController.UpdateStatus` (ENTREGUE) | `DavCreationConsumer`, `LoyaltyEarnConsumer` |
+| `PdvWhatsAppNotificationRequestedEvent` | `FiscalQueueProcessorJob` (após NFC-e autorizada) | `PdvWhatsAppNotificationConsumer` |
 
-| Sort | Grupo | Tipo | Regra de nome |
-|---|---|---|---|
-| 0 | Sabor | single | `priceCents == 0` (Natural, Baunilhaâ€¦) |
-| 1 | Tipo de Leite | single | contÃ©m "leite", "lactose", "aveia", "integral" |
-| 2 | Cobertura | single | contÃ©m "cobertura", "chantilly", "ganache" |
-| 3 | Extras | multiple | demais adicionais pagos |
+### Regra crítica — ordem de operações
 
-### Seeders de inicializaÃ§Ã£o
+```csharp
+// CORRETO: Publish() ANTES de SaveChangesAsync()
+// O evento vai para OutboxMessage na mesma transação → zero-loss
+await _publisher.Publish(new WhatsAppNotificationRequestedEvent { ... }, ct);
+await _db.SaveChangesAsync(ct);  // commit atômico: mudança de estado + OutboxMessage
 
-1. **`AddonGroupSeeder`** â€” para cada produto com addons sem grupos: classifica e cria os grupos; marca `IsDefault = true` no primeiro do Tipo de Leite
-2. **`AddonSplitSeeder`** â€” detecta addons com `" ou "` no nome (ex: `"Cobertura (caramelo ou chocolate)"`) e divide em registros individuais; original vira `IsActive = false`
+// ERRADO: SaveChanges antes, depois Publish com try-catch
+// ❌ Processo pode cair entre os dois — evento perdido
+```
 
-Ambos sÃ£o **idempotentes** â€” rodam a cada startup mas sÃ³ atuam se houver pendÃªncias.
+**Nunca envolver `Publish()` em try-catch** — o broker não é contactado neste ponto. Falha de RabbitMQ não impacta o request HTTP.
 
-### Frontend â€” `normalizeProductGroups()`
+### Tabelas do Outbox (criadas em `AddMassTransitOutbox`)
 
-Em `catalog/api.ts`: se o produto retornar da API sem grupos mas com addons flat, cria grupos sintÃ©ticos em memÃ³ria com a mesma lÃ³gica de classificaÃ§Ã£o do `AddonGroupSeeder`. Garante que o stepper apareÃ§a mesmo antes do Render reiniciar.
-
-### Auto-avanÃ§o
-
-No `ProductAddonStepper.tsx`: grupos `single` avanÃ§am automaticamente apÃ³s seleÃ§Ã£o (delay 180ms para feedback visual). Grupos `multiple` e Ãºltima etapa exigem clique manual em **PrÃ³ximo**/**Adicionar**.
+| Tabela | Finalidade |
+|---|---|
+| `OutboxMessage` | Mensagens aguardando entrega ao broker |
+| `OutboxState` | Estado do outbox por DbContext scope |
+| `InboxState` | FK necessária por OutboxMessage (idempotência consumer-side) |
 
 ---
 
-## 6. Programa de Fidelidade
+## 6. WhatsApp — Notificações e Idempotência
+
+Todas as notificações são registradas em `WhatsAppMessageLogs` com `TriggerStatus`. Antes de enviar, verifica se já existe log com mesmo `TriggerStatus + OrderId/SaleId`. Isso garante que cada evento gera **exatamente uma** mensagem.
+
+**Triggers ativos:**
+
+| TriggerStatus | Evento |
+|---|---|
+| `PRONTO_PARA_ENTREGA` | Pedido pronto para entrega |
+| `SAIU_PARA_ENTREGA` | Pedido saiu para entrega |
+| `ENTREGUE` | Pedido entregue |
+| `ENTREGUE_LOYALTY_COMPLEMENT` | Pontos de fidelidade pós-delivery |
+| `PDV_LOYALTY_COMPLEMENT` | Pontos de fidelidade pós-PDV |
+| `SALE_COMPLETED` | NFC-e autorizada (comprovante PDV) |
+
+**Bug corrigido (maio 2026, commit `b72defb`):** loyalty PDV enviava 2x porque `PDV_LOYALTY_COMPLEMENT` e `ENTREGUE_LOYALTY_COMPLEMENT` são triggers distintos. Fix: `NotifySaleCompletedAsync` agora faz cross-check — se `PDV_LOYALTY_COMPLEMENT` já existe para o `saleId`, não envia o espelho delivery.
+
+### Configurações WhatsApp (appsettings)
+
+```json
+{
+  "WhatsApp": {
+    "LoyaltyComplement": {
+      "Enabled": true,
+      "DelaySeconds": 2,
+      "SendWhenPointsZero": false,
+      "TemplateName": "card_transaction_alert_2"
+    }
+  }
+}
+```
+
+---
+
+## 7. Programa de Fidelidade
 
 ### Fluxo PDV (`PdvController.Pay`)
 
-1. ApÃ³s `tx.CommitAsync()`, roda `EarnAsync` **antes** de enfileirar `FiscalQueueProcessorJob` (evita race condition onde o job fiscal dispara o WhatsApp antes de a transaÃ§Ã£o de pontos existir)
-2. ConfirmaÃ§Ã£o de identidade â€” dois caminhos:
-   - **CPF digitado** â†’ valida hash contra `Customer.CpfHash`
-   - **Cliente buscado por telefone** (sem CPF digitado) â†’ verifica que o cadastro tem `CpfHash` registrado (identidade confirmada pelo operador)
-3. Enfileira `SendPdvLoyaltyComplementAsync` para todo cliente confirmado
+1. Após `tx.CommitAsync()`, roda `EarnAsync` **antes** de enfileirar `FiscalQueueProcessorJob`
+2. Identidade confirmada por CPF hash **ou** por cliente buscado via telefone (sem CPF digitado)
+3. Enfileira `SendPdvLoyaltyComplementAsync` para qualquer cliente confirmado (independente de NFC-e)
 
-### Fluxo Delivery (`LoyaltyService.EarnForOrderAsync`)
+### Fluxo Delivery (`LoyaltyEarnConsumer`)
 
-- `LoyaltyTransaction.OrderId` salvo â†’ permite lookup no complemento WhatsApp
+- Consumer processa `OrderDeliveredEvent` de forma assíncrona
+- `LoyaltyTransaction.OrderId` salvo → permite lookup no complemento WhatsApp delivery
 
-### WhatsApp â€” Complemento de Fidelidade
+### `SendPdvLoyaltyComplementAsync(saleId)`
 
-**`SendPdvLoyaltyComplementAsync(saleId)`** â€” mÃ©todo dedicado para PDV:
-- Independente de NFC-e e de `SALE_COMPLETED`
-- Fallback de telefone: usa `sale.CustomerPhone` ou `Customer.Phone` do cadastro
-- IdempotÃªncia dupla: verifica `PDV_LOYALTY_COMPLEMENT` + `ENTREGUE_LOYALTY_COMPLEMENT` para nÃ£o duplicar
 - Template `card_transaction_alert_2`: `{{1}}`=firstName, `{{2}}`=earnedPoints, `{{3}}`=pointsBalance
-
-**`TrySendLoyaltyDeliveredComplementAsync`** â€” para delivery (trigger: status `ENTREGUE`):
-- Lookup de `earnedPoints` via `LoyaltyTransaction.OrderId`
-
----
-
-## 7. PDV (`PdvPage.tsx`)
-
-Interface GoCoffee:
-- `AddonModal` â€” abre ao clicar em produto com `hasAddons = true`
-  - Busca `/admin/products/{id}/addons` + `/admin/products/{id}/addon-groups` em paralelo
-  - Se grupos existem â†’ `ProductAddonStepper` com `--brand` sobrescrito pelo caramelo GoCoffee
-  - Se sem grupos mas com addons â†’ auto-wrap em grupos sintÃ©ticos (mesma lÃ³gica do `normalizeProductGroups`)
-  - `handleStepperConfirm`: extrai addon IDs de `synthetic.id.split("__")[1].split("_")` e chama `addItem`
-- Busca de cliente: por telefone (`searchCustomer`) ou CPF â€” ambos atribuem fidelidade
+- Fallback de telefone: usa `sale.CustomerPhone` ou `Customer.Phone`
+- Idempotência dupla: verifica `PDV_LOYALTY_COMPLEMENT` + `ENTREGUE_LOYALTY_COMPLEMENT`
 
 ---
 
-## 8. Fiscal (NFC-e)
+## 8. Fiscal — NFC-e
 
-- `FiscalQueueProcessorJob` processa a fila assÃ­ncrona via Hangfire
-- ApÃ³s autorizaÃ§Ã£o SEFAZ: enfileira `NotifySaleCompletedAsync` (comprovante WhatsApp)
-- `NotifySaleCompletedAsync` â†’ apÃ³s envio bem-sucedido â†’ `TrySendLoyaltyDeliveredComplementAsync` (via pedido espelho)
-- **Importante**: o complemento de fidelidade PDV (`SendPdvLoyaltyComplementAsync`) Ã© independente deste fluxo â€” chega mesmo quando o cliente nÃ£o pede NFC-e
+- `FiscalQueueProcessorJob` processa fila assíncrona via Hangfire
+- Após autorização SEFAZ: publica `PdvWhatsAppNotificationRequestedEvent` **antes** de `SaveChangesAsync`
+- Consumer `PdvWhatsAppNotificationConsumer` chama `NotifySaleCompletedAsync` → comprovante + fidelidade
 
 ---
 
-## 9. Banco de Dados e Safety Nets
+## 9. EF Core — Migrações
 
-MigraÃ§Ãµes padrÃ£o EF Core + blocos `ADD COLUMN IF NOT EXISTS` em `Program.cs` para garantir resiliÃªncia quando migrations sÃ£o marcadas como aplicadas mas o DDL nÃ£o rodou:
+**Regra crítica:** nunca criar arquivo de migração manualmente sem atualizar o snapshot.
+
+O snapshot `AppDbContextModelSnapshot.cs` só é atualizado quando se roda `dotnet ef migrations add`. Migrações criadas manualmente (sem `.Designer.cs`) deixam o snapshot desatualizado e causam `NullReferenceException` em `MigrationsModelDiffer.Initialize` na próxima vez que você tentar gerar uma migração.
+
+**Fix se o snapshot ficar corrompido:**
+```bash
+# 1. Deletar o snapshot
+rm Migrations/AppDbContextModelSnapshot.cs
+
+# 2. Gerar snapshot limpo (ignora a migração temporária)
+dotnet ef migrations add TempSnapshot
+
+# 3. Deletar os arquivos da migração temporária (manter só o snapshot)
+rm Migrations/2026*_TempSnapshot.cs
+rm Migrations/2026*_TempSnapshot.Designer.cs
+
+# 4. Gerar a migração real
+dotnet ef migrations add NomeDaMigracao
+```
+
+Migrações com `migrationBuilder.Sql()` são válidas para operações idempotentes (`IF NOT EXISTS`), mas devem ser criadas via `dotnet ef migrations add` primeiro (vazio) e depois preenchidas manualmente — para garantir que o snapshot seja atualizado.
+
+---
+
+## 10. Módulo de Adicionais (Addon Groups + Stepper)
+
+### Entidades
+
+**`ProductAddonGroup`** — grupo de opções de um produto:
+- `SelectionType`: `"single"` (radio, auto-avança no stepper) ou `"multiple"` (checkbox)
+- `IsRequired`, `MinSelections`, `MaxSelections`, `SortOrder`
+
+**`ProductAddon`** — item dentro de um grupo:
+- `AddonGroupId` — FK para o grupo (nulo = avulso legacy)
+- `IsDefault` — pré-selecionado ao abrir o stepper
+
+### Seeders de inicialização (idempotentes)
+
+1. **`AddonGroupSeeder`** — classifica addons em grupos; marca `IsDefault = true` no primeiro do Tipo de Leite
+2. **`AddonSplitSeeder`** — detecta addons com `" ou "` no nome e divide em registros individuais
+
+### Frontend — `normalizeProductGroups()`
+
+Em `catalog/api.ts`: se o produto retornar sem grupos mas com addons flat, cria grupos sintéticos em memória com a mesma lógica de classificação. Garante que o stepper apareça mesmo sem restart do servidor.
+
+### Regra crítica — `buildSynthetic()` em `useProductStepper.ts`
+
+Codifica addon IDs no `synthetic.id` como `{productId}__{id1_id2_...}`. O PDV depende desse formato para extrair IDs ao chamar `addItem`:
+
+```typescript
+// PdvPage.tsx — handleStepperConfirm
+const addonIds = synthetic.id.split("__")[1].split("_");
+```
+
+**Nunca alterar esse formato sem atualizar os dois lados.**
+
+---
+
+## 11. Banco de Dados — Safety Nets
+
+Safety nets SQL idempotentes em `Program.cs` garantem colunas mesmo se migration foi pulada:
 
 ```sql
--- Exemplos de safety nets em Program.cs
 ALTER TABLE "ProductAddons"
     ADD COLUMN IF NOT EXISTS "AddonGroupId" uuid,
     ADD COLUMN IF NOT EXISTS "IsDefault" boolean NOT NULL DEFAULT false;
 
 ALTER TABLE "LoyaltyTransactions"
     ADD COLUMN IF NOT EXISTS "OrderId" uuid;
-
-CREATE TABLE IF NOT EXISTS "ProductAddonGroups" (...);
 ```
 
-**Tabelas principais do mÃ³dulo de adicionais:**
+**Tabelas principais:**
 
 | Tabela | Notas |
 |---|---|
 | `ProductAddons` | `AddonGroupId` (FK), `IsDefault`, `IsActive` |
 | `ProductAddonGroups` | `ProductId`, `SelectionType`, `IsRequired`, `SortOrder` |
 | `LoyaltyTransactions` | `SaleOrderId` (PDV), `OrderId` (delivery) |
-| `WhatsAppMessageLogs` | `TriggerStatus` para idempotÃªncia de notificaÃ§Ãµes |
+| `WhatsAppMessageLogs` | `TriggerStatus` para idempotência de notificações |
+| `OutboxMessage` | Mensagens MassTransit aguardando entrega ao broker |
+| `OutboxState` | Estado do outbox |
+| `InboxState` | Idempotência consumer-side (FK de OutboxMessage) |
 
 ---
 
-## 10. VariÃ¡veis de Ambiente
+## 12. Impressão Mobile (Android + iPad)
+
+| Camada | Plataforma | Mecanismo |
+|---|---|---|
+| `PrintAgent` (Windows service) | PC Windows | `System.Drawing.Printing` → impressora local |
+| Print Station (browser) | Qualquer browser | `window.print()` → dialog do SO |
+| Mobile Agent (browser) | Android/iPad | Web Bluetooth (ESC/POS) ou `window.print()` + AirPrint |
+
+Todos conectados ao hub SignalR `/hubs/print`.
+
+Arquivos frontend: `features/admin/print/escpos.ts`, `mobilePrint.ts`, `pages/admin/MobilePrintAgentPage.tsx`.
+
+Configurações persistem em `localStorage` por dispositivo (`vendapps_mobile_agent`, `vendapps_mobile_mode`, `vendapps_mobile_paper`).
+
+---
+
+## 13. Sistema de Cupons
+
+Implementado e funcional. Não reimplantar.
+
+- Backend: `Controllers/PromotionController.cs`
+- Frontend: `pages/admin/PromotionsPage.tsx`, `features/promotions/promotionsApi.ts`
+- Integrado em `PdvController.cs` e `Checkout.tsx`
+
+---
+
+## 14. Padrões de Código
+
+### Backend — Regras de ouro
+
+- **Loyalty e WhatsApp nunca derrubam a venda:** lógica secundária em try/catch isolado fora da transação principal (ou via consumer MassTransit assíncrono)
+- **Publish() sempre antes de SaveChangesAsync()** — padrão Outbox Pattern
+- Safety nets SQL idempotentes em `Program.cs` como última linha de defesa
+
+### Frontend — Regras críticas (NÃO alterar sem análise)
+
+- `cart.tsx` — CartProvider e `useCart`: contrato fixo
+- `catalog/api.ts` — tipos `Product`, `ProductAddon`, `ProductAddonGroup`: alterações exigem atualizar backend e stepper
+- `useProductStepper.ts` — `buildSynthetic()`: formato de ID codificado; PDV depende disso
+
+### Frontend — Padrão de chamada admin
+
+```typescript
+import { adminFetch } from "@/features/admin/auth/adminFetch";
+const data = await adminFetch<T>(`/admin/endpoint`);
+```
+
+### Feature flags por tenant
+
+- Gerenciadas via `PlanFeatureService` + `CompanyFeatureOverrides`
+- Configuradas no Master Admin → Company → Feature Flags
+- Exemplo ativo: `modern_catalog_experience` (catálogo moderno)
+- **Ao criar nova API/config que precise de UI: sempre criar a tela correspondente na mesma entrega**
+
+---
+
+## 15. Variáveis de Ambiente
 
 **Backend (Render):**
 ```
 ConnectionStrings__Default=postgresql://...
-Jwt__Key / Jwt__Issuer / Jwt__Audience / Jwt__AdminUser / Jwt__AdminPassword / Jwt__CompanyId
+Jwt__Key=...
+Jwt__Issuer=vendapps
+Jwt__Audience=vendapps
+Jwt__AdminUser=admin
+Jwt__AdminPassword=...
+Jwt__CompanyId=...
 ENABLE_SWAGGER=false
+
+# MassTransit / RabbitMQ (CloudAMQP)
+RabbitMq__Enabled=true
+RabbitMq__Uri=amqps://user:pass@host/vhost
+RabbitMq__QueuePrefix=vendapps
+
+# WhatsApp
 WhatsApp__LoyaltyComplement__Enabled=true
 WhatsApp__LoyaltyComplement__TemplateName=card_transaction_alert_2
+WhatsApp__LoyaltyComplement__DelaySeconds=2
+WhatsApp__LoyaltyComplement__SendWhenPointsZero=false
 ```
 
 **Frontend (Vercel):**
@@ -263,90 +385,15 @@ VITE_API_URL=https://vendapps.onrender.com
 
 ---
 
-## 11. ImpressÃ£o Mobile (Android + iPad)
-
-### Arquitetura
-
-O sistema de impressÃ£o tem trÃªs camadas, todas conectadas ao mesmo hub SignalR `/hubs/print`:
-
-| Camada | Plataforma | Mecanismo |
-|---|---|---|
-| `PrintAgent` (Windows service) | PC Windows | `System.Drawing.Printing` â†’ impressora local (USB/rede/Bluetooth pareado) |
-| Print Station (browser, flag `PRINT_STATION_KEY`) | Qualquer browser | `window.print()` â†’ dialog do SO |
-| **Mobile Agent** (browser, flag `MOBILE_AGENT_KEY`) | Tablet Android/iPad | Web Bluetooth ou `window.print()` + AirPrint |
-
-### Arquivos do Agente Mobile
-
-| Arquivo | Responsabilidade |
-|---|---|
-| `features/admin/print/escpos.ts` | Gerador de bytes ESC/POS (Uint8Array). Suporta papel 58 mm (32 col) e 80 mm (48 col). Sem deps externas. |
-| `features/admin/print/mobilePrint.ts` | LÃ³gica de despacho: `isMobileAgent()`, `connectBluetoothPrinter()`, `mobilePrint()`. Gerencia estado BLE da sessÃ£o. |
-| `pages/admin/MobilePrintAgentPage.tsx` | PÃ¡gina `/app/impressao/mobile` â€” toggle de agente, seletor de modo, pairing BLE, teste de impressÃ£o, log. |
-
-### Fluxo de dispatch (`usePrintListener.tsx`)
-
-```
-PrintOrder (SignalR)
-        â”‚
-        â”œâ”€ isMobileAgent() â†’ true  â†’ mobilePrint(payload, jobId)
-        â”‚                                â”œâ”€ mode=bluetooth â†’ sendViaBluetooth (ESC/POS via BLE)
-        â”‚                                â””â”€ mode=browser  â†’ window.print() â†’ AirPrint/dialog
-        â”‚
-        â””â”€ isPrintStation() â†’ true â†’ window.print() (desktop)
-```
-
-### Web Bluetooth â€” Notas de compatibilidade
-
-- Requer **Chrome no Android** (ou qualquer browser baseado em Chromium com BLE)
-- **Safari/iOS nÃ£o suporta** Web Bluetooth â€” usar modo "Navegador/AirPrint"
-- O pairing ocorre via `navigator.bluetooth.requestDevice()` e exige gesto do usuÃ¡rio (clique)
-- A referÃªncia ao dispositivo fica em memÃ³ria; reconexÃ£o automÃ¡tica ao reconectar o GATT
-- Tenta UUIDs de serviÃ§o de mÃºltiplas marcas; fallback: percorre todos os serviÃ§os do dispositivo
-- Envia bytes em chunks de 512 (MTU BLE) com delay de 20 ms entre chunks
-
-### ConfiguraÃ§Ãµes (localStorage, por dispositivo)
-
-| Chave | Valores | DescriÃ§Ã£o |
-|---|---|---|
-| `vendapps_mobile_agent` | `"1"` / ausente | Agente ativo neste tablet |
-| `vendapps_mobile_mode` | `"bluetooth"` / `"browser"` | EstratÃ©gia de impressÃ£o |
-| `vendapps_mobile_paper` | `"58"` / `"80"` | Largura do papel em mm |
-
-ConfiguraÃ§Ãµes persistem entre sessÃµes e trocas de turno â€” o atendente nÃ£o precisa reconfigurar.
-
-### Impressoras AirPrint compatÃ­veis (modo browser/iPad)
-
-Epson TM-m30II, Star mPOP, Star TSP100IV (com AirPrint habilitado), Brother PJ-722/PJ-723, e qualquer impressora que exponha AirPrint na rede local.
-
----
-
-## 12. PadrÃµes de CÃ³digo
-
-### Backend â€” Regra de ouro
-- Loyalty e WhatsApp nunca derrubam a venda: sempre em `try { } catch { }` fora da transaÃ§Ã£o principal
-- Safety nets SQL idempotentes em `Program.cs` garantem colunas mesmo se migration foi pulada
-
-### Frontend â€” Regras crÃ­ticas (NÃƒO alterar sem anÃ¡lise)
-- `cart.tsx` â€” CartProvider e `useCart`: contrato fixo
-- `catalog/api.ts` â€” tipos `Product`, `ProductAddon`, `ProductAddonGroup`: alteraÃ§Ãµes exigem atualizar backend e stepper
-- `useProductStepper.ts` â€” `buildSynthetic()` codifica addon IDs no `synthetic.id` como `{productId}__{id1_id2_...}`; o PDV depende desse formato para extrair os IDs ao chamar `addItem`
-
-### Frontend â€” PadrÃ£o de chamada admin
-```typescript
-import { adminFetch } from "@/features/admin/auth/adminFetch";
-const groups = await adminFetch<AddonGroupRaw[]>(`/admin/products/${id}/addon-groups`);
-```
-
----
-
-## 13. Como Rodar Localmente
+## 16. Como Rodar Localmente
 
 ```bash
 # Backend
 cd backend/Petshop.Api
 # criar appsettings.Development.json com ConnectionStrings__Default
+# RabbitMq__Enabled=false (in-memory, sem RabbitMQ local)
 dotnet run
-# API: http://localhost:5082
+# API: http://localhost:5082 | Swagger: /swagger
 
 # Frontend
 cd frontend/petshop-web
@@ -356,36 +403,41 @@ npm run dev
 # http://localhost:5173
 ```
 
-Na primeira execuÃ§Ã£o o `DbSeeder` + `AddonGroupSeeder` + `AddonSplitSeeder` rodam automaticamente.
+Na primeira execução: `DbSeeder` + `AddonGroupSeeder` + `AddonSplitSeeder` rodam automaticamente.
 
 ---
 
-## 14. Commits Recentes Relevantes
+## 17. Commits Relevantes (maio 2026)
 
-| Hash | DescriÃ§Ã£o |
+| Hash | Descrição |
 |---|---|
-| (atual) | feat: agente de impressÃ£o mobile â€” Web Bluetooth + AirPrint para Android/iPad |
-| `8430a63` | fix: fidelidade ao buscar cliente por telefone (sem CPF digitado) |
-| `559f70d` | feat: desmembrar addons combinados + auto-avanÃ§o em seleÃ§Ã£o Ãºnica |
-| `2a1f044` | feat: grupos de adicionais por prioridade + Leite Integral prÃ©-selecionado |
-| `413f91c` | fix: fidelidade independente de NFC-e + stepper para addons sem grupos |
-| `f917849` | fix: race condition earnedPoints + stepper no PDV |
-| `1d6d6ae` | fix: safety nets idempotentes OrderId + AddonGroups |
-| `4186311` | feat: fluxo step-by-step para seleÃ§Ã£o de adicionais por grupo |
-| `de151ec` | fix: earnedPoints zerados na notificaÃ§Ã£o WhatsApp delivery |
+| `a907cda` | docs: atualiza README com mensageria MassTransit e Outbox Pattern |
+| `40abe99` | feat: etapa 6 — Outbox Pattern com MassTransit EF Core |
+| `b72defb` | fix: evita duplicata de mensagem de fidelidade PDV + espelho |
+| `f4c4042` | feat: etapa 8 — migra WhatsApp PDV/fiscal do Hangfire para MassTransit |
+| `6554d87` | feat: adiciona OrderDeliveredEvent com consumers de DAV e fidelidade |
+| `217956d` | fix: protege fluxo principal contra falha de conexão ao RabbitMQ |
+| `4fe48e8` | feat: adiciona infraestrutura de mensageria com MassTransit/RabbitMQ |
 
 ---
 
-## 15. Catalogo Moderno (Feature Flag)
+## 18. O que está Funcionando em Produção
 
-- Nova flag por tenant: `modern_catalog_experience`
-- Origem da flag: `PlanFeatureService` (default `false`) + overrides em `CompanyFeatureOverrides`
-- Configuracao: Master Admin -> Company -> Feature Flags
-- Escopo:
-  - Catalogo publico (`/`) alterna entre layout legado e `ModernPublicCatalog`
-  - Catalogo por mesa (`/mesa/:tableId`) usa a mesma flag por slug
-- Compatibilidade de fluxo preservada:
-  - Delivery continua finalizando pelo checkout existente
-  - Mesa continua finalizando via `CreateOrder` com `PAY_AT_COUNTER`
-  - Selecao de adicionais por grupos no fluxo de mesa usa `ProductAddonStepper` (mesma base do PDV)
+- [x] Catálogo online (moderno e legado) por tenant
+- [x] Autoatendimento por mesa / QR Code
+- [x] PDV com adicionais step-by-step, variantes, balança
+- [x] Impressão automática (PrintAgent Windows + Mobile Android/iPad)
+- [x] Integração iFood (webhook + sync de cardápio)
+- [x] WhatsApp — notificações delivery e PDV (via MassTransit consumers)
+- [x] Fidelidade — PDV e delivery, com complemento WhatsApp
+- [x] Fiscal NFC-e — emissão automática + contingência + reprocessamento
+- [x] DAV / Orçamentos — geração automática pós-entrega
+- [x] Rotas de entrega + App do entregador (PWA)
+- [x] Estoque, Compras, Financeiro, Agenda, Comissões
+- [x] Enriquecimento de catálogo (Cosmos/Bluesoft)
+- [x] Sistema de cupons
+- [x] Mensageria assíncrona com Outbox Pattern (zero-loss garantido)
 
+---
+
+*Atualizado em: maio 2026*
