@@ -885,22 +885,38 @@ public class WhatsAppNotificationService
         {
             _logger.LogInformation("WA_SALE_OK | SaleId={SaleId} | PublicId={Id} | Wamid={Wamid}", saleId, sale.PublicId, wamid);
 
-            // Tenta enviar complementar de fidelidade usando o Order espelho criado no Pay,
-            // que tem CustomerId e segue o mesmo fluxo de elegibilidade das entregas.
+            // Tenta enviar complementar de fidelidade usando o Order espelho criado no Pay.
+            // Guarda de duplicata: PDV_LOYALTY_COMPLEMENT já disparado por SendPdvLoyaltyComplementAsync
+            // usa trigger diferente (ENTREGUE_LOYALTY_COMPLEMENT), então verificamos explicitamente
+            // se o complemento PDV já foi enviado antes de disparar o caminho do espelho.
             var mirroredOrder = await _db.Orders
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.OriginSaleOrderId == saleId && o.CompanyId == companyId, ct);
 
             if (mirroredOrder is not null)
             {
-                await TrySendLoyaltyDeliveredComplementAsync(
-                    mirroredOrder,
-                    OrderStatus.ENTREGUE,
-                    waId,
-                    companyId,
-                    integration,
-                    wamid,
-                    ct);
+                var pdvLoyaltySent = await _db.WhatsAppMessageLogs
+                    .AnyAsync(l => l.TriggerStatus == "PDV_LOYALTY_COMPLEMENT"
+                                 && l.Direction == "out"
+                                 && l.PayloadJson != null && l.PayloadJson.Contains(saleId.ToString()), ct);
+
+                if (pdvLoyaltySent)
+                {
+                    _logger.LogDebug(
+                        "WA_SALE_LOYALTY_SKIP | SaleId={SaleId} | PDV_LOYALTY_COMPLEMENT já enviado, pulando espelho",
+                        saleId);
+                }
+                else
+                {
+                    await TrySendLoyaltyDeliveredComplementAsync(
+                        mirroredOrder,
+                        OrderStatus.ENTREGUE,
+                        waId,
+                        companyId,
+                        integration,
+                        wamid,
+                        ct);
+                }
             }
         }
         else
