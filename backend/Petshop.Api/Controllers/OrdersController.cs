@@ -366,8 +366,8 @@ public class OrdersController : ControllerBase
             return BadRequest($"Transição inválida: {oldStatus} → {newStatus}.");
 
         // Ao marcar PRONTO_PARA_ENTREGA, agenda geocoding assíncrono via mensageria.
-        // O consumer GeocodingRequestedConsumer busca as coordenadas e salva no pedido
-        // sem bloquear esta requisição. Idempotente: consumer ignora se já geocodificado.
+        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre o fluxo do pedido.
+        // Geocoding é best-effort: pode ser reprocessado via POST /{id}/reprocess-geocoding.
         if (newStatus == OrderStatus.PRONTO_PARA_ENTREGA && !order.IsTableOrder
             && (order.Latitude is null || order.Longitude is null))
         {
@@ -375,20 +375,29 @@ public class OrdersController : ControllerBase
                 ? cid?.ToString()
                 : HttpContext.TraceIdentifier;
 
-            await _publisher.Publish(new GeocodingRequestedEvent
+            try
             {
-                OrderId       = order.Id,
-                CompanyId     = CompanyId,
-                PublicId      = order.PublicId,
-                Address       = order.Address,
-                Cep           = order.Cep,
-                CorrelationId = correlationId,
-                OccurredAtUtc = DateTime.UtcNow
-            }, ct);
+                await _publisher.Publish(new GeocodingRequestedEvent
+                {
+                    OrderId       = order.Id,
+                    CompanyId     = CompanyId,
+                    PublicId      = order.PublicId,
+                    Address       = order.Address,
+                    Cep           = order.Cep,
+                    CorrelationId = correlationId,
+                    OccurredAtUtc = DateTime.UtcNow
+                }, ct);
 
-            _logger.LogInformation(
-                "📍 GEOCODING_QUEUED | Pedido={PublicId} | CorrelationId={CorrelationId}",
-                order.PublicId, correlationId);
+                _logger.LogInformation(
+                    "📍 GEOCODING_QUEUED | Pedido={PublicId} | CorrelationId={CorrelationId}",
+                    order.PublicId, correlationId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "📍 GEOCODING_QUEUE_FAIL | Pedido={PublicId} | Mensageria indisponível — reprocessar via /reprocess-geocoding",
+                    order.PublicId);
+            }
         }
 
         order.Status = newStatus;
@@ -416,20 +425,30 @@ public class OrdersController : ControllerBase
             },
             ct: ct);
 
-        // Notificação WhatsApp — evento assíncrono via MassTransit
+        // Notificação WhatsApp — evento assíncrono via MassTransit.
+        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre o fluxo do pedido.
         var waCorrelationId = HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var waCid)
             ? waCid?.ToString()
             : HttpContext.TraceIdentifier;
 
-        await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+        try
         {
-            OrderId       = order.Id,
-            CompanyId     = CompanyId,
-            PublicId      = order.PublicId,
-            TriggerStatus = newStatus.ToString(),
-            CorrelationId = waCorrelationId,
-            OccurredAtUtc = DateTime.UtcNow
-        }, ct);
+            await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+            {
+                OrderId       = order.Id,
+                CompanyId     = CompanyId,
+                PublicId      = order.PublicId,
+                TriggerStatus = newStatus.ToString(),
+                CorrelationId = waCorrelationId,
+                OccurredAtUtc = DateTime.UtcNow
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[WA] QUEUE_FAIL | Pedido={PublicId} | Status={Status} | Mensageria indisponível — WhatsApp não enviado",
+                order.PublicId, newStatus);
+        }
 
         // DAV automático — pedido entregue gera DAV aguardando confirmação fiscal
         if (newStatus == OrderStatus.ENTREGUE)
@@ -977,16 +996,26 @@ public class OrdersController : ControllerBase
         // Fila de impressão
         await _print.EnqueueAsync(order, ct);
 
-        // Notificação WhatsApp — evento assíncrono via MassTransit
-        await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+        // Notificação WhatsApp — evento assíncrono via MassTransit.
+        // Try-catch garante que falha de conexão ao RabbitMQ nunca quebre a criação do pedido.
+        try
         {
-            OrderId       = order.Id,
-            CompanyId     = order.CompanyId!.Value,
-            PublicId      = order.PublicId,
-            TriggerStatus = OrderStatus.RECEBIDO.ToString(),
-            CorrelationId = null, // criação pública sem X-Correlation-ID de admin
-            OccurredAtUtc = DateTime.UtcNow
-        }, ct);
+            await _publisher.Publish(new WhatsAppNotificationRequestedEvent
+            {
+                OrderId       = order.Id,
+                CompanyId     = order.CompanyId!.Value,
+                PublicId      = order.PublicId,
+                TriggerStatus = OrderStatus.RECEBIDO.ToString(),
+                CorrelationId = null,
+                OccurredAtUtc = DateTime.UtcNow
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[WA] QUEUE_FAIL | Pedido={PublicId} | Status=RECEBIDO | Mensageria indisponível — WhatsApp não enviado",
+                order.PublicId);
+        }
 
         return Ok(new CreateOrderResponse
         {

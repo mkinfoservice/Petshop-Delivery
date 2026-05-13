@@ -36,18 +36,28 @@ public static class MessagingSetup
 
             x.UsingRabbitMq((ctx, cfg) =>
             {
-                var scheme = options.UseSsl ? "amqps" : "amqp";
-                var vhost  = options.VirtualHost.TrimStart('/');
-                var uri    = new Uri($"{scheme}://{options.Host}:{options.Port}/{Uri.EscapeDataString(vhost)}");
-
-                cfg.Host(uri, h =>
+                // Prioridade: RabbitMq__Uri (URL completa) > campos individuais
+                // CloudAMQP fornece a URL completa no painel: amqps://user:pass@host/vhost
+                if (!string.IsNullOrWhiteSpace(options.Uri)
+                    && System.Uri.TryCreate(options.Uri, UriKind.Absolute, out var amqpUri))
                 {
-                    h.Username(options.Username);
-                    h.Password(options.Password);
+                    cfg.Host(amqpUri);
+                }
+                else
+                {
+                    var scheme = options.UseSsl ? "amqps" : "amqp";
+                    var vhost  = options.VirtualHost.TrimStart('/');
+                    var uri    = new Uri($"{scheme}://{options.Host}:{options.Port}/{System.Uri.EscapeDataString(vhost)}");
 
-                    if (options.UseSsl)
-                        h.UseSsl(ssl => ssl.Protocol = System.Security.Authentication.SslProtocols.Tls12);
-                });
+                    cfg.Host(uri, h =>
+                    {
+                        h.Username(options.Username);
+                        h.Password(options.Password);
+
+                        if (options.UseSsl)
+                            h.UseSsl(ssl => ssl.Protocol = System.Security.Authentication.SslProtocols.Tls12);
+                    });
+                }
 
                 cfg.ConfigureEndpoints(ctx, new DefaultEndpointNameFormatter(options.QueuePrefix + "-", false));
             });
