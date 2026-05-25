@@ -65,6 +65,29 @@ public static class SefazEndpoints
     private const string SvcAnQrCodeProd   = "https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=consultaNFCe&tipoConteudo=XbSeqxE8pl8=";
     private const string SvcAnQrCodeHomolog = "https://hom.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=consultaNFCe&tipoConteudo=XbSeqxE8pl8=";
 
+    private static readonly Dictionary<string, (string Prod, string Homolog)> ConsultaChaveUrls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["SP"] = ("https://www.nfce.fazenda.sp.gov.br/consultaRecaptcha?chave=",
+                  "https://www.homologacao.nfce.fazenda.sp.gov.br/consultaRecaptcha?chave="),
+        ["MG"] = ("https://nfce.fazenda.mg.gov.br/portalnfce/sistema/qrcode.xhtml?p=",
+                  "https://hnfce.fazenda.mg.gov.br/portalnfce-hom/sistema/qrcode.xhtml?p="),
+        ["RJ"] = ("https://nfce.fazenda.rj.gov.br/consultaRecaptcha?chave=",
+                  "https://nfce.fazenda.rj.gov.br/consultaRecaptcha?chave="),
+        ["RS"] = ("https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx?chave=",
+                  "https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx?chave="),
+        ["PR"] = ("https://www.fazenda.pr.gov.br/nfce/consulta?chave=",
+                  "https://www.fazenda.pr.gov.br/nfce/consulta?chave="),
+        ["BA"] = ("https://nfe.sefaz.ba.gov.br/servicos/nfce/default.aspx?chave=",
+                  "https://hnfe.sefaz.ba.gov.br/servicos/nfce/default.aspx?chave="),
+        ["GO"] = ("https://www.sefaz.go.gov.br/nfce/danfeNFCe?chave=",
+                  "https://homologacao.nfe.go.gov.br/nfce/danfeNFCe?chave="),
+        ["MT"] = ("https://www.sefaz.mt.gov.br/nfce/consultanfce?chave=",
+                  "https://homologacao.sefaz.mt.gov.br/nfce/consultanfce?chave="),
+    };
+
+    private const string SvcAnConsultaProd    = "https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=consultaNFCe&tipoConteudo=XbSeqxE8pl8=&nfe_id=";
+    private const string SvcAnConsultaHomolog = "https://hom.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=consultaNFCe&tipoConteudo=XbSeqxE8pl8=&nfe_id=";
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     public static string GetAuthUrl(string uf, SefazEnvironment env)
@@ -89,6 +112,14 @@ public static class SefazEndpoints
         if (QrCodeUrls.TryGetValue(uf, out var pair))
             return isProd ? pair.Prod : pair.Homolog;
         return isProd ? SvcAnQrCodeProd : SvcAnQrCodeHomolog;
+    }
+
+    public static string GetConsultaChaveUrl(string uf, SefazEnvironment env, string accessKey)
+    {
+        var isProd = env == SefazEnvironment.Producao;
+        if (ConsultaChaveUrls.TryGetValue(uf, out var pair))
+            return (isProd ? pair.Prod : pair.Homolog) + accessKey;
+        return (isProd ? SvcAnConsultaProd : SvcAnConsultaHomolog) + accessKey;
     }
 
     /// <summary>Retorna código numérico IBGE da UF (cUF).</summary>

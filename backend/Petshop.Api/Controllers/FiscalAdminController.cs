@@ -161,7 +161,8 @@ public class FiscalAdminController : ControllerBase
         var uf            = regCfg?.Uf             ?? compCfg?.Uf            ?? "";
         var cep           = regCfg?.Cep            ?? compCfg?.Cep           ?? "";
         var telefone      = regCfg?.Telefone       ?? compCfg?.Telefone;
-        var cscToken      = regCfg?.CscToken       ?? compCfg?.CscToken;
+        var cscId         = regCfg?.CscId           ?? compCfg?.CscId;
+        var cscToken      = regCfg?.CscToken         ?? compCfg?.CscToken;
         var sefazEnv      = regCfg?.SefazEnvironment ?? compCfg?.SefazEnvironment ?? SefazEnvironment.Homologacao;
 
         static string Brl(int cents) => $"R$ {cents / 100m:F2}".Replace(".", ",");
@@ -222,10 +223,10 @@ public class FiscalAdminController : ControllerBase
             return $"<tr><td>{label}</td><td class='right'>{Brl(p.AmountCents)}</td></tr>{changeRow}";
         }));
 
-        // QR Code URL (SEFAZ RJ homologação/produção)
-        var qrBaseUrl = SefazEndpoints.GetQrCodeBaseUrl(uf.Length == 2 ? uf : "RJ", sefazEnv);
-        var qrContent = authorized && chave.Length == 44
-            ? $"{qrBaseUrl}?p={chave}|2|1|1|{GenerateQrHash(chave, cscToken ?? "")}"
+        var tpAmb     = sefazEnv == SefazEnvironment.Producao ? "1" : "2";
+        var qrBaseUrl = SefazEndpoints.GetQrCodeBaseUrl(uf.Length == 2 ? uf : "SP", sefazEnv);
+        var qrContent = authorized && chave.Length == 44 && !string.IsNullOrWhiteSpace(cscId) && !string.IsNullOrWhiteSpace(cscToken)
+            ? $"{qrBaseUrl}?p={chave}|{tpAmb}|{GenerateQrHash(chave, cscId, cscToken)}|{cscId}"
             : "";
 
         // Protocolo
@@ -320,7 +321,7 @@ td{{padding:1px 0;font-size:10px;vertical-align:top;}}
 <p class='center' style='font-size:8px;margin-bottom:2px;'>Consulte a NFC-e pela chave ou QR Code</p>
 <div id='qr'></div>
 <p class='chave'>{Enc(chaveFormatted)}</p>
-<p class='center' style='font-size:8px;'>Consulte em nfce.fazenda.rj.gov.br</p>" : "")}
+<p class='center' style='font-size:8px;'>Consulte em {SefazEndpoints.GetConsultaChaveUrl(uf.Length == 2 ? uf : "SP", sefazEnv, "").Split('?')[0]}</p>" : "")}
 
 <hr/>
 <!-- PROCON -->
@@ -488,10 +489,10 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
 
     // ── QR Code hash helper ───────────────────────────────────────────────────
 
-    private static string GenerateQrHash(string chave, string cscToken)
+    private static string GenerateQrHash(string chave, string cscId, string cscToken)
     {
-        // Hash SHA-1 da concatenação chave+cToken para o QR Code NFC-e (NT 2015/002)
-        var input = chave + cscToken;
+        // SHA-1(chave + cscId(6 dígitos) + cscToken) — NT 2013.001
+        var input = chave + cscId.PadLeft(6, '0') + cscToken;
         var bytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
@@ -515,7 +516,8 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
         Telefone           = cfg.Telefone,
         TaxRegime          = cfg.TaxRegime.ToString(),
         SefazEnvironment   = cfg.SefazEnvironment.ToString(),
-        // Nunca retornamos o certificado criptografado ao frontend — só hasCert
+        // Nunca retornamos o certificado criptografado ao frontend
+        HasCertificate     = !string.IsNullOrWhiteSpace(cfg.CertificateBase64) || !string.IsNullOrWhiteSpace(cfg.CertificatePath),
         CertificateBase64  = null,
         CertificatePassword = null,
         CertificatePath    = cfg.CertificatePath,
@@ -545,6 +547,7 @@ public class FiscalConfigDto
     public string?  Telefone          { get; set; }
     public string?  TaxRegime         { get; set; } = "SimplesNacional";
     public string?  SefazEnvironment  { get; set; } = "Homologacao";
+    public bool     HasCertificate      { get; set; }
     public string?  CertificateBase64  { get; set; }
     public string?  CertificatePassword { get; set; }
     public string?  CertificatePath    { get; set; } // legado

@@ -16,7 +16,7 @@ public class FiscalEngineResult
     /// <summary>Protocolo de autorização retornado pelo SEFAZ.</summary>
     public string? Protocol { get; init; }
 
-    /// <summary>XML completo assinado (gerado pelo ACBr).</summary>
+    /// <summary>XML completo assinado pela NfceSigningService.</summary>
     public string? XmlSigned { get; init; }
 
     public string? ErrorCode { get; init; }

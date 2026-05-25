@@ -7,7 +7,7 @@ namespace Petshop.Api.Services.Fiscal;
 
 /// <summary>
 /// Gera o XML não-assinado da NFC-e (modelo 65, versão 4.00) conforme NT 2013.001.
-/// Tributação Simples Nacional (CRT=1, CSOSN=400) e Lucro Presumido (CRT=3, CST=102/41).
+/// Tributação Simples Nacional (CRT=1, CSOSN=400) e Lucro Presumido (CRT=3, CST=40 isenta).
 ///
 /// Retorna o XML da &lt;NFe&gt; pronto para ser assinado pelo NfceSigningService.
 /// </summary>
@@ -81,7 +81,7 @@ public static class NfceXmlBuilder
 
         foreach (var item in req.Items)
         {
-            var cfop     = defaultCfop.PadLeft(4, '5');
+            var cfop     = string.IsNullOrWhiteSpace(item.Cfop) ? defaultCfop : item.Cfop;
             var ncm      = string.IsNullOrWhiteSpace(item.Ncm) ? "00000000" : item.Ncm.Replace(".", "").PadLeft(8, '0');
             var barcode  = string.IsNullOrWhiteSpace(item.Barcode) ? "SEM GTIN" : item.Barcode;
             var uCom     = item.IsSoldByWeight ? "KG" : (item.Unit ?? "UN");
@@ -93,7 +93,7 @@ public static class NfceXmlBuilder
 
             var icmsXml = isSimples
                 ? "<ICMS><ICMSSN400><orig>0</orig><CSOSN>400</CSOSN></ICMSSN400></ICMS>"
-                : "<ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>0.00</vBC><pICMS>0.00</pICMS><vICMS>0.00</vICMS></ICMS00></ICMS>";
+                : "<ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>";
 
             sb.Append($@"<det nItem=""{item.ItemNumber}""><prod><cProd>{Esc(cProd)}</cProd><cEAN>{barcode}</cEAN><xProd>{Esc(item.ProductName)}</xProd><NCM>{ncm}</NCM><CFOP>{cfop}</CFOP><uCom>{uCom}</uCom><qCom>{qCom}</qCom><vUnCom>{vUnCom}</vUnCom><vProd>{vProd}</vProd><cEANTrib>{barcode}</cEANTrib><uTrib>{uCom}</uTrib><qTrib>{qCom}</qTrib><vUnTrib>{vUnCom}</vUnTrib><indTot>1</indTot></prod><imposto>{icmsXml}<PIS><PISNT><CST>07</CST></PISNT></PIS><COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS></imposto></det>");
         }
@@ -154,8 +154,7 @@ public static class NfceXmlBuilder
             qrUrl = $"{qrBase}?p={accessKey}|{tpAmb}";
         }
 
-        // URL de consulta da chave
-        var urlChave = $"https://nfce.fazenda.{em.Uf.ToLowerInvariant()}.gov.br/consultaRecaptcha?chave={accessKey}";
+        var urlChave = SefazEndpoints.GetConsultaChaveUrl(em.Uf, em.SefazEnvironment, accessKey);
 
         return (qrUrl, urlChave);
     }

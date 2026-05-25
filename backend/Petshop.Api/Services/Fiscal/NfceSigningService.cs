@@ -24,10 +24,10 @@ public class NfceSigningService
     /// </summary>
     public string Sign(string unsignedXml, byte[] certBytes, string certificatePassword)
     {
-        var cert = new X509Certificate2(
+        using var cert = new X509Certificate2(
             certBytes,
             certificatePassword,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet);
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
 
         return SignWithCert(unsignedXml, cert);
     }
@@ -39,10 +39,10 @@ public class NfceSigningService
     public string Sign(string unsignedXml, string certificatePath, string certificatePassword)
     {
         // 1. Carrega certificado
-        var cert = new X509Certificate2(
+        using var cert = new X509Certificate2(
             certificatePath,
             certificatePassword,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet);
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
 
         return SignWithCert(unsignedXml, cert);
     }
