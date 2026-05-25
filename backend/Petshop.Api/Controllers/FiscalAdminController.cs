@@ -512,6 +512,78 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
         return Ok(items);
     }
 
+    /// <summary>
+    /// Reseta itens Processing/Failed de volta para Waiting para reprocessamento.
+    /// Útil quando o job falhou e deixou itens travados em Processing.
+    /// </summary>
+    [HttpPost("debug/reset-queue")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DebugResetQueue(CancellationToken ct)
+    {
+        var affected = await _db.FiscalQueues
+            .Where(q => q.CompanyId == CompanyId
+                     && (q.Status == FiscalQueueStatus.Processing || q.Status == FiscalQueueStatus.Failed)
+                     && q.RetryCount < 5)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(q => q.Status, FiscalQueueStatus.Waiting)
+                .SetProperty(q => q.RetryCount, q => q.RetryCount > 0 ? q.RetryCount - 1 : 0), ct);
+
+        return Ok(new { reset = affected, message = $"{affected} item(ns) resetado(s) para Waiting." });
+    }
+
+    /// <summary>
+    /// Testa se o certificado salvo na FiscalConfig consegue ser carregado com a senha salva.
+    /// Útil para diagnosticar "The certificate data cannot be read with the provided password".
+    /// </summary>
+    [HttpGet("debug/validate-cert")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DebugValidateCert(CancellationToken ct)
+    {
+        var cfg = await _db.FiscalConfigs
+            .FirstOrDefaultAsync(f => f.CompanyId == CompanyId && f.IsActive, ct);
+
+        if (cfg == null)
+            return NotFound(new { error = "FiscalConfig não encontrada." });
+
+        var certBase64   = _certSvc.Unprotect(cfg.CertificateBase64);
+        var certPassword = _certSvc.Unprotect(cfg.CertificatePassword);
+
+        if (string.IsNullOrWhiteSpace(certBase64))
+            return Ok(new { ok = false, error = "certBase64 está null/vazio após Unprotect. Provável rotação de chave Data Protection — reenvie o certificado." });
+
+        byte[] certBytes;
+        try { certBytes = Convert.FromBase64String(certBase64); }
+        catch { return Ok(new { ok = false, error = "certBase64 não é base64 válido." }); }
+
+        try
+        {
+            using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(
+                certBytes, certPassword,
+                System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.EphemeralKeySet);
+
+            return Ok(new
+            {
+                ok          = true,
+                subject     = cert.Subject,
+                validFrom   = cert.NotBefore,
+                validTo     = cert.NotAfter,
+                hasPrivKey  = cert.HasPrivateKey,
+                passwordSet = !string.IsNullOrWhiteSpace(certPassword),
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new
+            {
+                ok          = false,
+                error       = ex.Message,
+                passwordSet = !string.IsNullOrWhiteSpace(certPassword),
+                certBytesLen = certBytes.Length,
+                hint        = "Se passwordSet=false e o PFX exige senha, reenvie o certificado com a senha correta."
+            });
+        }
+    }
+
     // ── QR Code hash helper ───────────────────────────────────────────────────
 
     private static string GenerateQrHash(string chave, string cscId, string cscToken)
