@@ -487,6 +487,31 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
         return Ok(new { jobId, message = "Job fiscal enfileirado. Acompanhe em /hangfire." });
     }
 
+    /// <summary>
+    /// Retorna as últimas 10 entradas da fila fiscal com FailureReason (erro real do job).
+    /// </summary>
+    [HttpGet("debug/queue")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DebugQueueStatus(CancellationToken ct)
+    {
+        var items = await _db.FiscalQueues
+            .Where(q => q.CompanyId == CompanyId)
+            .OrderByDescending(q => q.CreatedAtUtc)
+            .Take(10)
+            .Select(q => new {
+                q.Id,
+                Status = q.Status.ToString(),
+                q.RetryCount,
+                q.FailureReason,
+                q.SaleOrderId,
+                q.FiscalDocumentId,
+                q.CreatedAtUtc,
+                q.ProcessedAtUtc
+            })
+            .ToListAsync(ct);
+        return Ok(items);
+    }
+
     // ── QR Code hash helper ───────────────────────────────────────────────────
 
     private static string GenerateQrHash(string chave, string cscId, string cscToken)
