@@ -532,55 +532,53 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
     }
 
     /// <summary>
-    /// Testa se o certificado salvo na FiscalConfig consegue ser carregado com a senha salva.
-    /// Útil para diagnosticar "The certificate data cannot be read with the provided password".
+    /// Testa se o certificado salvo na FiscalConfig (empresa) e nos CashRegisterFiscalConfigs
+    /// consegue ser carregado com a senha salva. Útil para diagnosticar falhas de cert.
     /// </summary>
     [HttpGet("debug/validate-cert")]
     [Authorize(Roles = "admin")]
     public async Task<IActionResult> DebugValidateCert(CancellationToken ct)
     {
-        var cfg = await _db.FiscalConfigs
+        var companyCfg = await _db.FiscalConfigs
             .FirstOrDefaultAsync(f => f.CompanyId == CompanyId && f.IsActive, ct);
 
-        if (cfg == null)
-            return NotFound(new { error = "FiscalConfig não encontrada." });
+        var registerCfgs = await _db.CashRegisterFiscalConfigs
+            .Where(r => r.CashRegister.CompanyId == CompanyId && r.IsActive)
+            .ToListAsync(ct);
 
-        var certBase64   = _certSvc.Unprotect(cfg.CertificateBase64);
-        var certPassword = _certSvc.Unprotect(cfg.CertificatePassword);
+        var results = new List<object>();
+
+        if (companyCfg != null)
+            results.Add(new { source = "FiscalConfig (empresa)", result = TestCert(companyCfg.CertificateBase64, companyCfg.CertificatePassword) });
+
+        foreach (var r in registerCfgs)
+            results.Add(new { source = $"CashRegisterFiscalConfig ({r.CashRegisterId})", result = TestCert(r.CertificateBase64, r.CertificatePassword) });
+
+        return Ok(results);
+    }
+
+    private object TestCert(string? certBase64Raw, string? certPasswordRaw)
+    {
+        var certBase64   = _certSvc.Unprotect(certBase64Raw);
+        var certPassword = _certSvc.Unprotect(certPasswordRaw);
 
         if (string.IsNullOrWhiteSpace(certBase64))
-            return Ok(new { ok = false, error = "certBase64 está null/vazio após Unprotect. Provável rotação de chave Data Protection — reenvie o certificado." });
+            return new { ok = false, error = "certBase64 null/vazio após Unprotect. Reenvie o certificado (possível rotação de chave DP).", passwordSet = !string.IsNullOrWhiteSpace(certPassword) };
 
         byte[] certBytes;
         try { certBytes = Convert.FromBase64String(certBase64); }
-        catch { return Ok(new { ok = false, error = "certBase64 não é base64 válido." }); }
+        catch { return new { ok = false, error = "certBase64 não é base64 válido.", passwordSet = !string.IsNullOrWhiteSpace(certPassword) }; }
 
         try
         {
             using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(
                 certBytes, certPassword,
                 System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.EphemeralKeySet);
-
-            return Ok(new
-            {
-                ok          = true,
-                subject     = cert.Subject,
-                validFrom   = cert.NotBefore,
-                validTo     = cert.NotAfter,
-                hasPrivKey  = cert.HasPrivateKey,
-                passwordSet = !string.IsNullOrWhiteSpace(certPassword),
-            });
+            return new { ok = true, subject = cert.Subject, validFrom = cert.NotBefore, validTo = cert.NotAfter, hasPrivKey = cert.HasPrivateKey, passwordSet = !string.IsNullOrWhiteSpace(certPassword) };
         }
         catch (Exception ex)
         {
-            return Ok(new
-            {
-                ok          = false,
-                error       = ex.Message,
-                passwordSet = !string.IsNullOrWhiteSpace(certPassword),
-                certBytesLen = certBytes.Length,
-                hint        = "Se passwordSet=false e o PFX exige senha, reenvie o certificado com a senha correta."
-            });
+            return new { ok = false, error = ex.Message, passwordSet = !string.IsNullOrWhiteSpace(certPassword), certBytesLen = certBytes.Length, hint = "Se passwordSet=false e o PFX exige senha, reenvie o certificado com a senha correta via FiscalConfig." };
         }
     }
 
