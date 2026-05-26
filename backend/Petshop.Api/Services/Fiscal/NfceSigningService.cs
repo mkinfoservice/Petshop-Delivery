@@ -27,7 +27,7 @@ public class NfceSigningService
         using var cert = new X509Certificate2(
             certBytes,
             certificatePassword,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+            X509KeyStorageFlags.EphemeralKeySet);
 
         return SignWithCert(unsignedXml, cert);
     }
@@ -42,7 +42,7 @@ public class NfceSigningService
         using var cert = new X509Certificate2(
             certificatePath,
             certificatePassword,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+            X509KeyStorageFlags.EphemeralKeySet);
 
         return SignWithCert(unsignedXml, cert);
     }
