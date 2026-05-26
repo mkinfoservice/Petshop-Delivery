@@ -334,6 +334,10 @@ builder.Services.AddScoped<Petshop.Api.Services.Promotions.PromotionEngine>();
 // ===============================
 builder.Services.AddScoped<UnimakeNfceEngine>();
 builder.Services.AddScoped<RealFiscalEngine>();
+builder.Services.AddHttpClient<SefazHttpClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // ===============================
 // Services — DAV / Orçamento
