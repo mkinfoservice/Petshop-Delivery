@@ -999,11 +999,13 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-if (app.Environment.IsDevelopment())
+// Hangfire Dashboard — habilitado em todos os ambientes para diagnóstico
+app.UseHangfireDashboard("/admin/hangfire", new DashboardOptions
 {
-    // Hangfire Dashboard (dev: sem auth adicional)
-    app.UseHangfireDashboard("/admin/hangfire");
-}
+    Authorization = app.Environment.IsDevelopment()
+        ? new[] { new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter() }
+        : Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>()
+});
 
 // Job de sync agendado — roda em todos os ambientes (usa DI, não API estática)
 using (var scope = app.Services.CreateScope())
@@ -1012,6 +1014,12 @@ using (var scope = app.Services.CreateScope())
     jobManager.AddOrUpdate<SyncSchedulerJob>(
         "sync-scheduler",
         j => j.RunScheduledSyncsAsync(CancellationToken.None),
+        "* * * * *");
+
+    // Fila fiscal — processa todas as empresas a cada 1 minuto
+    jobManager.AddOrUpdate<FiscalQueueProcessorJob>(
+        "fiscal-queue-scan",
+        j => j.ProcessAllAsync(CancellationToken.None),
         "* * * * *");
 
     // Reprocessamento de contingências fiscais — a cada 5 minutos

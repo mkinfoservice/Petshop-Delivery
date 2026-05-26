@@ -47,6 +47,24 @@ public class FiscalQueueProcessorJob
         _certSvc      = certSvc;
     }
 
+    /// <summary>
+    /// Processa a fila fiscal de TODAS as empresas com FiscalConfig ativa.
+    /// Registrado como job recorrente (cron * * * * *).
+    /// </summary>
+    public async Task ProcessAllAsync(CancellationToken ct = default)
+    {
+        var companyIds = await _db.FiscalConfigs
+            .Where(f => f.IsActive)
+            .Select(f => f.CompanyId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        _logger.LogDebug("[FiscalQueue] Scan recorrente — {N} empresa(s) com config ativa.", companyIds.Count);
+
+        foreach (var companyId in companyIds)
+            await ProcessAsync(companyId, ct);
+    }
+
     public async Task ProcessAsync(Guid companyId, CancellationToken ct = default)
     {
         var items = await _db.FiscalQueues
