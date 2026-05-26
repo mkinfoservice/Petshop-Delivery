@@ -96,6 +96,12 @@ public class FiscalQueueProcessorJob
 
     private async Task ProcessItemAsync(FiscalQueue item, FiscalConfig? fallbackConfig, CancellationToken ct)
     {
+        // Desacopla do tracker ANTES do claim para garantir que o FindAsync abaixo
+        // sempre bate no banco e carrega o estado real (Status=Processing, RetryCount+1).
+        // Sem isso, FindAsync retorna a instância cacheada (ainda Waiting) e o EF
+        // não gera UPDATE para Status no catch block — item fica preso em Processing.
+        _db.Entry(item).State = EntityState.Detached;
+
         // Atomic claim: só avança se o item ainda está Waiting neste momento.
         // Previne que múltiplos workers do Hangfire processem o mesmo item em paralelo.
         var now = DateTime.UtcNow;
@@ -114,8 +120,7 @@ public class FiscalQueueProcessorJob
             return;
         }
 
-        // Recarrega item do banco para ter instância limpa no EF tracker
-        // (a instância anterior foi carregada antes do UPDATE atômico)
+        // Recarrega do banco — agora item tem Status=Processing e RetryCount correto
         item = (await _db.FiscalQueues.FindAsync(new object[] { item.Id }, ct))!;
 
         try
