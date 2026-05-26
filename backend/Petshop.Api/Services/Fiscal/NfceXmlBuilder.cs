@@ -41,10 +41,16 @@ public static class NfceXmlBuilder
 
         var dhEmi = (req.SaleDateTimeUtc - TimeSpan.FromHours(3)).ToString("yyyy-MM-ddTHH:mm:ss", Inv) + "-03:00";
 
-        var em = req.Emitter;
+        var em   = req.Emitter;
         var vNF  = (req.TotalCents / 100m).ToString("F2", Inv);
         var vDesc = (req.DiscountCents / 100m).ToString("F2", Inv);
-        var vProd = ((req.SubtotalCents) / 100m).ToString("F2", Inv);
+        var vProd = (req.SubtotalCents / 100m).ToString("F2", Inv);
+
+        // Sanitiza campos — schema NFC-e aceita só dígitos (padrão [0-9]{n})
+        var cnpjClean = Digits(req.Emitter.Cnpj).PadLeft(14, '0');
+        var cepClean  = Digits(em.Cep).PadLeft(8, '0');
+        var ieClean   = SanitizeIe(em.InscricaoEstadual);
+        var foneClean = Digits(em.Telefone);
 
         var detXml  = BuildDet(req, em.DefaultCfop, em.TaxRegime);
         var pagXml  = BuildPag(req.Payments);
@@ -63,11 +69,11 @@ public static class NfceXmlBuilder
             ? $"<dhCont>{dhEmi}</dhCont><xJust>Contingência: sem comunicação com SEFAZ.</xJust>"
             : "";
 
-        var telEmit  = string.IsNullOrWhiteSpace(em.Telefone) ? "" : $"<fone>{em.Telefone}</fone>";
+        var telEmit  = foneClean.Length >= 6 ? $"<fone>{foneClean}</fone>" : "";
         var fantEmit = string.IsNullOrWhiteSpace(em.NomeFantasia) ? "" : $"<xFant>{Esc(em.NomeFantasia)}</xFant>";
         var compEnd  = string.IsNullOrWhiteSpace(em.Complemento) ? "" : $"<xCpl>{Esc(em.Complemento)}</xCpl>";
 
-        var nfeXml = $@"<NFe xmlns=""http://www.portalfiscal.inf.br/nfe""><infNFe versao=""4.00"" Id=""{infNFeId}""><ide><cUF>{ufCode}</cUF><cNF>{cNF}</cNF><natOp>VENDA AO CONSUMIDOR</natOp><mod>65</mod><serie>{req.Serie}</serie><nNF>{req.Number}</nNF><dhEmi>{dhEmi}</dhEmi><tpNF>1</tpNF><idDest>1</idDest><cMunFG>{em.CodigoMunicipio}</cMunFG><tpImp>4</tpImp><tpEmis>{tpEmis}</tpEmis><cDV>{cDv}</cDV><tpAmb>{tpAmb}</tpAmb><finNFe>1</finNFe><indFinal>1</indFinal><indPres>1</indPres><indIntermed>0</indIntermed><procEmi>0</procEmi><verProc>vendApps 5.0</verProc>{contingXml}</ide><emit><CNPJ>{cnpj}</CNPJ><xNome>{Esc(em.RazaoSocial)}</xNome>{fantEmit}<enderEmit><xLgr>{Esc(em.Logradouro)}</xLgr><nro>{Esc(em.NumeroEndereco)}</nro>{compEnd}<xBairro>{Esc(em.Bairro)}</xBairro><cMun>{em.CodigoMunicipio}</cMun><xMun>{Esc(em.NomeMunicipio)}</xMun><UF>{uf}</UF><CEP>{em.Cep}</CEP><cPais>1058</cPais><xPais>BRASIL</xPais>{telEmit}</enderEmit><IE>{Esc(em.InscricaoEstadual)}</IE><CRT>{crt}</CRT></emit>{detXml}<total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vICMSDeson>0.00</vICMSDeson><vFCPUFDest>0.00</vFCPUFDest><vICMSUFDest>0.00</vICMSUFDest><vICMSUFRemet>0.00</vICMSUFRemet><vFCP>0.00</vFCP><vBCST>0.00</vBCST><vST>0.00</vST><vFCPST>0.00</vFCPST><vFCPSTRet>0.00</vFCPSTRet><vProd>{vProd}</vProd><vFrete>0.00</vFrete><vSeg>0.00</vSeg><vDesc>{vDesc}</vDesc><vII>0.00</vII><vIPI>0.00</vIPI><vIPIDevol>0.00</vIPIDevol><vPIS>0.00</vPIS><vCOFINS>0.00</vCOFINS><vOutro>0.00</vOutro><vNF>{vNF}</vNF></ICMSTot></total><transp><modFrete>9</modFrete></transp>{pagXml}<infAdic><infCpl>Obrigado pela preferencia!</infCpl></infAdic><infNFeSupl><qrCode>{Esc(qrCode)}</qrCode><urlChave>{Esc(urlChave)}</urlChave></infNFeSupl></infNFe></NFe>";
+        var nfeXml = $@"<NFe xmlns=""http://www.portalfiscal.inf.br/nfe""><infNFe versao=""4.00"" Id=""{infNFeId}""><ide><cUF>{ufCode}</cUF><cNF>{cNF}</cNF><natOp>VENDA AO CONSUMIDOR</natOp><mod>65</mod><serie>{req.Serie}</serie><nNF>{req.Number}</nNF><dhEmi>{dhEmi}</dhEmi><tpNF>1</tpNF><idDest>1</idDest><cMunFG>{em.CodigoMunicipio}</cMunFG><tpImp>4</tpImp><tpEmis>{tpEmis}</tpEmis><cDV>{cDv}</cDV><tpAmb>{tpAmb}</tpAmb><finNFe>1</finNFe><indFinal>1</indFinal><indPres>1</indPres><indIntermed>0</indIntermed><procEmi>0</procEmi><verProc>vendApps 5.0</verProc>{contingXml}</ide><emit><CNPJ>{cnpjClean}</CNPJ><xNome>{Esc(em.RazaoSocial)}</xNome>{fantEmit}<enderEmit><xLgr>{Esc(em.Logradouro)}</xLgr><nro>{Esc(em.NumeroEndereco)}</nro>{compEnd}<xBairro>{Esc(em.Bairro)}</xBairro><cMun>{em.CodigoMunicipio}</cMun><xMun>{Esc(em.NomeMunicipio)}</xMun><UF>{uf}</UF><CEP>{cepClean}</CEP><cPais>1058</cPais><xPais>BRASIL</xPais>{telEmit}</enderEmit><IE>{ieClean}</IE><CRT>{crt}</CRT></emit>{detXml}<total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vICMSDeson>0.00</vICMSDeson><vFCPUFDest>0.00</vFCPUFDest><vICMSUFDest>0.00</vICMSUFDest><vICMSUFRemet>0.00</vICMSUFRemet><vFCP>0.00</vFCP><vBCST>0.00</vBCST><vST>0.00</vST><vFCPST>0.00</vFCPST><vFCPSTRet>0.00</vFCPSTRet><vProd>{vProd}</vProd><vFrete>0.00</vFrete><vSeg>0.00</vSeg><vDesc>{vDesc}</vDesc><vII>0.00</vII><vIPI>0.00</vIPI><vIPIDevol>0.00</vIPIDevol><vPIS>0.00</vPIS><vCOFINS>0.00</vCOFINS><vOutro>0.00</vOutro><vNF>{vNF}</vNF></ICMSTot></total><transp><modFrete>9</modFrete></transp>{pagXml}<infAdic><infCpl>Obrigado pela preferencia!</infCpl></infAdic><infNFeSupl><qrCode>{Esc(qrCode)}</qrCode><urlChave>{Esc(urlChave)}</urlChave></infNFeSupl></infNFe></NFe>";
 
         return (nfeXml, accessKey);
     }
@@ -83,7 +89,7 @@ public static class NfceXmlBuilder
         {
             var cfop     = string.IsNullOrWhiteSpace(item.Cfop) ? defaultCfop : item.Cfop;
             var ncm      = string.IsNullOrWhiteSpace(item.Ncm) ? "00000000" : item.Ncm.Replace(".", "").PadLeft(8, '0');
-            var barcode  = string.IsNullOrWhiteSpace(item.Barcode) ? "SEM GTIN" : item.Barcode;
+            var barcode  = IsValidGtin(item.Barcode) ? item.Barcode : "SEM GTIN";
             var uCom     = item.IsSoldByWeight ? "KG" : (item.Unit ?? "UN");
             var qCom     = item.Quantity.ToString("F4", Inv);
             var vUnCom   = (item.UnitPriceCents / 100m).ToString("F10", Inv).TrimEnd('0').TrimEnd('.');
@@ -139,6 +145,8 @@ public static class NfceXmlBuilder
         string accessKey, string tpAmb, EmitterData em)
     {
         var qrBase = SefazEndpoints.GetQrCodeBaseUrl(em.Uf, em.SefazEnvironment);
+        // Usa '&' se a URL base já contém query params (ex: SVC-AN), senão '?'
+        var sep = qrBase.Contains('?') ? "&" : "?";
 
         string qrUrl;
         if (!string.IsNullOrWhiteSpace(em.CscId) && !string.IsNullOrWhiteSpace(em.CscToken))
@@ -146,12 +154,12 @@ public static class NfceXmlBuilder
             // Hash = SHA1( chave + cIdToken + cToken )
             var input = accessKey + em.CscId.PadLeft(6, '0') + em.CscToken;
             var hash  = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
-            qrUrl = $"{qrBase}?p={accessKey}|{tpAmb}|{hash}|{em.CscId}";
+            qrUrl = $"{qrBase}{sep}p={accessKey}|100|{tpAmb}|{hash}|{em.CscId}";
         }
         else
         {
             // Sem CSC — QR code sem assinatura (funciona em homologação)
-            qrUrl = $"{qrBase}?p={accessKey}|{tpAmb}";
+            qrUrl = $"{qrBase}{sep}p={accessKey}|100|{tpAmb}";
         }
 
         var urlChave = SefazEndpoints.GetConsultaChaveUrl(em.Uf, em.SefazEnvironment, accessKey);
@@ -174,4 +182,33 @@ public static class NfceXmlBuilder
     /// <summary>Escapa caracteres especiais XML.</summary>
     private static string Esc(string? s) =>
         (s ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+    /// <summary>Retorna apenas os dígitos da string.</summary>
+    private static string Digits(string? s) =>
+        new string((s ?? "").Where(c => c >= '0' && c <= '9').ToArray());
+
+    /// <summary>
+    /// Sanitiza a Inscrição Estadual para o schema NFC-e: só dígitos, "ISENTO" ou "NA".
+    /// Remove pontos, barras e hífens de formatação.
+    /// </summary>
+    private static string SanitizeIe(string? ie)
+    {
+        if (string.IsNullOrWhiteSpace(ie)) return "ISENTO";
+        var upper = ie.Trim().ToUpperInvariant();
+        if (upper is "ISENTO" or "NA") return upper;
+        var d = Digits(ie);
+        return string.IsNullOrEmpty(d) ? "ISENTO" : d;
+    }
+
+    /// <summary>
+    /// Valida se o barcode é um GTIN aceito pelo schema NFC-e:
+    /// somente dígitos com comprimento 8, 12, 13 ou 14.
+    /// </summary>
+    private static bool IsValidGtin(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return false;
+        foreach (var c in code)
+            if (c < '0' || c > '9') return false;
+        return code.Length == 8 || (code.Length >= 12 && code.Length <= 14);
+    }
 }
