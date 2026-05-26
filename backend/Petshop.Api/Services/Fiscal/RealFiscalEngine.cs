@@ -34,7 +34,7 @@ public class RealFiscalEngine : IFiscalEngine
             // IssueAsync é chamado apenas pelo MockFiscalEngine path ou quando não há certificado.
             // Com certificado, usar IssueWithCertAsync diretamente.
             var (unsignedXml, accessKey) = NfceXmlBuilder.Build(req);
-            return await TransmitAsync(req, unsignedXml, accessKey, ct);
+            return await TransmitAsync(req, unsignedXml, accessKey, null, null, ct);
         }
         catch (Exception ex)
         {
@@ -43,7 +43,7 @@ public class RealFiscalEngine : IFiscalEngine
         }
     }
 
-    /// <summary>Assina com bytes do certificado (base64 decodificado) e transmite à SEFAZ.</summary>
+    /// <summary>Assina com bytes do certificado (base64 decodificado) e transmite à SEFAZ com mTLS.</summary>
     internal async Task<FiscalEngineResult> IssueWithCertAsync(
         FiscalDocumentRequest req,
         byte[] certBytes,
@@ -52,7 +52,7 @@ public class RealFiscalEngine : IFiscalEngine
     {
         var (unsignedXml, accessKey) = NfceXmlBuilder.Build(req);
         var signedXml = _signer.Sign(unsignedXml, certBytes, certPassword ?? "");
-        return await TransmitAsync(req, signedXml, accessKey, ct);
+        return await TransmitAsync(req, signedXml, accessKey, certBytes, certPassword, ct);
     }
 
     /// <summary>Assina com caminho de arquivo (legado) e transmite à SEFAZ.</summary>
@@ -76,17 +76,21 @@ public class RealFiscalEngine : IFiscalEngine
             signedXml = unsignedXml;
         }
 
-        return await TransmitAsync(req, signedXml, accessKey, ct);
+        return await TransmitAsync(req, signedXml, accessKey, null, null, ct);
     }
 
     private async Task<FiscalEngineResult> TransmitAsync(
-        FiscalDocumentRequest req, string xml, string accessKey, CancellationToken ct)
+        FiscalDocumentRequest req, string xml, string accessKey,
+        byte[]? clientCertBytes, string? clientCertPassword,
+        CancellationToken ct)
     {
         var result = await _sefaz.AuthorizeAsync(
             req.Emitter.Uf,
             req.Emitter.SefazEnvironment,
             xml,
             req.Serie,
+            clientCertBytes,
+            clientCertPassword,
             ct);
 
         if (result.Success)

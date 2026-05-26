@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Xml.Linq;
 using Petshop.Api.Entities.Fiscal;
@@ -31,9 +32,11 @@ public class SefazHttpClient
         SefazEnvironment env,
         string signedNfeXml,
         short serie,
+        byte[]? clientCertBytes = null,
+        string? clientCertPassword = null,
         CancellationToken ct = default)
     {
-        var url   = SefazEndpoints.GetAuthUrl(uf, env);
+        var url    = SefazEndpoints.GetAuthUrl(uf, env);
         var ufCode = SefazEndpoints.UfToCode(uf);
         var tpAmb  = env == SefazEnvironment.Producao ? "1" : "2";
         var idLote = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -57,20 +60,35 @@ public class SefazHttpClient
   </soap12:Body>
 </soap12:Envelope>";
 
-        _logger.LogInformation("[SEFAZ] POST AuthorizeAsync → {Url}", url);
+        _logger.LogInformation("[SEFAZ] POST AuthorizeAsync → {Url} | mTLS={HasCert}", url, clientCertBytes != null);
 
         try
         {
+            using var mtlsClient = clientCertBytes != null
+                ? CreateMtlsClient(clientCertBytes, clientCertPassword)
+                : null;
+            var http = mtlsClient ?? _http;
+
             var content = new StringContent(envelope, Encoding.UTF8);
             // SOAP 1.2: action é obrigatório no Content-Type — sem ele o SEFAZ retorna SOAP Fault
             content.Headers.ContentType = MediaTypeHeaderValue.Parse(
                 "application/soap+xml; charset=utf-8; action=\"http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4/nfeDadosMsg\"");
 
-            var resp = await _http.PostAsync(url, content, ct);
+            var resp = await http.PostAsync(url, content, ct);
             var body = await resp.Content.ReadAsStringAsync(ct);
 
             _logger.LogInformation("[SEFAZ] Auth Response HTTP={Status} Body={Body}",
                 (int)resp.StatusCode, body[..Math.Min(800, body.Length)]);
+
+            if (!resp.IsSuccessStatusCode)
+                return SefazAuthResult.NetworkError(
+                    $"HTTP {(int)resp.StatusCode} de {url} — {body[..Math.Min(400, body.Length)]}");
+
+            // HTML em vez de SOAP → URL errada ou mTLS ausente — trata como erro transitório
+            var trimmed = body.TrimStart();
+            if (trimmed.StartsWith("<!") || trimmed.StartsWith("<html", StringComparison.OrdinalIgnoreCase))
+                return SefazAuthResult.NetworkError(
+                    $"SEFAZ retornou HTML (HTTP {(int)resp.StatusCode}) — verifique URL ou mTLS. Preview: {body[..Math.Min(200, body.Length)]}");
 
             return ParseAuthResponse(body);
         }
@@ -79,6 +97,17 @@ public class SefazHttpClient
             _logger.LogError(ex, "[SEFAZ] Erro na chamada de autorização.");
             return SefazAuthResult.NetworkError(ex.Message);
         }
+    }
+
+    private static HttpClient CreateMtlsClient(byte[] certBytes, string? password)
+    {
+        var handler = new HttpClientHandler();
+        var cert = new X509Certificate2(
+            certBytes,
+            password ?? "",
+            X509KeyStorageFlags.EphemeralKeySet);
+        handler.ClientCertificates.Add(cert);
+        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(60) };
     }
 
     private static SefazAuthResult ParseAuthResponse(string soapBody)
