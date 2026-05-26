@@ -592,6 +592,105 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
         }
     }
 
+    /// <summary>
+    /// Gera o XML NFC-e não-assinado da venda mais recente na fila sem enviar à SEFAZ.
+    /// Útil para inspecionar o XML e validar contra o schema NFC-e 4.00.
+    /// </summary>
+    [HttpGet("debug/generate-xml")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DebugGenerateXml(CancellationToken ct)
+    {
+        var item = await _db.FiscalQueues
+            .Where(q => q.CompanyId == CompanyId)
+            .OrderByDescending(q => q.CreatedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        if (item == null) return NotFound("Nenhum item na fila fiscal.");
+
+        var sale = await _db.SaleOrders
+            .Include(o => o.Items)
+            .Include(o => o.Payments)
+            .FirstOrDefaultAsync(o => o.Id == item.SaleOrderId, ct);
+
+        if (sale == null) return NotFound("Venda não encontrada.");
+
+        CashRegisterFiscalConfig? registerConfig = null;
+        if (sale.CashRegisterId != Guid.Empty)
+            registerConfig = await _db.CashRegisterFiscalConfigs
+                .FirstOrDefaultAsync(c => c.CashRegisterId == sale.CashRegisterId && c.IsActive, ct);
+
+        var fallbackConfig = await _db.FiscalConfigs
+            .FirstOrDefaultAsync(f => f.CompanyId == CompanyId && f.IsActive, ct);
+
+        EmitterData emitter;
+        short nfceSerie;
+        if (registerConfig != null) { emitter = DebugBuildEmitter(registerConfig); nfceSerie = registerConfig.NfceSerie; }
+        else if (fallbackConfig != null) { emitter = DebugBuildEmitter(fallbackConfig); nfceSerie = fallbackConfig.NfceSerie; }
+        else return BadRequest("Nenhuma FiscalConfig ativa.");
+
+        var productIds = sale.Items.Select(i => i.ProductId).Distinct().ToList();
+        var products   = await _db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        var defaultCfop = registerConfig?.DefaultCfop ?? fallbackConfig?.DefaultCfop ?? "5102";
+
+        var fiscalItems = sale.Items.Select((i, idx) =>
+        {
+            var p = products.GetValueOrDefault(i.ProductId);
+            return new FiscalItemData(
+                idx + 1,
+                p?.InternalCode ?? i.ProductId.ToString("N")[..5],
+                p?.Barcode ?? i.ProductBarcodeSnapshot ?? "",
+                i.ProductNameSnapshot,
+                p?.Ncm ?? "00000000",
+                defaultCfop,
+                i.IsSoldByWeight ? "KG" : (p?.Unit ?? "UN"),
+                i.IsSoldByWeight ? (decimal)(i.WeightKg ?? 0) : (decimal)i.Qty,
+                (decimal)i.UnitPriceCentsSnapshot,
+                (decimal)i.TotalCents,
+                i.IsSoldByWeight);
+        }).ToList();
+
+        var fiscalPayments = sale.Payments.Select(p =>
+            new FiscalPaymentData(p.PaymentMethod, p.AmountCents, p.ChangeCents)).ToList();
+
+        var req = new FiscalDocumentRequest
+        {
+            CompanyId        = CompanyId,
+            SaleOrderId      = sale.Id,
+            FiscalDocumentId = Guid.Empty,
+            DocumentType     = FiscalDocumentType.NFCe,
+            Serie            = nfceSerie,
+            Number           = 999999,
+            SaleDateTimeUtc  = sale.CompletedAtUtc ?? sale.CreatedAtUtc,
+            SubtotalCents    = sale.SubtotalCents,
+            DiscountCents    = sale.DiscountCents,
+            TotalCents       = sale.TotalCents,
+            CustomerName     = sale.CustomerName,
+            CustomerDocument = sale.CustomerDocument,
+            ContingencyType  = ContingencyType.None,
+            Emitter          = emitter,
+            Items            = fiscalItems,
+            Payments         = fiscalPayments,
+        };
+
+        var (unsignedXml, accessKey) = NfceXmlBuilder.Build(req);
+        return Content($"<!-- accessKey={accessKey} -->\n{unsignedXml}", "application/xml; charset=utf-8");
+    }
+
+    private static EmitterData DebugBuildEmitter(CashRegisterFiscalConfig c) => new(
+        c.Cnpj, c.InscricaoEstadual, c.RazaoSocial, c.NomeFantasia, c.Uf,
+        c.Logradouro, c.NumeroEndereco, c.Complemento, c.Bairro,
+        c.CodigoMunicipio, c.NomeMunicipio, c.Cep, c.Telefone,
+        c.DefaultCfop, c.CscId, c.CscToken, c.SefazEnvironment, c.TaxRegime);
+
+    private static EmitterData DebugBuildEmitter(FiscalConfig c) => new(
+        c.Cnpj, c.InscricaoEstadual, c.RazaoSocial, c.NomeFantasia, c.Uf,
+        c.Logradouro, c.NumeroEndereco, c.Complemento, c.Bairro,
+        c.CodigoMunicipio, c.NomeMunicipio, c.Cep, c.Telefone,
+        c.DefaultCfop, c.CscId, c.CscToken, c.SefazEnvironment, c.TaxRegime);
+
     // ── QR Code hash helper ───────────────────────────────────────────────────
 
     private static string GenerateQrHash(string chave, string cscId, string cscToken)

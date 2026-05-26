@@ -332,11 +332,7 @@ builder.Services.AddScoped<Petshop.Api.Services.Promotions.PromotionEngine>();
 // ===============================
 // Services — Fiscal (Fase 5)
 // ===============================
-builder.Services.AddScoped<NfceSigningService>();
-builder.Services.AddHttpClient<SefazHttpClient>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+builder.Services.AddScoped<UnimakeNfceEngine>();
 builder.Services.AddScoped<RealFiscalEngine>();
 
 // ===============================
