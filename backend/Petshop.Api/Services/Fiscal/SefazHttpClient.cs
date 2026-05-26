@@ -62,12 +62,15 @@ public class SefazHttpClient
         try
         {
             var content = new StringContent(envelope, Encoding.UTF8);
-            content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/soap+xml; charset=utf-8");
+            // SOAP 1.2: action é obrigatório no Content-Type — sem ele o SEFAZ retorna SOAP Fault
+            content.Headers.ContentType = MediaTypeHeaderValue.Parse(
+                "application/soap+xml; charset=utf-8; action=\"http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4/nfeDadosMsg\"");
 
             var resp = await _http.PostAsync(url, content, ct);
             var body = await resp.Content.ReadAsStringAsync(ct);
 
-            _logger.LogDebug("[SEFAZ] Response {Status}: {Body}", resp.StatusCode, body[..Math.Min(500, body.Length)]);
+            _logger.LogInformation("[SEFAZ] Auth Response HTTP={Status} Body={Body}",
+                (int)resp.StatusCode, body[..Math.Min(800, body.Length)]);
 
             return ParseAuthResponse(body);
         }
@@ -85,11 +88,11 @@ public class SefazHttpClient
             var doc = XDocument.Parse(soapBody);
             var ns  = NfeNs;
 
-            // Pega infProt (dentro de protNFe)
+            // Pega infProt (dentro de protNFe) — resposta de autorização normal
             var infProt = doc.Descendants(ns + "infProt").FirstOrDefault();
             if (infProt != null)
             {
-                var cStat  = infProt.Element(ns + "cStat")?.Value ?? "";
+                var cStat   = infProt.Element(ns + "cStat")?.Value ?? "";
                 var xMotivo = infProt.Element(ns + "xMotivo")?.Value ?? "";
                 var chave   = infProt.Element(ns + "chNFe")?.Value;
                 var nProt   = infProt.Element(ns + "nProt")?.Value ?? "";
@@ -101,14 +104,25 @@ public class SefazHttpClient
                 return SefazAuthResult.Rejected(cStat, xMotivo);
             }
 
-            // Fallback: verifica cStat da retEnviNFe (erro de serviço)
-            var cStatRet = doc.Descendants(ns + "cStat").FirstOrDefault()?.Value ?? "999";
-            var xMotivoRet = doc.Descendants(ns + "xMotivo").FirstOrDefault()?.Value ?? "Erro desconhecido";
-            return SefazAuthResult.Rejected(cStatRet, xMotivoRet);
+            // retEnviNFe: erro de serviço sem infProt (ex: cStat=107 Serviço em Uso)
+            var cStatRet   = doc.Descendants(ns + "cStat").FirstOrDefault()?.Value;
+            var xMotivoRet = doc.Descendants(ns + "xMotivo").FirstOrDefault()?.Value;
+            if (cStatRet != null)
+                return SefazAuthResult.Rejected(cStatRet, xMotivoRet ?? "Sem motivo");
+
+            // SOAP Fault — extrai texto do Fault para diagnóstico
+            var soap = Soap12;
+            var faultCode   = doc.Descendants(soap + "Code").FirstOrDefault()?.Value
+                           ?? doc.Descendants("Code").FirstOrDefault()?.Value;
+            var faultReason = doc.Descendants(soap + "Text").FirstOrDefault()?.Value
+                           ?? doc.Descendants("faultstring").FirstOrDefault()?.Value
+                           ?? soapBody[..Math.Min(200, soapBody.Length)];
+
+            return SefazAuthResult.Rejected("SOAP-FAULT", $"[{faultCode}] {faultReason}");
         }
-        catch
+        catch (Exception ex)
         {
-            return SefazAuthResult.NetworkError("Falha ao parsear resposta SEFAZ.");
+            return SefazAuthResult.NetworkError($"Parse error: {ex.Message} | Body: {soapBody[..Math.Min(200, soapBody.Length)]}");
         }
     }
 
