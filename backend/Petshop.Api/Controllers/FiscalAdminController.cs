@@ -518,15 +518,19 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
     /// </summary>
     [HttpPost("debug/reset-queue")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> DebugResetQueue(CancellationToken ct)
+    public async Task<IActionResult> DebugResetQueue([FromQuery] bool force = false, CancellationToken ct = default)
     {
-        var affected = await _db.FiscalQueues
+        var query = _db.FiscalQueues
             .Where(q => q.CompanyId == CompanyId
-                     && (q.Status == FiscalQueueStatus.Processing || q.Status == FiscalQueueStatus.Failed)
-                     && q.RetryCount < 5)
+                     && (q.Status == FiscalQueueStatus.Processing || q.Status == FiscalQueueStatus.Failed));
+
+        if (!force)
+            query = query.Where(q => q.RetryCount < 5);
+
+        var affected = await query
             .ExecuteUpdateAsync(s => s
                 .SetProperty(q => q.Status, FiscalQueueStatus.Waiting)
-                .SetProperty(q => q.RetryCount, q => q.RetryCount > 0 ? q.RetryCount - 1 : 0), ct);
+                .SetProperty(q => q.RetryCount, 0), ct);
 
         return Ok(new { reset = affected, message = $"{affected} item(ns) resetado(s) para Waiting." });
     }
