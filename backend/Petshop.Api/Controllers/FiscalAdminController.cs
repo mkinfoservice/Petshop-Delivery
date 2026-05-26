@@ -542,6 +542,69 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
     }
 
     /// <summary>
+    /// Remove documentos fiscais em contingência, mantendo os N mais recentes.
+    /// Também apaga as entradas da FiscalQueue correspondentes.
+    /// Uso: ambiente de homologação / limpeza de testes.
+    /// </summary>
+    [HttpDelete("debug/cleanup-contingency")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DebugCleanupContingency(
+        [FromQuery] int keep = 50, CancellationToken ct = default)
+    {
+        if (keep < 0) keep = 0;
+        var companyId = CompanyId;
+
+        // IDs dos N mais recentes em contingência (para preservar)
+        var keepIds = await _db.FiscalDocuments
+            .Where(d => d.CompanyId == companyId && d.FiscalStatus == FiscalDocumentStatus.Contingency)
+            .OrderByDescending(d => d.CreatedAtUtc)
+            .Take(keep)
+            .Select(d => d.Id)
+            .ToListAsync(ct);
+
+        // Documentos a apagar
+        var toDelete = await _db.FiscalDocuments
+            .Where(d => d.CompanyId == companyId
+                     && d.FiscalStatus == FiscalDocumentStatus.Contingency
+                     && !keepIds.Contains(d.Id))
+            .ToListAsync(ct);
+
+        var deletedDocs = toDelete.Count;
+        if (deletedDocs > 0)
+        {
+            // Remove entradas da fila vinculadas
+            var saleIds = toDelete.Select(d => d.SaleOrderId).Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+            if (saleIds.Count > 0)
+            {
+                var queueEntries = await _db.FiscalQueues
+                    .Where(q => q.CompanyId == companyId && saleIds.Contains(q.SaleOrderId))
+                    .ToListAsync(ct);
+                _db.FiscalQueues.RemoveRange(queueEntries);
+            }
+
+            _db.FiscalDocuments.RemoveRange(toDelete);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        // Apaga também entradas orfãs da fila (sem FiscalDocument vinculado) em Failed/Waiting
+        var orphanSql = $"""
+            DELETE FROM "FiscalQueues"
+            WHERE "CompanyId" = '{companyId}'
+              AND "Status" IN ('Failed','Waiting','Processing')
+              AND "FiscalDocumentId" IS NULL
+            """;
+        var deletedQueue = await _db.Database.ExecuteSqlRawAsync(orphanSql, ct);
+
+        return Ok(new
+        {
+            deletedDocuments = deletedDocs,
+            deletedQueueOrphans = deletedQueue,
+            kept = keepIds.Count,
+            message = $"Removidos {deletedDocs} documento(s) em contingência. Mantidos {keepIds.Count}.",
+        });
+    }
+
+    /// <summary>
     /// Testa se o certificado salvo na FiscalConfig (empresa) e nos CashRegisterFiscalConfigs
     /// consegue ser carregado com a senha salva. Útil para diagnosticar falhas de cert.
     /// </summary>

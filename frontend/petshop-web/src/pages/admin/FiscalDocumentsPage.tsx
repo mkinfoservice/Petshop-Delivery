@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminFetch } from "@/features/admin/auth/adminFetch";
 import {
   Loader2, FileText, Filter, ChevronLeft, ChevronRight,
-  AlertTriangle, RefreshCw, Send, Printer,
+  AlertTriangle, RefreshCw, Send, Printer, Trash2,
 } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,6 +78,13 @@ async function processQueue() {
   return adminFetch<{ jobId: string; message: string }>(
     "/admin/fiscal/debug/process-queue",
     { method: "POST" }
+  );
+}
+
+async function cleanupContingency(keep: number) {
+  return adminFetch<{ deletedDocuments: number; kept: number; message: string }>(
+    `/admin/fiscal/debug/cleanup-contingency?keep=${keep}`,
+    { method: "DELETE" }
   );
 }
 
@@ -156,6 +163,18 @@ export default function FiscalDocumentsPage() {
     staleTime: 30_000,
   });
 
+  const cleanupMutation = useMutation({
+    mutationFn: () => cleanupContingency(50),
+    onSuccess: (res) => {
+      setActionMsg(res.message);
+      setTimeout(() => {
+        setActionMsg(null);
+        qc.invalidateQueries({ queryKey: ["fiscal-documents"] });
+      }, 4000);
+    },
+    onError: () => setActionMsg("Erro ao limpar contingências."),
+  });
+
   const transmitMutation = useMutation({
     mutationFn: async () => {
       const reset = await resetQueue();
@@ -212,6 +231,21 @@ export default function FiscalDocumentsPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Limpar contingências antigas */}
+          <button
+            onClick={() => {
+              if (confirm("Apagar contingências antigas, mantendo as 50 mais recentes?"))
+                cleanupMutation.mutate();
+            }}
+            disabled={cleanupMutation.isPending}
+            title="Remove documentos em contingência antigos, mantém os 50 mais recentes"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 disabled:opacity-60 transition"
+          >
+            {cleanupMutation.isPending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Trash2 className="w-4 h-4" />}
+            Limpar contingências
+          </button>
           {/* Botão transmitir */}
           <button
             onClick={() => transmitMutation.mutate()}
