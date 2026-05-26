@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminFetch } from "@/features/admin/auth/adminFetch";
-import { Loader2, FileText, Filter, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Loader2, FileText, Filter, ChevronLeft, ChevronRight,
+  AlertTriangle, RefreshCw, Send, Printer,
+} from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -15,7 +18,6 @@ function fmtDateTime(iso: string | null) {
 
 function fmtAccessKey(key: string | null) {
   if (!key) return "—";
-  // Formatar chave de 44 dígitos em blocos de 4 para legibilidade
   return key.match(/.{1,4}/g)?.join(" ") ?? key;
 }
 
@@ -49,13 +51,11 @@ interface FiscalDocumentsResponse {
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
+const API = import.meta.env.VITE_API_URL ?? "";
+
 async function listFiscalDocuments(params: {
-  page: number;
-  pageSize: number;
-  status?: string;
-  contingency?: string;
-  from?: string;
-  to?: string;
+  page: number; pageSize: number;
+  status?: string; contingency?: string; from?: string; to?: string;
 }): Promise<FiscalDocumentsResponse> {
   const q = new URLSearchParams();
   q.set("page", String(params.page));
@@ -65,6 +65,20 @@ async function listFiscalDocuments(params: {
   if (params.from)        q.set("from", params.from);
   if (params.to)          q.set("to", params.to);
   return adminFetch<FiscalDocumentsResponse>(`/admin/fiscal/documents?${q.toString()}`);
+}
+
+async function resetQueue() {
+  return adminFetch<{ reset: number; message: string }>(
+    "/admin/fiscal/debug/reset-queue?force=true",
+    { method: "POST" }
+  );
+}
+
+async function processQueue() {
+  return adminFetch<{ jobId: string; message: string }>(
+    "/admin/fiscal/debug/process-queue",
+    { method: "POST" }
+  );
 }
 
 // ── Status badges ─────────────────────────────────────────────────────────────
@@ -90,7 +104,7 @@ const fiscalStatusClass: Record<string, string> = {
 function ExpandedRow({ doc }: { doc: FiscalDocumentItem }) {
   return (
     <tr className="bg-amber-50/50">
-      <td colSpan={8} className="px-6 py-3">
+      <td colSpan={9} className="px-6 py-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-xs text-gray-500 block mb-1">Chave de Acesso</span>
@@ -107,7 +121,7 @@ function ExpandedRow({ doc }: { doc: FiscalDocumentItem }) {
             </div>
           )}
           <div className="flex gap-6 text-xs text-gray-600">
-            <span>Tentativas de transmissão: <strong>{doc.transmissionAttempts}</strong></span>
+            <span>Tentativas: <strong>{doc.transmissionAttempts}</strong></span>
             <span>Última tentativa: <strong>{fmtDateTime(doc.lastAttemptAtUtc)}</strong></span>
             <span>XML: <strong>{doc.hasXml ? "Disponível" : "Ausente"}</strong></span>
           </div>
@@ -120,28 +134,46 @@ function ExpandedRow({ doc }: { doc: FiscalDocumentItem }) {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function FiscalDocumentsPage() {
-  const [page, setPage]         = useState(1);
-  const [pageSize]               = useState(50);
-  const [showFilters, setShowFilters] = useState(false);
-  const [expandedId, setExpandedId]   = useState<string | null>(null);
-  const [filters, setFilters]   = useState({
-    status:      "",
-    contingency: "",
-    from:        "",
-    to:          "",
+  const qc = useQueryClient();
+  const [page, setPage]                   = useState(1);
+  const [pageSize]                         = useState(50);
+  const [showFilters, setShowFilters]     = useState(false);
+  const [expandedId, setExpandedId]       = useState<string | null>(null);
+  const [actionMsg, setActionMsg]         = useState<string | null>(null);
+  const [filters, setFilters]             = useState({
+    status: "", contingency: "", from: "", to: "",
   });
 
   const { data, isLoading, isError } = useQuery<FiscalDocumentsResponse>({
     queryKey: ["fiscal-documents", page, pageSize, filters],
     queryFn: () => listFiscalDocuments({
-      page,
-      pageSize,
+      page, pageSize,
       status:      filters.status || undefined,
       contingency: filters.contingency || undefined,
       from:        filters.from || undefined,
       to:          filters.to || undefined,
     }),
     staleTime: 30_000,
+  });
+
+  const transmitMutation = useMutation({
+    mutationFn: async () => {
+      const reset = await resetQueue();
+      const job   = await processQueue();
+      return { reset, job };
+    },
+    onSuccess: ({ reset }) => {
+      setActionMsg(
+        reset.reset > 0
+          ? `${reset.reset} item(ns) resetado(s) e job enfileirado. Aguarde alguns segundos.`
+          : "Nenhum item pendente. Job de transmissão disparado."
+      );
+      setTimeout(() => {
+        setActionMsg(null);
+        qc.invalidateQueries({ queryKey: ["fiscal-documents"] });
+      }, 4000);
+    },
+    onError: () => setActionMsg("Erro ao disparar transmissão. Tente novamente."),
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
@@ -154,6 +186,17 @@ export default function FiscalDocumentsPage() {
   const contingencyCount = data?.items.filter(d => d.isContingency).length ?? 0;
   const pendingCount     = data?.items.filter(d => d.fiscalStatus === "Pending").length ?? 0;
   const rejectedCount    = data?.items.filter(d => d.fiscalStatus === "Rejected").length ?? 0;
+
+  function openDanfe(saleOrderId: string) {
+    const token = localStorage.getItem("adminToken") ?? "";
+    // Abre DANFE em nova aba — backend retorna HTML
+    const url = `${API}/admin/fiscal/sale/${saleOrderId}/danfe`;
+    const win  = window.open("about:blank", "_blank");
+    if (!win) return;
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.text())
+      .then(html => { win.document.write(html); win.document.close(); });
+  }
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
@@ -168,14 +211,43 @@ export default function FiscalDocumentsPage() {
             </span>
           )}
         </div>
-        <button
-          onClick={() => setShowFilters(v => !v)}
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-brand transition"
-        >
-          <Filter className="w-4 h-4" />
-          Filtros
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão transmitir */}
+          <button
+            onClick={() => transmitMutation.mutate()}
+            disabled={transmitMutation.isPending}
+            title="Reseta erros/contingências e transmite para SEFAZ agora"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-sm rounded-lg hover:brightness-110 disabled:opacity-60 transition"
+          >
+            {transmitMutation.isPending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Send className="w-4 h-4" />}
+            Transmitir para SEFAZ
+          </button>
+          {/* Atualizar */}
+          <button
+            onClick={() => qc.invalidateQueries({ queryKey: ["fiscal-documents"] })}
+            className="p-1.5 rounded-lg border hover:bg-gray-50 transition"
+            title="Atualizar lista"
+          >
+            <RefreshCw className="w-4 h-4 text-gray-500" />
+          </button>
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-brand transition"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </button>
+        </div>
       </div>
+
+      {/* Feedback de ação */}
+      {actionMsg && (
+        <div className="mb-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+          {actionMsg}
+        </div>
+      )}
 
       {/* Alertas rápidos */}
       {(contingencyCount > 0 || pendingCount > 0 || rejectedCount > 0) && (
@@ -235,8 +307,7 @@ export default function FiscalDocumentsPage() {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Data início</label>
             <input
-              type="date"
-              value={filters.from}
+              type="date" value={filters.from}
               onChange={e => updateFilter("from", e.target.value)}
               className="w-full border rounded-lg px-2 py-1.5"
             />
@@ -244,8 +315,7 @@ export default function FiscalDocumentsPage() {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Data fim</label>
             <input
-              type="date"
-              value={filters.to}
+              type="date" value={filters.to}
               onChange={e => updateFilter("to", e.target.value)}
               className="w-full border rounded-lg px-2 py-1.5"
             />
@@ -278,6 +348,7 @@ export default function FiscalDocumentsPage() {
                   <th className="px-4 py-3 text-center">Contingência</th>
                   <th className="px-4 py-3 text-left">Autorização</th>
                   <th className="px-4 py-3 text-center">XML</th>
+                  <th className="px-4 py-3 text-center">DANFE</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -318,6 +389,20 @@ export default function FiscalDocumentsPage() {
                           <span className="text-green-600 text-xs font-medium">✓</span>
                         ) : (
                           <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {doc.saleOrderId && (doc.fiscalStatus === "Authorized" || doc.hasXml) ? (
+                          <button
+                            onClick={() => openDanfe(doc.saleOrderId!)}
+                            title="Abrir DANFE / comprovante"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-100 hover:bg-brand hover:text-white transition"
+                          >
+                            <Printer className="w-3 h-3" />
+                            DANFE
+                          </button>
+                        ) : (
+                          <span className="text-gray-300 text-xs">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
