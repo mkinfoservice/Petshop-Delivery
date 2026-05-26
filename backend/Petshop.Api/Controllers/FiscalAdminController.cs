@@ -520,18 +520,24 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
     [Authorize(Roles = "admin")]
     public async Task<IActionResult> DebugResetQueue([FromQuery] bool force = false, CancellationToken ct = default)
     {
-        var query = _db.FiscalQueues
-            .Where(q => q.CompanyId == CompanyId
-                     && (q.Status == FiscalQueueStatus.Processing || q.Status == FiscalQueueStatus.Failed));
+        var companyId = CompanyId;
+        // Raw SQL para evitar problemas de conversão de enum EF
+        var sql = force
+            ? $"""
+               UPDATE "FiscalQueues"
+               SET "Status" = 'Waiting', "RetryCount" = 0
+               WHERE "CompanyId" = '{companyId}'
+                 AND "Status" IN ('Failed','Processing')
+               """
+            : $"""
+               UPDATE "FiscalQueues"
+               SET "Status" = 'Waiting', "RetryCount" = 0
+               WHERE "CompanyId" = '{companyId}'
+                 AND "Status" IN ('Failed','Processing')
+                 AND "RetryCount" < 5
+               """;
 
-        if (!force)
-            query = query.Where(q => q.RetryCount < 5);
-
-        var affected = await query
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(q => q.Status, FiscalQueueStatus.Waiting)
-                .SetProperty(q => q.RetryCount, 0), ct);
-
+        var affected = await _db.Database.ExecuteSqlRawAsync(sql, ct);
         return Ok(new { reset = affected, message = $"{affected} item(ns) resetado(s) para Waiting." });
     }
 
