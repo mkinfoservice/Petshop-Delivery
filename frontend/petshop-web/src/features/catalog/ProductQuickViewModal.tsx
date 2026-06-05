@@ -22,13 +22,11 @@ export function ProductQuickViewModal({ productId, onClose }: Props) {
   const { showToast } = useToast();
   const [qty, setQty] = useState(1);
 
-  /** Scroll lock */
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  /** Fechar com Escape */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
@@ -56,7 +54,8 @@ export function ProductQuickViewModal({ productId, onClose }: Props) {
   const hasStepper = (product?.addonGroups?.length ?? 0) > 0 || (product?.variants?.length ?? 0) > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+    /* Mobile: alinha na base (bottom sheet). sm+: centralizado */
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
       {/* Overlay */}
       <motion.div
         className="absolute inset-0 bg-black/50"
@@ -68,21 +67,23 @@ export function ProductQuickViewModal({ productId, onClose }: Props) {
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal
+          Mobile  → bottom sheet: largura total, cantos arredondados só em cima, desliza de baixo
+          sm+     → modal centralizado 720px, todos os cantos arredondados */}
       <motion.div
-        className="relative bg-white rounded-3xl shadow-2xl flex overflow-hidden"
-        style={{ width: "min(720px, 92vw)", maxHeight: "85vh" }}
-        initial={{ opacity: 0, scale: 0.96, y: 6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 6 }}
-        transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col sm:flex-row overflow-hidden w-full sm:w-auto sm:max-w-[720px]"
+        style={{ maxHeight: "92dvh" }}
+        initial={{ opacity: 0, y: 48 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 48 }}
+        transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Botão fechar */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-all"
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-all"
           aria-label="Fechar"
         >
           <X className="w-4 h-4 text-gray-600" />
@@ -90,8 +91,8 @@ export function ProductQuickViewModal({ productId, onClose }: Props) {
 
         {/* Skeleton */}
         {isLoading && (
-          <div className="flex w-full animate-pulse" style={{ minHeight: "400px" }}>
-            <div className="w-[280px] shrink-0 bg-gray-200" />
+          <div className="flex flex-col sm:flex-row w-full animate-pulse" style={{ minHeight: "300px" }}>
+            <div className="w-full h-52 sm:w-[280px] sm:h-auto shrink-0 bg-gray-200" />
             <div className="flex-1 p-6 space-y-4">
               <div className="h-6 bg-gray-200 rounded w-3/4 mt-8" />
               <div className="h-4 bg-gray-200 rounded w-1/2" />
@@ -115,18 +116,19 @@ export function ProductQuickViewModal({ productId, onClose }: Props) {
         {/* Conteúdo */}
         {!isLoading && product && (
           <>
-            {/* Imagem */}
-            <div className="w-[280px] shrink-0 bg-gray-100 overflow-hidden">
+            {/* Imagem
+                Mobile  → largura total, altura fixa 220px (acima do dobra)
+                sm+     → coluna lateral 280px, altura 100% */}
+            <div className="w-full h-[220px] sm:w-[280px] sm:h-auto shrink-0 bg-gray-100 overflow-hidden">
               <img src={img} alt={product.name} className="w-full h-full object-cover" />
             </div>
 
-            {/* Painel direito */}
+            {/* Painel de conteúdo */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
               {hasStepper ? (
-                /* ── Modo stepper ──────────────────────────── */
                 <>
                   {/* Cabeçalho fixo com nome + preço base */}
-                  <div className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+                  <div className="px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
                     <h2 className="font-bold text-lg text-gray-900 leading-tight pr-10">
                       {product.name}
                     </h2>
@@ -144,7 +146,6 @@ export function ProductQuickViewModal({ productId, onClose }: Props) {
                   />
                 </>
               ) : (
-                /* ── Modo simples (sem grupos) ─────────────── */
                 <>
                   <div className="flex-1 overflow-y-auto p-6 pb-4">
                     <h2 className="font-bold text-xl text-gray-900 leading-tight pr-10">
