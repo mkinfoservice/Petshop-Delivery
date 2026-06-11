@@ -38,6 +38,23 @@ const PROVIDERS = [
 
 type ProviderValue = typeof PROVIDERS[number]["value"];
 
+const PRODUCT_DUMP_FIELD_PRESETS: Record<string, DtoFieldName> = {
+  CONTADOR: "ExternalId",
+  CODPRODUTO: "InternalCode",
+  CODEAN: "Barcode",
+  NOMEPRODUTO: "Name",
+  NOMEGENERICO: "Description",
+  GRUPO: "CategoryName",
+  FABRICANTE: "BrandName",
+  UNIDADE: "Unit",
+  PRECOVENDA: "PriceCents",
+  PRECOCUSTO: "CostCents",
+  QTDATUAL: "StockQty",
+  NCM: "Ncm",
+  FOTOGRAFIA: "ImageUrl",
+  ATUALIZA: "UpdatedAt",
+};
+
 // ── Step 1 state ──────────────────────────────────────────────────────────────
 
 type Step1State = {
@@ -137,10 +154,11 @@ export function DbSourceWizard({ onBack }: { onBack: () => void }) {
   function autoMap(cols: { columnName: string }[]) {
     const autoMapped: Record<string, DtoFieldName | ""> = {};
     for (const col of cols) {
+      const preset = PRODUCT_DUMP_FIELD_PRESETS[col.columnName.trim().toUpperCase()];
       const match = DTO_FIELDS.find(
         (f) => f.toLowerCase() === col.columnName.toLowerCase()
       );
-      autoMapped[col.columnName] = match ?? "";
+      autoMapped[col.columnName] = preset ?? match ?? "";
     }
     setMapping(autoMapped);
   }
