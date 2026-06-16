@@ -18,10 +18,23 @@ public class CpfProtectionService
     {
         _protector = dpProvider.CreateProtector("Cpf.v1");
 
-        // Chave HMAC estável — usada para hashes de busca.
-        // Configurar DataProtection__CpfHmacKey no Render para isolamento máximo.
-        // Fallback: Jwt__Key (nunca fica vazio em produção).
-        var raw = config["DataProtection:CpfHmacKey"] ?? config["Jwt:Key"] ?? "fallback-key";
+        // Chave HMAC estável — usada para hashes de busca de CPF (LGPD).
+        // OBRIGATÓRIA. Nunca usar Jwt:Key como fallback: rotação de JWT key
+        // quebraria todos os lookups de CPF silenciosamente.
+        //
+        // ATENÇÃO — sistemas com CPFs já salvos:
+        //   Se DataProtection:CpfHmacKey nunca foi configurada anteriormente,
+        //   os hashes existentes foram gerados com o valor de Jwt:Key.
+        //   Nesse caso, defina DataProtection__CpfHmacKey com o MESMO valor
+        //   que Jwt__Key possui atualmente no Render — jamais gere um valor novo.
+        var raw = config["DataProtection:CpfHmacKey"];
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new InvalidOperationException(
+                "DataProtection:CpfHmacKey não configurada. " +
+                "ATENÇÃO: se o sistema já possui CPFs salvos, use o mesmo valor " +
+                "que está em Jwt__Key no Render — não gere uma chave nova. " +
+                "Dev: dotnet user-secrets set \"DataProtection:CpfHmacKey\" \"<valor>\". " +
+                "Prod: env var DataProtection__CpfHmacKey no Render.");
         _hmacKey = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
     }
 
