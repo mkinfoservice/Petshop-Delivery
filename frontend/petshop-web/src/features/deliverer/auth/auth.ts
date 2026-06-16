@@ -14,8 +14,27 @@ export function clearDelivererToken() {
   localStorage.removeItem(INFO_KEY);
 }
 
+function isJwtExpired(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(b64)) as { exp?: number };
+    if (!payload.exp) return false;
+    return Math.floor(Date.now() / 1000) >= payload.exp;
+  } catch {
+    return true;
+  }
+}
+
 export function isDelivererAuthenticated(): boolean {
-  return !!getDelivererToken();
+  const token = getDelivererToken();
+  if (!token) return false;
+  if (isJwtExpired(token)) {
+    clearDelivererToken();
+    return false;
+  }
+  return true;
 }
 
 export function saveDelivererInfo(info: { id: string; name: string }) {

@@ -13,7 +13,15 @@ export function clearToken() {
 }
 
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  const token = getToken();
+  if (!token) return false;
+  const payload = decodeTokenPayload(token);
+  if (!payload?.exp) return false;
+  if (Math.floor(Date.now() / 1000) >= payload.exp) {
+    clearToken();
+    return false;
+  }
+  return true;
 }
 
 export type TokenPayload = {

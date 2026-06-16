@@ -265,6 +265,7 @@ class App(tk.Tk):
         self.current  = -1
         self.n_applied = 0
         self.n_skipped = 0
+        self.failures: list[dict] = []
         self._photos: list = []   # mantém referências p/ evitar GC
         self._auto_running = False
 
@@ -490,6 +491,7 @@ class App(tk.Tk):
         self.current   = -1
         self.n_applied = 0
         self.n_skipped = 0
+        self.failures  = []
         self._set_status(f"✓ {len(products)} produtos ({source})")
         self._src_info.config(text=f"{len(products)} sem imagem")
 
@@ -663,10 +665,12 @@ class App(tk.Tk):
                 else:
                     p["_skipped"] = True
                     self.n_skipped += 1
+                    self._record_failure(idx, p, "Falha ao aplicar imagem via API")
                     self.after(0, lambda i=idx: self._mark_item(i, "⏭"))
             else:
                 p["_skipped"] = True
                 self.n_skipped += 1
+                self._record_failure(idx, p, "Nenhuma imagem encontrada")
                 self.after(0, lambda i=idx: self._mark_item(i, "⏭"))
 
             self.after(0, self._update_progress)
@@ -677,6 +681,8 @@ class App(tk.Tk):
         self.after(0, lambda: self._search_lbl.config(text=""))
         applied = sum(1 for p in self.products if p.get("_applied"))
         skipped = sum(1 for p in self.products if p.get("_skipped"))
+        if self.failures:
+            self.after(0, self._offer_failures_export)
         self.after(0, lambda: messagebox.showinfo("Auto concluído",
             f"Processamento automático finalizado!\n\n"
             f"✓ Aplicados : {applied}\n"
@@ -697,6 +703,55 @@ class App(tk.Tk):
             fg = self.GREEN if icon == "✓" else self.GRAY
             self._listbox.itemconfig(idx, fg=fg)
         self._update_progress()
+
+    def _record_failure(self, idx: int, product: dict, reason: str):
+        self.failures.append({
+            "linha": idx + 1,
+            "id": product.get("id", ""),
+            "name": product.get("name", ""),
+            "barcode": product.get("barcode", ""),
+            "category": product.get("categoryName") or product.get("category") or "",
+            "motivo": reason,
+        })
+
+    def _offer_failures_export(self):
+        if not self.failures:
+            return
+
+        preview = "\n".join(
+            f"{f['linha']}. {f['name'][:54]} - {f['motivo']}"
+            for f in self.failures[:8]
+        )
+        more = "" if len(self.failures) <= 8 else f"\n... +{len(self.failures) - 8} falhas"
+
+        should_save = messagebox.askyesno(
+            "Falhas encontradas",
+            f"{len(self.failures)} produto(s) ficaram sem imagem:\n\n"
+            f"{preview}{more}\n\n"
+            "Deseja salvar um CSV com as falhas?"
+        )
+        if not should_save:
+            return
+
+        path = filedialog.asksaveasfilename(
+            title="Salvar falhas",
+            defaultextension=".csv",
+            initialfile="produtos_imagens_falhas.csv",
+            filetypes=[("CSV", "*.csv")])
+        if not path:
+            return
+
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=["linha", "id", "name", "barcode", "category", "motivo"],
+                )
+                writer.writeheader()
+                writer.writerows(self.failures)
+            messagebox.showinfo("Falhas exportadas", f"CSV salvo em:\n{path}")
+        except Exception as e:
+            self._err(f"Erro ao salvar falhas:\n{e}")
 
     def _update_progress(self):
         total = len(self.products)

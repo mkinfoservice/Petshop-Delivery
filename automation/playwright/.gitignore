@@ -1,0 +1,12 @@
+# Sessão autenticada — contém tokens JWT, nunca commitar
+auth/storage-state.json
+
+# Artefatos Playwright
+test-results/
+reports/
+node_modules/
+dist/
+
+# Vídeos locais
+*.webm
+*.mp4

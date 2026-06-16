@@ -1,0 +1,22 @@
+{
+  "name": "vendapps-automation",
+  "version": "1.0.0",
+  "description": "Automação e gravação de tutoriais em vídeo — vendApps",
+  "private": true,
+  "scripts": {
+    "setup": "playwright test --project=setup",
+    "test": "playwright test --project=tutoriais",
+    "test:headed": "playwright test --project=tutoriais --headed",
+    "gravar": "playwright test --project=tutoriais --headed",
+    "gravar:modulo": "playwright test --project=tutoriais --headed --grep",
+    "ui": "playwright test --ui",
+    "report": "playwright show-report reports",
+    "limpar": "rimraf test-results reports"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "rimraf": "^5.0.0"
+  }
+}

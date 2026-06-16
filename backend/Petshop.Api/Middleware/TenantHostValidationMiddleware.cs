@@ -6,7 +6,7 @@ using Petshop.Api.Services;
 namespace Petshop.Api.Middleware;
 
 /// <summary>
-/// Valida que o token JWT de admin pertence à empresa do subdomínio atual.
+/// Valida que o token JWT pertence à empresa do subdomínio atual (qualquer role).
 /// Impede que um token de empresa A seja usado no subdomínio de empresa B.
 ///
 /// Execução: após UseAuthentication + UseAuthorization.
@@ -49,21 +49,14 @@ public class TenantHostValidationMiddleware
             return;
         }
 
-        // 3. Só aplicar restrição se houver JWT autenticado com role=admin
+        // 3. Só aplicar restrição se houver JWT autenticado com companyId
         if (context.User.Identity?.IsAuthenticated != true)
         {
             await _next(context);
             return;
         }
 
-        var role = context.User.FindFirstValue(ClaimTypes.Role);
-        if (role != "admin")
-        {
-            await _next(context);
-            return;
-        }
-
-        // 4. Comparar com o companyId do JWT
+        // 4. Comparar companyId do JWT com o tenant do host (qualquer role)
         var jwtCompanyId = context.User.FindFirstValue("companyId");
 
         if (!string.IsNullOrEmpty(jwtCompanyId) &&

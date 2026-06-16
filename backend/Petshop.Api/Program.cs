@@ -1002,9 +1002,10 @@ using (var scope = app.Services.CreateScope())
 // Hangfire Dashboard — habilitado em todos os ambientes para diagnóstico
 app.UseHangfireDashboard("/admin/hangfire", new DashboardOptions
 {
-    Authorization = app.Environment.IsDevelopment()
-        ? new[] { new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter() }
-        : Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>()
+    Authorization = new Hangfire.Dashboard.IDashboardAuthorizationFilter[]
+    {
+        new Petshop.Api.Middleware.HangfireJwtAuthorizationFilter()
+    }
 });
 
 // Job de sync agendado — roda em todos os ambientes (usa DI, não API estática)
