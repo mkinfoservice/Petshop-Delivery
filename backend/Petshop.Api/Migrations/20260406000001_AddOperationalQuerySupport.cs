@@ -1,11 +1,15 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Petshop.Api.Data;
 
 #nullable disable
 
 namespace Petshop.Api.Migrations
 {
-    /// <inheritdoc />
-    public partial class AddOperationalQuerySupport : Migration
+    [Migration("20260406000001_AddOperationalQuerySupport")]
+    [DbContext(typeof(AppDbContext))]
+    public class AddOperationalQuerySupport : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
