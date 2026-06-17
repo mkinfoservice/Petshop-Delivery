@@ -5,6 +5,7 @@ export function useDashboard() {
   return useQuery({
     queryKey: ["admin-dashboard"],
     queryFn: fetchDashboard,
-    refetchInterval: 30_000, // atualiza a cada 30s automaticamente
+    refetchInterval: 60_000,
+    staleTime: 60_000,
   });
 }

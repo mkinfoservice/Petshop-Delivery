@@ -361,7 +361,7 @@ function ServiceModal({
   const serviceQ = useQuery({
     queryKey: ["table-service", table.id],
     queryFn: () => fetchTableService(table.id),
-    refetchInterval: 5000,
+    refetchInterval: 15_000,
   });
 
   const finalizeMut = useMutation({
