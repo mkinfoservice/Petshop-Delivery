@@ -972,29 +972,6 @@ using (var scope = app.Services.CreateScope())
     await AddonGroupSeeder.SeedAsync(app.Services);
     await AddonSplitSeeder.SeedAsync(app.Services);
 
-    // ── Reset temporário de senha de AdminUsers (recuperação de acesso) ──────
-    // Defina RESET_ADMIN_PASSWORDS_TO no Render com a nova senha, faça deploy,
-    // confira os usernames no log do Render, entre com essa senha, e REMOVA
-    // a env var em seguida (senão ela reaplica a senha a cada restart).
-    var resetAdminPasswordsTo = app.Configuration["RESET_ADMIN_PASSWORDS_TO"];
-    if (!string.IsNullOrWhiteSpace(resetAdminPasswordsTo))
-    {
-        var adminsToReset = await db.AdminUsers.ToListAsync();
-        var newHash = BCrypt.Net.BCrypt.HashPassword(resetAdminPasswordsTo);
-        foreach (var admin in adminsToReset)
-        {
-            admin.PasswordHash = newHash;
-            admin.IsActive = true;
-        }
-        await db.SaveChangesAsync();
-
-        var resetLogger = app.Services.GetRequiredService<ILogger<Program>>();
-        resetLogger.LogWarning(
-            "[ADMIN-RESET] {Count} AdminUsers com senha redefinida: {Usernames}. REMOVA a env var RESET_ADMIN_PASSWORDS_TO agora.",
-            adminsToReset.Count,
-            string.Join(", ", adminsToReset.Select(a => $"{a.Username} (company {a.CompanyId})")));
-    }
-
     // Migração LGPD: criptografa CPFs que ainda estão em plaintext
     using var cpfScope = app.Services.CreateScope();
     var cpfSvc = cpfScope.ServiceProvider.GetRequiredService<Petshop.Api.Services.Customers.CpfProtectionService>();
