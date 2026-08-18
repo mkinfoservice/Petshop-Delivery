@@ -27,14 +27,22 @@ public class FiscalAdminController : ControllerBase
     private readonly IBackgroundJobClient        _jobs;
     private readonly IPublishEndpoint            _publisher;
     private readonly FiscalCertProtectionService _certSvc;
+    private readonly RealFiscalEngine            _realEngine;
 
-    public FiscalAdminController(AppDbContext db, SefazHttpClient sefaz, IBackgroundJobClient jobs, IPublishEndpoint publisher, FiscalCertProtectionService certSvc)
+    public FiscalAdminController(
+        AppDbContext db,
+        SefazHttpClient sefaz,
+        IBackgroundJobClient jobs,
+        IPublishEndpoint publisher,
+        FiscalCertProtectionService certSvc,
+        RealFiscalEngine realEngine)
     {
-        _db        = db;
-        _sefaz     = sefaz;
-        _jobs      = jobs;
-        _publisher = publisher;
-        _certSvc   = certSvc;
+        _db          = db;
+        _sefaz       = sefaz;
+        _jobs        = jobs;
+        _publisher   = publisher;
+        _certSvc     = certSvc;
+        _realEngine  = realEngine;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -140,6 +148,114 @@ public class FiscalAdminController : ControllerBase
 
         var html = BuildDanfeHtml(sale, fiscalDoc, regCfg, compCfg);
         return Content(html, "text/html; charset=utf-8");
+    }
+
+    // ── Cancelamento NFC-e ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Cancela uma NFC-e autorizada via evento SEFAZ (tpEvento 110111).
+    /// A janela legal de cancelamento (normalmente algumas horas após a autorização,
+    /// varia por UF) é validada pela própria SEFAZ — o erro retornado por ela é repassado.
+    /// Não reverte estoque nem lançamentos financeiros: isso é uma decisão operacional
+    /// separada, a ser feita pelos fluxos de estoque/financeiro já existentes.
+    /// </summary>
+    [HttpPost("sale/{saleId:guid}/cancel")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> CancelNfce(
+        Guid saleId,
+        [FromBody] CancelNfceRequest req,
+        CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.Reason) || req.Reason.Trim().Length < 15)
+            return BadRequest(new { error = "Reason é obrigatório e deve ter ao menos 15 caracteres (exigência da SEFAZ)." });
+
+        var sale = await _db.SaleOrders
+            .FirstOrDefaultAsync(o => o.Id == saleId && o.CompanyId == CompanyId, ct);
+        if (sale is null) return NotFound("Venda não encontrada.");
+
+        if (!sale.FiscalDocumentId.HasValue)
+            return BadRequest(new { error = "Venda não possui documento fiscal." });
+
+        var fiscalDoc = await _db.FiscalDocuments
+            .FirstOrDefaultAsync(d => d.Id == sale.FiscalDocumentId.Value && d.CompanyId == CompanyId, ct);
+        if (fiscalDoc is null) return NotFound("Documento fiscal não encontrado.");
+
+        if (fiscalDoc.FiscalStatus == FiscalDocumentStatus.Cancelled)
+            return Conflict(new { error = "NFC-e já está cancelada." });
+
+        if (fiscalDoc.FiscalStatus != FiscalDocumentStatus.Authorized)
+            return BadRequest(new { error = $"Só é possível cancelar NFC-e autorizada. Status atual: {fiscalDoc.FiscalStatus}." });
+
+        if (string.IsNullOrWhiteSpace(fiscalDoc.AccessKey) || string.IsNullOrWhiteSpace(fiscalDoc.AuthorizationCode))
+            return BadRequest(new { error = "Documento fiscal sem chave de acesso ou protocolo de autorização." });
+
+        // Resolve config fiscal + certificado: caixa primeiro, fallback empresa (mesmo padrão do FiscalQueueProcessorJob).
+        CashRegisterFiscalConfig? regCfg = null;
+        if (sale.CashRegisterId != Guid.Empty)
+            regCfg = await _db.CashRegisterFiscalConfigs
+                .FirstOrDefaultAsync(c => c.CashRegisterId == sale.CashRegisterId && c.IsActive, ct);
+
+        FiscalConfig? compCfg = null;
+        if (regCfg is null)
+            compCfg = await _db.FiscalConfigs.FirstOrDefaultAsync(f => f.CompanyId == CompanyId && f.IsActive, ct);
+
+        var certBase64Raw = regCfg?.CertificateBase64 ?? compCfg?.CertificateBase64;
+        var certPassRaw   = regCfg?.CertificatePassword ?? compCfg?.CertificatePassword;
+        var cnpj          = regCfg?.Cnpj ?? compCfg?.Cnpj;
+        var uf             = regCfg?.Uf ?? compCfg?.Uf;
+        var sefazEnv      = regCfg?.SefazEnvironment ?? compCfg?.SefazEnvironment ?? SefazEnvironment.Homologacao;
+
+        var certBase64 = _certSvc.Unprotect(certBase64Raw);
+        var certPassword = _certSvc.Unprotect(certPassRaw);
+
+        if (string.IsNullOrWhiteSpace(certBase64) || string.IsNullOrWhiteSpace(cnpj) || string.IsNullOrWhiteSpace(uf))
+            return BadRequest(new { error = "Certificado, CNPJ ou UF não configurados para esta empresa/caixa." });
+
+        var certBytes = Convert.FromBase64String(certBase64);
+        var cancelReq = new FiscalCancelRequest(
+            AccessKey: fiscalDoc.AccessKey,
+            AuthorizationProtocol: fiscalDoc.AuthorizationCode,
+            Reason: req.Reason.Trim(),
+            Cnpj: cnpj,
+            Uf: uf,
+            SefazEnvironment: sefazEnv);
+
+        var result = await _realEngine.CancelWithCertAsync(cancelReq, certBytes, certPassword, ct);
+
+        _db.FiscalAuditLogs.Add(new FiscalAuditLog
+        {
+            CompanyId  = CompanyId,
+            EntityType = "FiscalDocument",
+            EntityId   = fiscalDoc.Id,
+            Action     = result.Success ? "Cancelled" : "CancelRejected",
+            NewStatus  = result.Success ? FiscalDocumentStatus.Cancelled.ToString() : fiscalDoc.FiscalStatus.ToString(),
+            ActorType  = "Admin",
+            Details    = result.Success
+                ? $"{{\"reason\":\"{req.Reason.Trim()}\",\"protocol\":\"{result.Protocol}\"}}"
+                : $"{{\"code\":\"{result.ErrorCode}\",\"msg\":\"{result.ErrorMessage}\"}}",
+        });
+
+        if (!result.Success)
+        {
+            await _db.SaveChangesAsync(ct);
+            return BadRequest(new { error = $"SEFAZ rejeitou o cancelamento: [{result.ErrorCode}] {result.ErrorMessage}" });
+        }
+
+        fiscalDoc.FiscalStatus   = FiscalDocumentStatus.Cancelled;
+        fiscalDoc.CancelReason   = req.Reason.Trim();
+        fiscalDoc.CancelProtocol = result.Protocol;
+        fiscalDoc.CancelledAtUtc = DateTime.UtcNow;
+        fiscalDoc.UpdatedAtUtc   = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            fiscalDocumentId = fiscalDoc.Id,
+            status = fiscalDoc.FiscalStatus.ToString(),
+            cancelProtocol = fiscalDoc.CancelProtocol,
+            cancelledAtUtc = fiscalDoc.CancelledAtUtc,
+        });
     }
 
     private static string BuildDanfeHtml(
@@ -392,6 +508,9 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
                 d.LastAttemptAtUtc,
                 d.CreatedAtUtc,
                 d.UpdatedAtUtc,
+                d.CancelReason,
+                d.CancelProtocol,
+                d.CancelledAtUtc,
                 HasXml           = d.XmlContent != null,
             })
             .ToListAsync(ct);
@@ -432,6 +551,9 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
             d.LastAttemptAtUtc,
             d.CreatedAtUtc,
             d.UpdatedAtUtc,
+            d.CancelReason,
+            d.CancelProtocol,
+            d.CancelledAtUtc,
             d.HasXml,
         }).ToList();
 
@@ -796,6 +918,8 @@ window.onload=function(){{setTimeout(function(){{window.print();}},600);}};
 }
 
 // ── DTO ───────────────────────────────────────────────────────────────────────
+
+public record CancelNfceRequest(string Reason);
 
 public class FiscalConfigDto
 {

@@ -59,11 +59,19 @@ public class RealFiscalEngine : IFiscalEngine
         string reason,
         CancellationToken ct = default)
     {
-        // Cancelamento NFC-e requer evento fiscal (NFeEventoCancNFe4)
-        // Implementação completa na próxima iteração
-        _logger.LogWarning("[RealFiscalEngine] Cancelamento ainda não implementado para NFC-e.");
-        return Task.FromResult(FiscalEngineResult.Rejected("999", "Cancelamento não implementado."));
+        // Cancelamento real exige certificado + CNPJ/UF/protocolo — não estão disponíveis
+        // nesta assinatura simplificada da interface. Use CancelWithCertAsync.
+        _logger.LogWarning("[RealFiscalEngine] CancelAsync (interface simplificada) não suporta cancelamento real — use CancelWithCertAsync.");
+        return Task.FromResult(FiscalEngineResult.Rejected("999", "Use o endpoint de cancelamento (POST /admin/fiscal/sale/{id}/cancel)."));
     }
+
+    /// <summary>Cancela uma NFC-e autorizada via evento SEFAZ (tpEvento 110111), com certificado A1 em bytes.</summary>
+    internal Task<FiscalCancelResult> CancelWithCertAsync(
+        FiscalCancelRequest req,
+        byte[] certBytes,
+        string? certPassword,
+        CancellationToken ct)
+        => _unimake.CancelAsync(req, certBytes, certPassword, ct);
 
     public Task<bool> IsSefazOnlineAsync(string uf, CancellationToken ct = default)
         => Task.FromResult(true); // Unimake verifica online internamente durante Executar()

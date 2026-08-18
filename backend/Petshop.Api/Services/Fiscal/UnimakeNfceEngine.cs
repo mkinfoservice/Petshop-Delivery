@@ -74,6 +74,93 @@ public class UnimakeNfceEngine
         }
     }
 
+    /// <summary>Envia o evento de cancelamento (tpEvento 110111) de uma NFC-e já autorizada.</summary>
+    public async Task<FiscalCancelResult> CancelAsync(
+        FiscalCancelRequest req,
+        byte[] certBytes,
+        string? certPassword,
+        CancellationToken ct = default)
+    {
+        await Task.CompletedTask; // lib é síncrona; mantemos assinatura async para compatibilidade
+
+        try
+        {
+            var cert = new X509Certificate2(
+                certBytes,
+                certPassword ?? "",
+                X509KeyStorageFlags.EphemeralKeySet);
+
+            var tpAmb = req.SefazEnvironment == SefazEnvironment.Producao
+                ? TipoAmbiente.Producao : TipoAmbiente.Homologacao;
+            var uf   = Enum.Parse<UFBrasil>(req.Uf, ignoreCase: true);
+            var cnpj = Digits(req.Cnpj).PadLeft(14, '0');
+
+            const int seq = 1;
+            const string tpEventoCode = "110111"; // Cancelamento
+
+            var detEvento = new DetEventoCanc
+            {
+                DescEvento = "Cancelamento",
+                NProt      = req.AuthorizationProtocol,
+                XJust      = req.Reason,
+                Versao     = "1.00",
+            };
+
+            var infEvento = new InfEvento(detEvento)
+            {
+                Id         = $"ID{tpEventoCode}{req.AccessKey}{seq:D2}",
+                CNPJ       = cnpj,
+                ChNFe      = req.AccessKey,
+                COrgao     = uf,
+                DhEvento   = DateTimeOffset.Now,
+                NSeqEvento = seq,
+                TpAmb      = tpAmb,
+                TpEvento   = TipoEventoNFe.Cancelamento,
+                VerEvento  = "1.00",
+            };
+
+            var envEvento = new EnvEvento
+            {
+                IdLote = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(),
+                Versao = "1.00",
+                Evento = new List<Evento> { new() { InfEvento = infEvento, Versao = "1.00" } },
+            };
+
+            var config = new Configuracao
+            {
+                TipoDFe            = TipoDFe.NFCe,
+                TipoAmbiente       = tpAmb,
+                CertificadoDigital = cert,
+            };
+
+            _logger.LogInformation(
+                "[Unimake] Cancelando NFC-e chave {ChNFe} — protocolo original {NProt}.",
+                req.AccessKey, req.AuthorizationProtocol);
+
+            var svc = new Unimake.Business.DFe.Servicos.NFCe.RecepcaoEvento(envEvento, config);
+            svc.Executar();
+
+            var infRet = svc.Result?.RetEvento?.FirstOrDefault()?.InfEvento;
+            if (infRet is null)
+                return FiscalCancelResult.Failed("999", "Resposta da SEFAZ sem infEvento.");
+
+            _logger.LogInformation(
+                "[Unimake] Cancelamento — cStat={CStat} xMotivo={XMotivo} nProt={NProt}",
+                infRet.CStat, infRet.XMotivo, infRet.NProt);
+
+            // 135/155 = evento de cancelamento registrado e vinculado à NFC-e.
+            if (infRet.CStat is 135 or 155)
+                return FiscalCancelResult.Cancelled(infRet.NProt ?? "");
+
+            return FiscalCancelResult.Failed(infRet.CStat.ToString(), infRet.XMotivo ?? "Rejeitado pela SEFAZ.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Unimake] Exceção ao cancelar NFC-e {ChNFe}.", req.AccessKey);
+            return FiscalCancelResult.Failed("998", ex.Message);
+        }
+    }
+
     // ── Build EnviNFe ─────────────────────────────────────────────────────────
 
     private static EnviNFe BuildEnviNFe(FiscalDocumentRequest req)

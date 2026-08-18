@@ -64,6 +64,17 @@ public class FiscalDocument
     [MaxLength(500)]
     public string? RejectMessage { get; set; }
 
+    // ── Cancelamento ─────────────────────────────────────────────────
+
+    [MaxLength(500)]
+    public string? CancelReason { get; set; }
+
+    /// <summary>Protocolo (nProt) retornado pela SEFAZ para o evento de cancelamento.</summary>
+    [MaxLength(100)]
+    public string? CancelProtocol { get; set; }
+
+    public DateTime? CancelledAtUtc { get; set; }
+
     // ── Tentativas de transmissão ─────────────────────────────────────
 
     public int TransmissionAttempts { get; set; } = 0;

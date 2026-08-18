@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminFetch } from "@/features/admin/auth/adminFetch";
 import {
   Loader2, FileText, Filter, ChevronLeft, ChevronRight,
-  AlertTriangle, RefreshCw, Send, Printer, Trash2,
+  AlertTriangle, RefreshCw, Send, Printer, Trash2, Ban,
 } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,6 +39,9 @@ interface FiscalDocumentItem {
   authorizationDateTimeUtc: string | null;
   lastAttemptAtUtc: string | null;
   createdAtUtc: string;
+  cancelReason: string | null;
+  cancelProtocol: string | null;
+  cancelledAtUtc: string | null;
   hasXml: boolean;
 }
 
@@ -88,6 +91,17 @@ async function cleanupContingency(keep: number) {
   );
 }
 
+async function cancelNfce(saleOrderId: string, reason: string) {
+  return adminFetch<{ status: string; cancelProtocol: string | null; cancelledAtUtc: string }>(
+    `/admin/fiscal/sale/${saleOrderId}/cancel`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    }
+  );
+}
+
 // ── Status badges ─────────────────────────────────────────────────────────────
 
 const fiscalStatusLabel: Record<string, string> = {
@@ -125,6 +139,17 @@ function ExpandedRow({ doc }: { doc: FiscalDocumentItem }) {
               <span className="text-red-600 font-medium">
                 [{doc.rejectCode}] {doc.rejectMessage}
               </span>
+            </div>
+          )}
+          {doc.fiscalStatus === "Cancelled" && (
+            <div>
+              <span className="text-xs text-gray-500 block mb-1">Cancelamento</span>
+              <span className="text-gray-700">
+                {fmtDateTime(doc.cancelledAtUtc)} — protocolo {doc.cancelProtocol ?? "—"}
+              </span>
+              {doc.cancelReason && (
+                <span className="block text-xs text-gray-500 mt-0.5">Motivo: {doc.cancelReason}</span>
+              )}
             </div>
           )}
           <div className="flex gap-6 text-xs text-gray-600">
@@ -194,6 +219,31 @@ export default function FiscalDocumentsPage() {
     },
     onError: () => setActionMsg("Erro ao disparar transmissão. Tente novamente."),
   });
+
+  const cancelMutation = useMutation({
+    mutationFn: ({ saleOrderId, reason }: { saleOrderId: string; reason: string }) =>
+      cancelNfce(saleOrderId, reason),
+    onSuccess: () => {
+      setActionMsg("NFC-e cancelada com sucesso junto à SEFAZ.");
+      setTimeout(() => setActionMsg(null), 4000);
+      qc.invalidateQueries({ queryKey: ["fiscal-documents"] });
+    },
+    onError: (e: Error) => setActionMsg(`Falha ao cancelar: ${e.message}`),
+  });
+
+  function handleCancel(saleOrderId: string) {
+    const reason = window.prompt(
+      "Motivo do cancelamento (mínimo 15 caracteres — exigido pela SEFAZ):"
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    if (trimmed.length < 15) {
+      setActionMsg("Motivo precisa ter ao menos 15 caracteres.");
+      return;
+    }
+    if (!confirm("Cancelar esta NFC-e junto à SEFAZ? Esta ação é irreversível.")) return;
+    cancelMutation.mutate({ saleOrderId, reason: trimmed });
+  }
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
 
@@ -440,12 +490,25 @@ export default function FiscalDocumentsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => setExpandedId(expandedId === doc.id ? null : doc.id)}
-                          className="text-brand hover:underline text-xs"
-                        >
-                          {expandedId === doc.id ? "Fechar" : "Detalhes"}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {doc.fiscalStatus === "Authorized" && doc.saleOrderId && (
+                            <button
+                              onClick={() => handleCancel(doc.saleOrderId!)}
+                              disabled={cancelMutation.isPending}
+                              title="Cancelar NFC-e junto à SEFAZ"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition"
+                            >
+                              <Ban className="w-3 h-3" />
+                              Cancelar
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setExpandedId(expandedId === doc.id ? null : doc.id)}
+                            className="text-brand hover:underline text-xs"
+                          >
+                            {expandedId === doc.id ? "Fechar" : "Detalhes"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expandedId === doc.id && <ExpandedRow key={`exp-${doc.id}`} doc={doc} />}
