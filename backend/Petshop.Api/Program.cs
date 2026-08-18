@@ -356,6 +356,7 @@ builder.Services.AddScoped<FiscalQueueProcessorJob>();
 builder.Services.AddScoped<FiscalCertProtectionService>();
 builder.Services.AddScoped<ContingencyReprocessJob>();
 builder.Services.AddScoped<Petshop.Api.Services.Fiscal.Jobs.FiscalCertExpiryAlertJob>();
+builder.Services.AddScoped<Petshop.Api.Services.Master.PlanExpirationJob>();
 builder.Services.AddScoped<DavAbandonmentJob>();
 
 // ===============================
@@ -1046,6 +1047,12 @@ using (var scope = app.Services.CreateScope())
     // Alerta de certificado fiscal vencendo/vencido — 1x por dia às 8h
     jobManager.AddOrUpdate<Petshop.Api.Services.Fiscal.Jobs.FiscalCertExpiryAlertJob>(
         "fiscal-cert-expiry-alert",
+        j => j.RunAsync(CancellationToken.None),
+        "0 8 * * *");
+
+    // Enforcement de PlanExpiresAtUtc (carência + suspensão automática) — 1x por dia às 8h
+    jobManager.AddOrUpdate<Petshop.Api.Services.Master.PlanExpirationJob>(
+        "plan-expiration-check",
         j => j.RunAsync(CancellationToken.None),
         "0 8 * * *");
 }
