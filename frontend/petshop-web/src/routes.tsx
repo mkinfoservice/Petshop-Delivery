@@ -14,6 +14,8 @@ const LoyaltyPage = lazy(() => import("./pages/LoyaltyPage"));
 const LoginPage = lazy(() => import("./pages/Login"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
+const TermosPage = lazy(() => import("./pages/Termos"));
+const PrivacidadePage = lazy(() => import("./pages/Privacidade"));
 const OperationCenter = lazy(() => import("@/app/pages/OperationCenter"));
 const MesaPage = lazy(() => import("./pages/MesaPage"));
 
@@ -69,6 +71,7 @@ const MasterLogin = lazy(() => import("./pages/master/Login"));
 const MasterCompanies = lazy(() => import("./pages/master/Companies"));
 const MasterCompanyDetail = lazy(() => import("./pages/master/CompanyDetail"));
 const MasterPlatformWhatsapp = lazy(() => import("./pages/master/PlatformWhatsapp"));
+const MasterLegalEditor = lazy(() => import("./pages/master/LegalEditor"));
 
 const DelivererLogin = lazy(() => import("./pages/deliverer/Login"));
 const DelivererHome = lazy(() => import("./pages/deliverer/Home"));
@@ -115,6 +118,8 @@ export function AppRoutes() {
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/termos" element={<TermosPage />} />
+          <Route path="/privacidade" element={<PrivacidadePage />} />
 
           <Route path="/app" element={<AppPage><OperationCenter /></AppPage>} />
 
@@ -223,6 +228,7 @@ export function AppRoutes() {
           <Route path="/master" element={<MasterGuard><MasterCompanies /></MasterGuard>} />
           <Route path="/master/companies/:id" element={<MasterGuard><MasterCompanyDetail /></MasterGuard>} />
           <Route path="/master/platform/whatsapp" element={<MasterGuard><MasterPlatformWhatsapp /></MasterGuard>} />
+          <Route path="/master/legal" element={<MasterGuard><MasterLegalEditor /></MasterGuard>} />
 
           <Route path="/deliverer/login" element={<DelivererLogin />} />
           <Route path="/deliverer" element={<DelivererGuard><DelivererHome /></DelivererGuard>} />

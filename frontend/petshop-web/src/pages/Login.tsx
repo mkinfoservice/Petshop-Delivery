@@ -130,6 +130,12 @@ export default function LoginPage() {
           <Link to="/forgot-password" className="block text-center text-sm font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
             Esqueci minha senha
           </Link>
+
+          <p className="text-center text-xs" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
+            <Link to="/termos" className="hover:underline">Termos de Uso</Link>
+            {" · "}
+            <Link to="/privacidade" className="hover:underline">Política de Privacidade</Link>
+          </p>
         </form>
       </div>
     </div>

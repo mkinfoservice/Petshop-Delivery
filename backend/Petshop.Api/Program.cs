@@ -976,6 +976,27 @@ using (var scope = app.Services.CreateScope())
     await AddonGroupSeeder.SeedAsync(app.Services);
     await AddonSplitSeeder.SeedAsync(app.Services);
 
+    // Seed idempotente de placeholder para Termos/Privacidade — garante que
+    // /termos e /privacidade nunca fiquem 404 antes da revisão jurídica real.
+    const string legalPlaceholder =
+        "⚠️ AGUARDANDO REVISÃO JURÍDICA — este texto é um placeholder técnico e " +
+        "NÃO tem valor legal. Substitua pelo conteúdo definitivo (Master Admin → Legal) " +
+        "antes de operar com clientes reais.";
+    foreach (var legalType in new[] { "terms", "privacy" })
+    {
+        if (!await db.LegalDocuments.AnyAsync(d => d.DocumentType == legalType))
+        {
+            db.LegalDocuments.Add(new Petshop.Api.Entities.Master.LegalDocument
+            {
+                DocumentType = legalType,
+                Version = "0.0-placeholder",
+                Content = legalPlaceholder,
+                IsActive = true,
+            });
+        }
+    }
+    await db.SaveChangesAsync();
+
     // Migração LGPD: criptografa CPFs que ainda estão em plaintext
     using var cpfScope = app.Services.CreateScope();
     var cpfSvc = cpfScope.ServiceProvider.GetRequiredService<Petshop.Api.Services.Customers.CpfProtectionService>();
