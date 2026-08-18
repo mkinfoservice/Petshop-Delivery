@@ -51,13 +51,13 @@ public class DashboardController : ControllerBase
 
         var rd = routeCounts.ToDictionary(x => x.Status, x => x.Count);
 
-        // Entregadores (Deliverer não tem CompanyId — mostra todos os ativos da plataforma)
+        // Entregadores desta empresa
         var totalDeliverers = await _db.Deliverers
             .AsNoTracking()
-            .CountAsync(ct);
+            .CountAsync(d => d.CompanyId == companyId, ct);
         var activeDeliverers = await _db.Deliverers
             .AsNoTracking()
-            .CountAsync(d => d.IsActive, ct);
+            .CountAsync(d => d.CompanyId == companyId && d.IsActive, ct);
 
         // Entregadores com rota ativa desta empresa
         var deliverersWithRoute = await _db.Routes

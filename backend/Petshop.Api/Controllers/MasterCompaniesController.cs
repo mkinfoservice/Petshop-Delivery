@@ -327,17 +327,18 @@ public class MasterCompaniesController : ControllerBase
             seededProducts = products.Count;
         }
 
-        // 8. Seed entregador padrão (idempotente: skip se já tiver algum)
+        // 8. Seed entregador padrão (idempotente: skip se esta empresa já tiver algum)
         bool seededDeliverer = false;
-        if (req.SeedDeliverer && !await _db.Deliverers.AnyAsync(ct))
+        if (req.SeedDeliverer && !await _db.Deliverers.AnyAsync(d => d.CompanyId == id, ct))
         {
             _db.Deliverers.Add(new Deliverer
             {
-                Name     = "Entregador Padrão",
-                Phone    = "11999999999",
-                Vehicle  = "Moto",
-                PinHash  = BCrypt.Net.BCrypt.HashPassword("1234"),
-                IsActive = true,
+                CompanyId = id,
+                Name      = "Entregador Padrão",
+                Phone     = "11999999999",
+                Vehicle   = "Moto",
+                PinHash   = BCrypt.Net.BCrypt.HashPassword("1234"),
+                IsActive  = true,
             });
             await _db.SaveChangesAsync(ct);
             seededDeliverer = true;
