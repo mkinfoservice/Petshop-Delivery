@@ -1,4 +1,5 @@
 import { getToken, clearToken } from "./auth";
+import { resolveActiveTenantSlugSync } from "@/utils/tenant";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5082";
 
@@ -11,12 +12,14 @@ export async function adminFetch<T = unknown>(
   options: AdminFetchOptions = {}
 ): Promise<T> {
   const token = getToken();
+  const tenantSlug = resolveActiveTenantSlugSync();
 
   const headers: Record<string, string> = {
     // Adiciona Content-Type automaticamente quando há body em string (JSON)
     ...(typeof options.body === "string" ? { "Content-Type": "application/json" } : {}),
     ...(options.headers ?? {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(tenantSlug ? { "X-Tenant-Slug": tenantSlug } : {}),
   };
 
   const res = await fetch(`${API_URL}${path}`, {

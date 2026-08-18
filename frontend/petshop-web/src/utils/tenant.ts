@@ -31,6 +31,25 @@ export function resolveTenantFromHost(): string | null {
   return subdomain;
 }
 
+/**
+ * Slug do tenant ativo, resolvido de forma síncrona (sem round-trip ao backend).
+ * Usado para anexar o header X-Tenant-Slug em toda request autenticada —
+ * necessário porque o Host que chega no backend nunca é o subdomínio do tenant
+ * (frontend na Vercel, backend no Render, domínios distintos).
+ * Retorna null se não for possível determinar (produção fora de subdomínio válido).
+ */
+export function resolveActiveTenantSlugSync(): string | null {
+  const slug = resolveTenantFromHost();
+  if (slug) return slug;
+
+  const hostname = window.location.hostname.toLowerCase();
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  if (!isLocal) return null;
+
+  const fallback = (import.meta.env.VITE_COMPANY_SLUG ?? "").trim().toLowerCase();
+  return fallback || null;
+}
+
 export function shouldResolveTenantFromHost(): boolean {
   const hostname = window.location.hostname.toLowerCase();
   if (hostname === "localhost" || hostname === "127.0.0.1") return false;

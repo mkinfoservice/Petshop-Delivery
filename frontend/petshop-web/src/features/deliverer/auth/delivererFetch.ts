@@ -1,4 +1,5 @@
 import { getDelivererToken, clearDelivererToken } from "./auth";
+import { resolveActiveTenantSlugSync } from "@/utils/tenant";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5082";
 
@@ -11,10 +12,12 @@ export async function delivererFetch<T = unknown>(
   options: FetchOptions = {}
 ): Promise<T> {
   const token = getDelivererToken();
+  const tenantSlug = resolveActiveTenantSlugSync();
 
   const headers: Record<string, string> = {
     ...(options.headers ?? {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(tenantSlug ? { "X-Tenant-Slug": tenantSlug } : {}),
   };
 
   const res = await fetch(`${API_URL}${path}`, {
