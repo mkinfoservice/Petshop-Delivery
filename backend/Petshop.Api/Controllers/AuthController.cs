@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Petshop.Api.Contracts.Auth;
 using Petshop.Api.Data;
 using Petshop.Api.Services;
+using Petshop.Api.Services.Auth;
 
 namespace Petshop.Api.Controllers;
 
@@ -19,17 +20,20 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _db;
     private readonly TenantResolverService _tenantResolver;
     private readonly IWebHostEnvironment _env;
+    private readonly PasswordResetService _passwordReset;
 
     public AuthController(
         IConfiguration config,
         AppDbContext db,
         TenantResolverService tenantResolver,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        PasswordResetService passwordReset)
     {
         _config = config;
         _db = db;
         _tenantResolver = tenantResolver;
         _env = env;
+        _passwordReset = passwordReset;
     }
 
     [HttpPost("login")]
@@ -172,6 +176,56 @@ public class AuthController : ControllerBase
         });
 
         return Ok(new DelivererLoginResponse(token, deliverer.Id, deliverer.Name));
+    }
+
+    // ── Recuperação de senha self-service ──────────────────────────────────────
+
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth_login")]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest req,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(req.Identifier) || string.IsNullOrWhiteSpace(req.Slug))
+            return BadRequest("Identifier e Slug são obrigatórios.");
+
+        var slug = req.Slug.Trim().ToLowerInvariant();
+        var company = await _db.Companies
+            .FirstOrDefaultAsync(c => c.Slug == slug && !c.IsDeleted, ct);
+
+        // Resposta genérica sempre, mesmo se a empresa não existir — evita
+        // enumeração de tenants/usuários via esse endpoint público.
+        const string genericMessage = "Se existir uma conta com esses dados, enviamos um e-mail com instruções.";
+        if (company is null)
+            return Ok(new { message = genericMessage });
+
+        var baseDomain = (_config["TENANT_BASE_DOMAIN"] ?? "vendapps.com.br").Trim('.');
+        var resetUrlBase = _env.IsDevelopment()
+            ? "http://localhost:5173/reset-password"
+            : $"https://{slug}.{baseDomain}/reset-password";
+
+        await _passwordReset.RequestResetAsync(req.Identifier, company.Id, resetUrlBase, ct);
+
+        return Ok(new { message = genericMessage });
+    }
+
+    [HttpPost("reset-password")]
+    [EnableRateLimiting("auth_login")]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordAuthRequest req,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(req.Token) || string.IsNullOrWhiteSpace(req.NewPassword))
+            return BadRequest("Token e NewPassword são obrigatórios.");
+
+        if (req.NewPassword.Length < 6)
+            return BadRequest("A senha deve ter ao menos 6 caracteres.");
+
+        var ok = await _passwordReset.ResetPasswordAsync(req.Token, req.NewPassword, ct);
+        if (!ok)
+            return BadRequest(new { error = "Link inválido, expirado ou já utilizado. Solicite um novo." });
+
+        return Ok(new { message = "Senha redefinida com sucesso. Você já pode entrar com a nova senha." });
     }
 
     private string GenerateToken(List<Claim> claims)

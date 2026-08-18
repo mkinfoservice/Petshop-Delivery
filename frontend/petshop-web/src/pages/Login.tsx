@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Coffee } from "lucide-react";
 import { login } from "@/features/admin/auth/api";
 import { isAuthenticated, saveToken } from "@/features/admin/auth/auth";
@@ -126,6 +126,10 @@ export default function LoginPage() {
           >
             {loading ? "Entrando…" : "Entrar"}
           </button>
+
+          <Link to="/forgot-password" className="block text-center text-sm font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
+            Esqueci minha senha
+          </Link>
         </form>
       </div>
     </div>

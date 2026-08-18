@@ -12,6 +12,8 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const LoyaltyPage = lazy(() => import("./pages/LoyaltyPage"));
 const LoginPage = lazy(() => import("./pages/Login"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const OperationCenter = lazy(() => import("@/app/pages/OperationCenter"));
 const MesaPage = lazy(() => import("./pages/MesaPage"));
 
@@ -111,6 +113,8 @@ export function AppRoutes() {
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           <Route path="/app" element={<AppPage><OperationCenter /></AppPage>} />
 

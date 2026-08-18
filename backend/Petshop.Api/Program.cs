@@ -322,6 +322,7 @@ builder.Services.Configure<AccountingMailSettings>(builder.Configuration.GetSect
 builder.Services.AddScoped<AccountingDataCollectorService>();
 builder.Services.AddScoped<AccountingExportService>();
 builder.Services.AddScoped<AccountingEmailService>();
+builder.Services.AddScoped<Petshop.Api.Services.Auth.PasswordResetService>();
 builder.Services.AddScoped<AccountingDispatchService>();
 builder.Services.AddScoped<AccountingDispatchSchedulerJob>();
 

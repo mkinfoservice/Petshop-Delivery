@@ -100,6 +100,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
     public DbSet<MasterAuditLog> MasterAuditLogs => Set<MasterAuditLog>();
     public DbSet<AdminAlert> AdminAlerts => Set<AdminAlert>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<PlatformWhatsappConfig> PlatformWhatsappConfigs => Set<PlatformWhatsappConfig>();
 
     // ── WhatsApp ──────────────────────────────────────────────
@@ -1260,6 +1261,9 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
         modelBuilder.Entity<Petshop.Api.Entities.Delivery.Deliverer>()
             .HasIndex(d => d.CompanyId);
+
+        modelBuilder.Entity<Petshop.Api.Entities.Master.PasswordResetToken>()
+            .HasIndex(t => t.TokenHash);
 
         // ── Order.TableId ─────────────────────────────────────────────────────
         modelBuilder.Entity<Order>()
