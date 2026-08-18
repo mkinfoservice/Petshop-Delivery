@@ -1252,8 +1252,14 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<Petshop.Api.Entities.Delivery.Route>()
             .HasIndex(r => new { r.Status, r.CreatedAtUtc });
 
+        modelBuilder.Entity<Petshop.Api.Entities.Delivery.Route>()
+            .HasIndex(r => r.CompanyId);
+
         modelBuilder.Entity<RouteStop>()
             .HasIndex(s => new { s.RouteId, s.Sequence });
+
+        modelBuilder.Entity<Petshop.Api.Entities.Delivery.Deliverer>()
+            .HasIndex(d => d.CompanyId);
 
         // ── Order.TableId ─────────────────────────────────────────────────────
         modelBuilder.Entity<Order>()

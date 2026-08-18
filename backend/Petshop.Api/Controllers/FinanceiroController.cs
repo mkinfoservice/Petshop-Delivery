@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Contracts.Financeiro;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Delivery;
+using System.Security.Claims;
 
 namespace Petshop.Api.Controllers;
 
@@ -21,6 +22,8 @@ public class FinanceiroController : ControllerBase
         _logger = logger;
     }
 
+    private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
+
     // =========================================
     // GET /admin/financeiro?period=7
     // =========================================
@@ -32,9 +35,10 @@ public class FinanceiroController : ControllerBase
         var since = DateTime.UtcNow.Date.AddDays(-period + 1);
         const int perDeliveryCents = 1000; // R$10,00 por entrega
 
-        // Paradas entregues no período
+        // Paradas entregues no período (escopadas pela empresa do admin autenticado)
         var deliveredStops = await _db.RouteStops
             .Where(s =>
+                s.Route!.CompanyId == CompanyId &&
                 s.Status == RouteStopStatus.Entregue &&
                 s.DeliveredAtUtc.HasValue &&
                 s.DeliveredAtUtc.Value.Date >= since)
@@ -51,9 +55,10 @@ public class FinanceiroController : ControllerBase
             })
             .ToListAsync(ct);
 
-        // Paradas com falha no período
+        // Paradas com falha no período (escopadas pela empresa do admin autenticado)
         var failedStops = await _db.RouteStops
             .Where(s =>
+                s.Route!.CompanyId == CompanyId &&
                 s.Status == RouteStopStatus.Falhou &&
                 s.FailedAtUtc.HasValue &&
                 s.FailedAtUtc.Value.Date >= since)

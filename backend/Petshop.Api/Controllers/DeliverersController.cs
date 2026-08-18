@@ -5,6 +5,7 @@ using Petshop.Api.Contracts.Delivery;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Delivery;
 using Petshop.Api.Services.Audit;
+using System.Security.Claims;
 
 namespace Petshop.Api.Controllers;
 
@@ -22,6 +23,8 @@ public class DeliverersController : ControllerBase
         _audit = audit;
     }
 
+    private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
+
     // GET /deliverers?isActive=true
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DelivererResponse>>> List(
@@ -29,7 +32,7 @@ public class DeliverersController : ControllerBase
         CancellationToken ct = default
     )
     {
-        var q = _db.Deliverers.AsNoTracking().AsQueryable();
+        var q = _db.Deliverers.AsNoTracking().Where(d => d.CompanyId == CompanyId).AsQueryable();
 
         if (isActive.HasValue)
             q = q.Where(d => d.IsActive == isActive.Value);
@@ -58,7 +61,7 @@ public class DeliverersController : ControllerBase
     )
     {
         var d = await _db.Deliverers.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, ct);
+            .FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == CompanyId, ct);
 
         if (d is null) return NotFound("Entregador não encontrado.");
 
@@ -94,6 +97,7 @@ public class DeliverersController : ControllerBase
         var d = new Deliverer
         {
             Id = Guid.NewGuid(),
+            CompanyId = CompanyId,
             Name = req.Name.Trim(),
             Phone = req.Phone.Trim(),
             Vehicle = req.Vehicle?.Trim() ?? "",
@@ -128,7 +132,7 @@ public class DeliverersController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Name é obrigatório.");
         if (string.IsNullOrWhiteSpace(req.Phone)) return BadRequest("Phone é obrigatório.");
 
-        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == CompanyId, ct);
         if (d is null) return NotFound("Entregador não encontrado.");
 
         d.Name = req.Name.Trim();
@@ -156,7 +160,7 @@ public class DeliverersController : ControllerBase
         CancellationToken ct = default
     )
     {
-        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == CompanyId, ct);
         if (d is null) return NotFound("Entregador não encontrado.");
 
         _db.Deliverers.Remove(d);
@@ -173,7 +177,7 @@ public class DeliverersController : ControllerBase
         CancellationToken ct = default
     )
     {
-        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == CompanyId, ct);
         if (d is null) return NotFound("Entregador não encontrado.");
 
         d.IsActive = active;
@@ -197,7 +201,7 @@ public class DeliverersController : ControllerBase
         if (pinTrimmed.Length < 4 || pinTrimmed.Length > 6 || !pinTrimmed.All(char.IsDigit))
             return BadRequest("Pin deve conter 4 a 6 dígitos numéricos.");
 
-        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var d = await _db.Deliverers.FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == CompanyId, ct);
         if (d is null) return NotFound("Entregador não encontrado.");
 
         d.PinHash = BCrypt.Net.BCrypt.HashPassword(pinTrimmed);

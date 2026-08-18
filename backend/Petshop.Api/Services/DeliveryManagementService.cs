@@ -37,6 +37,7 @@ public class DeliveryManagementService
     }
 
     public async Task<Petshop.Api.Entities.Delivery.Route> CreateRouteAsync(
+        Guid companyId,
         Guid delivererId,
         List<Guid> orderIds,
         string? routeSide = null,
@@ -46,12 +47,15 @@ public class DeliveryManagementService
         if (orderIds is null || orderIds.Count == 0)
             throw new InvalidOperationException("Nenhum pedido informado.");
 
-        var deliverer = await _db.Deliverers.FirstOrDefaultAsync(d => d.Id == delivererId, ct);
+        // Escopo por tenant: entregador e pedidos precisam pertencer à mesma empresa
+        // do admin autenticado — sem isso, um admin da empresa A conseguiria criar
+        // rota usando entregador/pedidos da empresa B só sabendo os Guids.
+        var deliverer = await _db.Deliverers.FirstOrDefaultAsync(d => d.Id == delivererId && d.CompanyId == companyId, ct);
         if (deliverer is null) throw new InvalidOperationException("Entregador não encontrado.");
         if (!deliverer.IsActive) throw new InvalidOperationException("Entregador está inativo.");
 
         var orders = await _db.Orders
-            .Where(o => orderIds.Contains(o.Id))
+            .Where(o => orderIds.Contains(o.Id) && o.CompanyId == companyId)
             .ToListAsync(ct);
 
         if (orders.Count == 0)
@@ -59,8 +63,6 @@ public class DeliveryManagementService
 
         if (orders.Count != orderIds.Distinct().Count())
             throw new InvalidOperationException("Um ou mais pedidos não foram encontrados no banco.");
-
-        var companyId = ResolveSingleCompanyId(orders);
 
         foreach (var o in orders)
         {
@@ -144,6 +146,7 @@ public class DeliveryManagementService
         var route = new Petshop.Api.Entities.Delivery.Route
         {
             Id = Guid.NewGuid(),
+            CompanyId = companyId,
             RouteNumber = routeNumber,
             DelivererId = deliverer.Id,
             Status = RouteStatus.Criada,
@@ -185,19 +188,5 @@ public class DeliveryManagementService
                 s => s.NotifyOrderStatusAsync(o.Id, OrderStatus.SAIU_PARA_ENTREGA, CancellationToken.None));
 
         return route;
-    }
-
-    private static Guid? ResolveSingleCompanyId(List<Order> orders)
-    {
-        var companyIds = orders
-            .Where(o => o.CompanyId.HasValue)
-            .Select(o => o.CompanyId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (companyIds.Count > 1)
-            throw new InvalidOperationException("Os pedidos selecionados pertencem a empresas diferentes.");
-
-        return companyIds.Count == 0 ? null : companyIds[0];
     }
 }

@@ -6,6 +6,9 @@ public class Deliverer
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>Empresa (tenant) dona deste entregador — um entregador pertence a uma única empresa.</summary>
+    public Guid CompanyId { get; set; }
+
     [MaxLength(120)]
     public string Name { get; set; } = "";
 

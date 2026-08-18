@@ -6,6 +6,9 @@ public class Route
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>Empresa (tenant) dona desta rota — derivada dos pedidos que a compõem.</summary>
+    public Guid CompanyId { get; set; }
+
     [MaxLength(30)]
     public string RouteNumber { get; set; } = ""; // ex: RT-20260212-001
 

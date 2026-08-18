@@ -63,6 +63,18 @@ public class RoutesController : ControllerBase
         return null;
     }
 
+    /// <summary>
+    /// CompanyId do admin autenticado. No bypass de dev (Swagger sem token) cai no
+    /// tenant de demo, só para permitir testar localmente — nunca deve ficar ativo em produção.
+    /// </summary>
+    private Guid RequireCompanyId()
+    {
+        var claim = ResolveCompanyIdFromClaims();
+        if (claim.HasValue) return claim.Value;
+        if (SwaggerBypassEnabled) return Petshop.Api.Data.DbSeeder.DevCompanyId;
+        throw new InvalidOperationException("Token sem companyId.");
+    }
+
     // =========================================
     // POST /routes  (criar rota)
     // =========================================
@@ -71,6 +83,7 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         if (request is null)
             return BadRequest("Body inválido.");
@@ -92,6 +105,7 @@ public class RoutesController : ControllerBase
         try
         {
             var route = await _service.CreateRouteAsync(
+                companyId,
                 request.DelivererId,
                 request.OrderIds,
                 request.RouteSide,
@@ -183,6 +197,7 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 20;
@@ -191,6 +206,7 @@ public class RoutesController : ControllerBase
         var q = _db.Routes
             .AsNoTracking()
             .Include(r => r.Deliverer)
+            .Where(r => r.CompanyId == companyId)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -239,12 +255,13 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .AsNoTracking()
             .Include(r => r.Deliverer)
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null)
             return NotFound("Rota não encontrada.");
@@ -290,12 +307,13 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .AsNoTracking()
             .Include(r => r.Stops.OrderBy(s => s.Sequence))
                 .ThenInclude(s => s.Order)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null)
             return NotFound("Rota não encontrada.");
@@ -458,12 +476,13 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .AsNoTracking()
             .Include(r => r.Stops.OrderBy(s => s.Sequence))
                 .ThenInclude(s => s.Order)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null)
             return NotFound("Rota não encontrada.");
@@ -539,10 +558,11 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null) return NotFound("Rota não encontrada.");
 
@@ -574,10 +594,11 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null) return NotFound("Rota não encontrada.");
 
@@ -613,13 +634,14 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         if (req is null || string.IsNullOrWhiteSpace(req.Reason))
             return BadRequest("Reason é obrigatório para marcar falha.");
 
         var route = await _db.Routes
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null) return NotFound("Rota não encontrada.");
 
@@ -656,10 +678,11 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null) return NotFound("Rota não encontrada.");
 
@@ -690,10 +713,11 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         var route = await _db.Routes
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null) return NotFound("Rota não encontrada.");
 
@@ -719,13 +743,14 @@ public class RoutesController : ControllerBase
     {
         var gate = RequireAdmin();
         if (gate != null) return gate;
+        var companyId = RequireCompanyId();
 
         if (req is null || string.IsNullOrWhiteSpace(req.Reason))
             return BadRequest("Reason é obrigatório para cancelar rota.");
 
         var route = await _db.Routes
             .Include(r => r.Stops)
-            .FirstOrDefaultAsync(r => r.Id == routeId, ct);
+            .FirstOrDefaultAsync(r => r.Id == routeId && r.CompanyId == companyId, ct);
 
         if (route is null) return NotFound("Rota não encontrada.");
 
