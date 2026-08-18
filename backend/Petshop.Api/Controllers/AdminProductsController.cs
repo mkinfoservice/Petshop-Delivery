@@ -484,6 +484,10 @@ public class AdminProductsController : ControllerBase
     [HttpDelete("{id:guid}/images/{imageId:guid}")]
     public async Task<IActionResult> DeleteImage(Guid id, Guid imageId, CancellationToken ct)
     {
+        var productExists = await _db.Products
+            .AnyAsync(p => p.Id == id && p.CompanyId == CompanyId, ct);
+        if (!productExists) return NotFound();
+
         var img = await _db.ProductImages
             .FirstOrDefaultAsync(i => i.Id == imageId && i.ProductId == id, ct);
         if (img == null) return NotFound();
@@ -498,6 +502,10 @@ public class AdminProductsController : ControllerBase
     [HttpGet("{id:guid}/price-history")]
     public async Task<IActionResult> GetPriceHistory(Guid id, CancellationToken ct)
     {
+        var productExists = await _db.Products
+            .AnyAsync(p => p.Id == id && p.CompanyId == CompanyId, ct);
+        if (!productExists) return NotFound();
+
         var history = await _db.ProductPriceHistories
             .AsNoTracking()
             .Where(h => h.ProductId == id)
@@ -513,6 +521,10 @@ public class AdminProductsController : ControllerBase
     [HttpGet("{id:guid}/changelogs")]
     public async Task<IActionResult> GetChangeLogs(Guid id, CancellationToken ct)
     {
+        var productExists = await _db.Products
+            .AnyAsync(p => p.Id == id && p.CompanyId == CompanyId, ct);
+        if (!productExists) return NotFound();
+
         var logs = await _db.ProductChangeLogs
             .AsNoTracking()
             .Where(l => l.ProductId == id)
