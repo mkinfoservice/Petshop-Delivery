@@ -176,6 +176,41 @@ public class FiscalQueueProcessorJob
                 return;
             }
 
+            // Guardrail: em SefazEnvironment=Producao é proibido cair no MockFiscalEngine.
+            // Sem isso, uma empresa em produção sem certificado configurado recebia uma
+            // "nota autorizada" fictícia (MockFiscalEngine.IssueAsync) sem nunca contatar a SEFAZ.
+            var sefazEnvironment = registerConfig?.SefazEnvironment
+                ?? fallbackConfig?.SefazEnvironment
+                ?? SefazEnvironment.Homologacao;
+            var hasCertificate = !string.IsNullOrWhiteSpace(certBase64) || !string.IsNullOrWhiteSpace(certPath);
+
+            if (sefazEnvironment == SefazEnvironment.Producao && !hasCertificate)
+            {
+                _logger.LogError(
+                    "[FiscalQueue] BLOQUEADO: empresa {CompanyId} está em SefazEnvironment=Producao sem certificado configurado. " +
+                    "Item {ItemId} marcado como Failed — nenhuma nota fictícia foi emitida.",
+                    item.CompanyId, item.Id);
+
+                item.Status        = FiscalQueueStatus.Failed;
+                item.FailureReason = "SefazEnvironment=Producao sem certificado digital configurado. " +
+                    "Emissão bloqueada para evitar nota fiscal fictícia (MockFiscalEngine) — configure o certificado A1 " +
+                    "em FiscalConfig ou CashRegisterFiscalConfig antes de reprocessar.";
+
+                _db.FiscalAuditLogs.Add(new FiscalAuditLog
+                {
+                    CompanyId  = item.CompanyId,
+                    EntityType = "FiscalQueue",
+                    EntityId   = item.Id,
+                    Action     = "BlockedMissingCertificate",
+                    NewStatus  = FiscalQueueStatus.Failed.ToString(),
+                    ActorType  = "Job",
+                    Details    = "SefazEnvironment=Producao sem certificado — bloqueado para evitar MockFiscalEngine em produção.",
+                });
+
+                await _db.SaveChangesAsync(ct);
+                return;
+            }
+
             // Idempotência: se já autorizada, apenas completa a fila
             if (sale.FiscalDocumentId.HasValue)
             {
