@@ -354,6 +354,7 @@ builder.Services.AddScoped<NfceNumberService>();
 builder.Services.AddScoped<FiscalQueueProcessorJob>();
 builder.Services.AddScoped<FiscalCertProtectionService>();
 builder.Services.AddScoped<ContingencyReprocessJob>();
+builder.Services.AddScoped<Petshop.Api.Services.Fiscal.Jobs.FiscalCertExpiryAlertJob>();
 builder.Services.AddScoped<DavAbandonmentJob>();
 
 // ===============================
@@ -1040,6 +1041,12 @@ using (var scope = app.Services.CreateScope())
         "dav-abandonment-cleanup",
         j => j.ExecuteAsync(CancellationToken.None),
         "0 3 * * *");
+
+    // Alerta de certificado fiscal vencendo/vencido — 1x por dia às 8h
+    jobManager.AddOrUpdate<Petshop.Api.Services.Fiscal.Jobs.FiscalCertExpiryAlertJob>(
+        "fiscal-cert-expiry-alert",
+        j => j.RunAsync(CancellationToken.None),
+        "0 8 * * *");
 }
 
 if (enableSwagger)

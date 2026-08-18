@@ -54,7 +54,7 @@ export function SupplyAlertsPopup() {
             <TriangleAlert color="#f97316" size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold" style={{ color: "var(--text)" }}>Insumos com estoque baixo</h3>
+            <h3 className="text-base font-bold" style={{ color: "var(--text)" }}>Alertas</h3>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>Confirme os alertas para manter o painel atualizado.</p>
           </div>
         </div>
