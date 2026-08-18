@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5082";
 
-export type DelivererLoginRequest = { phone: string; pin: string };
+export type DelivererLoginRequest = { phone: string; pin: string; slug: string };
 export type DelivererLoginResponse = {
   token: string;
   delivererId: string;

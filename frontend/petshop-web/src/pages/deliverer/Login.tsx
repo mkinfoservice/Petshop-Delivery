@@ -6,6 +6,7 @@ import {
   saveDelivererToken,
   saveDelivererInfo,
 } from "@/features/deliverer/auth/auth";
+import { resolveTenantFromHost } from "@/utils/tenant";
 
 const PIN_MIN_LENGTH = 4;
 const PIN_MAX_LENGTH = 6;
@@ -49,10 +50,15 @@ export default function DelivererLogin() {
       setError("Informe o telefone e o PIN com 4 a 6 dígitos.");
       return;
     }
+    const slug = resolveTenantFromHost() ?? (import.meta.env.VITE_COMPANY_SLUG ?? "").trim().toLowerCase();
+    if (!slug) {
+      setError("Não foi possível identificar a empresa deste endereço.");
+      return;
+    }
     try {
       setLoading(true);
       setError("");
-      const res = await delivererLogin({ phone: p, pin: pi });
+      const res = await delivererLogin({ phone: p, pin: pi, slug });
       saveDelivererToken(res.token);
       saveDelivererInfo({ id: res.delivererId, name: res.name });
       navigate("/deliverer", { replace: true });

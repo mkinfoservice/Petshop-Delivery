@@ -114,11 +114,18 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Phone) || string.IsNullOrWhiteSpace(req.Pin))
             return BadRequest("Phone e Pin são obrigatórios.");
 
+        if (string.IsNullOrWhiteSpace(req.Slug))
+            return BadRequest("Slug do tenant é obrigatório.");
+
         // Escopo por tenant: um entregador pertence a uma única empresa. Sem isso,
-        // o mesmo telefone/PIN logava a partir de qualquer subdomínio, veja qual empresa.
-        var company = await _tenantResolver.ResolveCompanyFromHostAsync(Request.Host.Host, _db, ct);
+        // o mesmo telefone/PIN logava a partir de qualquer subdomínio, sem saber qual empresa.
+        // Resolve por slug explícito (não por Host — frontend/Vercel e backend/Render são
+        // domínios distintos, então Request.Host aqui é sempre o domínio do backend).
+        var slug = req.Slug.Trim().ToLowerInvariant();
+        var company = await _db.Companies
+            .FirstOrDefaultAsync(c => c.Slug == slug && !c.IsDeleted, ct);
         if (company is null)
-            return Unauthorized("Subdomínio inválido para login de entregador.");
+            return Unauthorized("Empresa não encontrada.");
 
         var phone = req.Phone.Trim();
         var deliverer = await _db.Deliverers
