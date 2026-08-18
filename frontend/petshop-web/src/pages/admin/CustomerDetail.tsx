@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, anonymizeCustomer } from "@/features/admin/customers/api";
+import { fetchCustomer, anonymizeCustomer, exportCustomerData } from "@/features/admin/customers/api";
 import { getCustomerLoyalty, adjustPoints, type LoyaltyTxnDto } from "@/features/customers/customersApi";
-import { ArrowLeft, Pencil, Loader2, Phone, MapPin, FileText, ShoppingBag, Star, Plus, Minus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2, Phone, MapPin, FileText, ShoppingBag, Star, Plus, Minus, Trash2, Download } from "lucide-react";
 
 function formatCents(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -75,6 +75,26 @@ export default function CustomerDetail() {
   const qc = useQueryClient();
   const [showAdjust, setShowAdjust] = useState(false);
   const [showAnonymize, setShowAnonymize] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    if (!id) return;
+    try {
+      setExporting(true);
+      const data = await exportCustomerData(id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cliente-${id}-dados-lgpd.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const anonymizeMut = useMutation({
     mutationFn: () => anonymizeCustomer(id!),
@@ -173,6 +193,15 @@ export default function CustomerDetail() {
               Desde {formatDate(customer.createdAtUtc)}
             </p>
           </div>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold hover:bg-[--surface-2] transition disabled:opacity-60"
+            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+            title="Exportar dados pessoais (LGPD — direito de acesso/portabilidade)"
+          >
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+          </button>
           <button
             onClick={() => setShowAnonymize(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition"

@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities;
 using Petshop.Api.Entities.Customers;
+using Petshop.Api.Entities.Dav;
+using Petshop.Api.Entities.Pdv;
 using Petshop.Api.Services.Customers;
 using Petshop.Api.Services.Geocoding;
 
@@ -436,6 +438,90 @@ public class CustomersController : ControllerBase
         cfg.MinRedemptionPoints, cfg.MaxDiscountPercent, cfg.UpdatedAtUtc);
 
     // ── LGPD: anonimização de cliente ─────────────────────────────────────────
+
+    /// <summary>
+    /// Exporta todos os dados pessoais do cliente conforme direito de acesso/portabilidade
+    /// da LGPD (Lei 13.709/2018, art. 18). Uso: atendimento a pedido do titular dos dados.
+    /// Requer role admin ou gerente.
+    /// </summary>
+    [HttpGet("{id:guid}/export")]
+    [Authorize(Roles = "admin,gerente")]
+    public async Task<IActionResult> ExportPersonalData(Guid id, CancellationToken ct)
+    {
+        var customer = await _db.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id && c.CompanyId == CompanyId, ct);
+
+        if (customer is null) return NotFound();
+
+        var plaintextCpf = customer.Cpf is not null ? _cpfSvc.Unprotect(customer.Cpf) : null;
+
+        var orders = await _db.Orders
+            .AsNoTracking()
+            .Where(o => o.CustomerId == id && o.CompanyId == CompanyId)
+            .OrderByDescending(o => o.CreatedAtUtc)
+            .Select(o => new { o.PublicId, o.Status, o.TotalCents, o.CreatedAtUtc, o.Address })
+            .ToListAsync(ct);
+
+        var sales = await _db.SaleOrders
+            .AsNoTracking()
+            .Where(s => s.CustomerId == id && s.CompanyId == CompanyId)
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .Select(s => new { s.PublicId, Status = s.Status.ToString(), s.TotalCents, s.CreatedAtUtc, s.CompletedAtUtc })
+            .ToListAsync(ct);
+
+        var quotes = await _db.SalesQuotes
+            .AsNoTracking()
+            .Where(q => q.CustomerId == id && q.CompanyId == CompanyId)
+            .OrderByDescending(q => q.CreatedAtUtc)
+            .Select(q => new { q.PublicId, q.CreatedAtUtc })
+            .ToListAsync(ct);
+
+        var loyalty = await _db.LoyaltyTransactions
+            .AsNoTracking()
+            .Where(t => t.CustomerId == id && t.CompanyId == CompanyId)
+            .OrderByDescending(t => t.CreatedAtUtc)
+            .Select(t => new { t.Points, t.BalanceAfter, t.Description, t.CreatedAtUtc })
+            .ToListAsync(ct);
+
+        var export = new
+        {
+            exportedAtUtc = DateTime.UtcNow,
+            legalBasis = "LGPD (Lei 13.709/2018), art. 18 — direito de acesso e portabilidade.",
+            profile = new
+            {
+                customer.Id,
+                customer.Name,
+                customer.Phone,
+                cpf = plaintextCpf,
+                customer.Email,
+                customer.BirthDate,
+                address = new
+                {
+                    customer.Cep,
+                    customer.Address,
+                    customer.Complement,
+                    customer.Neighborhood,
+                    customer.City,
+                    customer.State,
+                    customer.AddressReference,
+                },
+                customer.Notes,
+                customer.PointsBalance,
+                customer.TotalSpentCents,
+                customer.TotalOrders,
+                customer.CreatedAtUtc,
+            },
+            deliveryOrders = orders,
+            pdvSales = sales,
+            budgetQuotes = quotes,
+            loyaltyTransactions = loyalty,
+        };
+
+        _logger.LogInformation("[LGPD] Exportação de dados do cliente {Id} pela empresa {CompanyId}", id, CompanyId);
+
+        return Ok(export);
+    }
 
     /// <summary>
     /// Anonimiza todos os dados pessoais do cliente conforme LGPD (Lei 13.709/2018).

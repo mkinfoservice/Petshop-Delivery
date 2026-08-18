@@ -49,3 +49,7 @@ export function updateCustomer(id: string, body: UpsertCustomerRequest) {
 export function anonymizeCustomer(id: string) {
   return adminFetch<void>(`/admin/customers/${id}`, { method: "DELETE" });
 }
+
+export function exportCustomerData(id: string) {
+  return adminFetch<Record<string, unknown>>(`/admin/customers/${id}/export`);
+}
