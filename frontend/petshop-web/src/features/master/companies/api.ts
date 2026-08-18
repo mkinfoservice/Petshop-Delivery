@@ -10,6 +10,7 @@ import type {
   ProvisionResultDto,
   ListCompanyCustomDomainsResponse,
   CompanyCustomDomainDto,
+  GoLiveReadinessDto,
 } from "./types";
 
 // ── Companies ─────────────────────────────────────────────────
@@ -30,6 +31,10 @@ export function fetchCompanies(params: {
 
 export function fetchCompany(id: string) {
   return masterFetch<CompanyDetailDto>(`/master/companies/${id}`);
+}
+
+export function fetchGoLiveReadiness(id: string) {
+  return masterFetch<GoLiveReadinessDto>(`/master/companies/${id}/go-live-readiness`);
 }
 
 export function createCompany(body: { name: string; slug: string; segment?: string; plan?: string }) {

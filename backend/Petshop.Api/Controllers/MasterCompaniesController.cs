@@ -24,12 +24,29 @@ public class MasterCompaniesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly MasterAuditService _audit;
     private readonly TenantResolverService _tenantResolver;
+    private readonly TenantGoLiveReadinessService _readiness;
 
-    public MasterCompaniesController(AppDbContext db, MasterAuditService audit, TenantResolverService tenantResolver)
+    public MasterCompaniesController(
+        AppDbContext db,
+        MasterAuditService audit,
+        TenantResolverService tenantResolver,
+        TenantGoLiveReadinessService readiness)
     {
         _db = db;
         _audit = audit;
         _tenantResolver = tenantResolver;
+        _readiness = readiness;
+    }
+
+    // ── GET /master/companies/{id}/go-live-readiness ───────────
+
+    [HttpGet("{id:guid}/go-live-readiness")]
+    public async Task<IActionResult> GetGoLiveReadiness(Guid id, CancellationToken ct = default)
+    {
+        if (!await _db.Companies.AnyAsync(c => c.Id == id && !c.IsDeleted, ct))
+            return NotFound();
+
+        return Ok(await _readiness.EvaluateAsync(id, ct));
     }
 
     // ── GET /master/companies ─────────────────────────────────

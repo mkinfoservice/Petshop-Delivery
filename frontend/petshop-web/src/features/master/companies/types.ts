@@ -126,3 +126,20 @@ export type ProvisionResultDto = {
   seededProducts: number;
   seededDeliverer: boolean;
 };
+
+export type ReadinessStatus = "Ok" | "Warning" | "Blocked";
+
+export type ReadinessCheckDto = {
+  category: "fiscal" | "operacao";
+  key: string;
+  label: string;
+  status: ReadinessStatus;
+  detail: string | null;
+};
+
+export type GoLiveReadinessDto = {
+  companyId: string;
+  scorePercent: number;
+  fiscalReadyForProduction: boolean;
+  checks: ReadinessCheckDto[];
+};

@@ -277,6 +277,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("vendApps");
 builder.Services.AddScoped<Petshop.Api.Services.Master.MasterAuditService>();
 builder.Services.AddScoped<Petshop.Api.Services.Master.MasterCryptoService>();
+builder.Services.AddScoped<Petshop.Api.Services.Master.TenantGoLiveReadinessService>();
 builder.Services.AddScoped<Petshop.Api.Services.Audit.OperationalAuditService>();
 
 // ===============================

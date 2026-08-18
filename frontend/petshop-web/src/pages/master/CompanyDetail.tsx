@@ -12,8 +12,9 @@ import {
   provisionCompany,
   fetchCompanyFeatures, updateCompanyFeatures,
   fetchCompanyDomains, createCompanyDomain, verifyCompanyDomain, deleteCompanyDomain,
+  fetchGoLiveReadiness,
 } from "@/features/master/companies/api";
-import type { CompanyDetailDto, AdminUserDto } from "@/features/master/companies/types";
+import type { CompanyDetailDto, AdminUserDto, ReadinessStatus } from "@/features/master/companies/types";
 
 type Tab = "overview" | "settings" | "admins" | "whatsapp" | "features" | "domains";
 
@@ -27,6 +28,60 @@ function CompanyStatusBadge({ c }: { c: CompanyDetailDto }) {
   if (!c.isActive)
     return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Inativa</span>;
   return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Ativa</span>;
+}
+
+// ── Go-Live Readiness ────────────────────────────────────────
+
+const READINESS_STYLE: Record<ReadinessStatus, { badge: string; icon: string }> = {
+  Ok:      { badge: "bg-green-100 text-green-700", icon: "✓" },
+  Warning: { badge: "bg-amber-100 text-amber-700",  icon: "⚠" },
+  Blocked: { badge: "bg-red-100 text-red-700",      icon: "✕" },
+};
+
+function GoLiveReadinessCard({ companyId }: { companyId: string }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["master", "company", companyId, "go-live-readiness"],
+    queryFn: () => fetchGoLiveReadiness(companyId),
+  });
+
+  if (isLoading) return null;
+  if (isError || !data) return null;
+
+  const fiscalChecks   = data.checks.filter((c) => c.category === "fiscal");
+  const operacaoChecks = data.checks.filter((c) => c.category === "operacao");
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-black text-gray-900">Prontidão para produção</h3>
+        <span className="text-lg font-black" style={{ color: "#7c5cf8" }}>{data.scorePercent}%</span>
+      </div>
+      {!data.fiscalReadyForProduction && (
+        <p className="text-xs text-red-600 font-semibold mb-3">
+          Bloqueado para emissão fiscal real — veja os itens fiscais abaixo.
+        </p>
+      )}
+
+      {[["Fiscal", fiscalChecks], ["Operação", operacaoChecks]].map(([label, list]) => (
+        <div key={label as string} className="mt-3 first:mt-3">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label as string}</p>
+          <div className="space-y-1.5">
+            {(list as typeof data.checks).map((c) => (
+              <div key={c.key} className="flex items-start gap-2">
+                <span className={`shrink-0 mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${READINESS_STYLE[c.status].badge}`}>
+                  {READINESS_STYLE[c.status].icon}
+                </span>
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-gray-800">{c.label}</span>
+                  {c.detail && <p className="text-xs text-gray-400">{c.detail}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ── Overview Tab ──────────────────────────────────────────────
@@ -214,6 +269,8 @@ function OverviewTab({ company, onRefresh }: { company: CompanyDetailDto; onRefr
           </div>
         )}
       </div>
+
+      <GoLiveReadinessCard companyId={company.id} />
 
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3">
