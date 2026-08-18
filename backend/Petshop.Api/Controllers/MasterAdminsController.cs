@@ -62,7 +62,8 @@ public class MasterAdminsController : ControllerBase
 
     /// <summary>
     /// Cria um novo AdminUser para a empresa.
-    /// O username deve ser globalmente único (não se repete entre empresas).
+    /// O username deve ser único dentro da empresa (empresas diferentes podem
+    /// ter o mesmo username — o login escopa por tenant via slug).
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> Create(
@@ -81,8 +82,8 @@ public class MasterAdminsController : ControllerBase
             return BadRequest(new { error = "Password deve ter ao menos 6 caracteres." });
 
         var username = req.Username.Trim();
-        if (await _db.AdminUsers.AnyAsync(u => u.Username == username, ct))
-            return Conflict(new { error = $"Username '{username}' já está em uso." });
+        if (await _db.AdminUsers.AnyAsync(u => u.Username == username && u.CompanyId == companyId, ct))
+            return Conflict(new { error = $"Username '{username}' já está em uso nesta empresa." });
 
         var adminUser = new AdminUser
         {

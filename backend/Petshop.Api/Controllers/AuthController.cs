@@ -51,8 +51,12 @@ public class AuthController : ControllerBase
         }
         var requestUsername = (req.Username ?? "").Trim();
 
-        // Slug do subdomínio atual — adicionado ao JWT como claim auxiliar (boundSlug)
-        var boundSlug = _tenantResolver.ExtractSlug(Request.Host.Host);
+        // Slug do tenant atual — vem explícito do frontend (Request.Host não serve:
+        // frontend/Vercel e backend/Render são domínios distintos). Fallback por Host
+        // mantido só por segurança durante rollout, mas normalmente é sempre null.
+        var boundSlug = !string.IsNullOrWhiteSpace(req.Slug)
+            ? req.Slug.Trim().ToLowerInvariant()
+            : _tenantResolver.ExtractSlug(Request.Host.Host);
 
         // 1. Credenciais estáticas (compatibilidade total com comportamento anterior)
         if (
@@ -79,8 +83,22 @@ public class AuthController : ControllerBase
         }
 
         // 2. AdminUsers criados pelo Wizard (BCrypt)
-        var adminUser = await _db.AdminUsers
-            .FirstOrDefaultAsync(u => u.Username == requestUsername && u.IsActive, ct);
+        // Escopado por empresa quando o slug é conhecido — permite que tenants
+        // diferentes tenham o mesmo username (ex: "admin" em cada um). Sem slug
+        // (frontend antigo em cache), cai no lookup global por compatibilidade.
+        Guid? loginCompanyId = null;
+        if (!string.IsNullOrWhiteSpace(boundSlug))
+        {
+            var loginCompany = await _db.Companies
+                .FirstOrDefaultAsync(c => c.Slug == boundSlug && !c.IsDeleted, ct);
+            loginCompanyId = loginCompany?.Id;
+        }
+
+        var adminQuery = _db.AdminUsers.Where(u => u.Username == requestUsername && u.IsActive);
+        if (loginCompanyId.HasValue)
+            adminQuery = adminQuery.Where(u => u.CompanyId == loginCompanyId.Value);
+
+        var adminUser = await adminQuery.FirstOrDefaultAsync(ct);
 
         if (adminUser is null || !BCrypt.Net.BCrypt.Verify(req.Password, adminUser.PasswordHash))
             return Unauthorized("Credenciais inválidas.");

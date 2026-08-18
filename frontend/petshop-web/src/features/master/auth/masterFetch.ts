@@ -24,15 +24,19 @@ export async function masterFetch<T = unknown>(path: string, options: FetchOptio
   if (!res.ok) {
     const ct = res.headers.get("content-type") ?? "";
     let msg = `Erro HTTP ${res.status}`;
+    let body: unknown;
     try {
       if (ct.includes("application/json")) {
-        const data = (await res.json()) as Record<string, unknown>;
+        body = await res.json();
+        const data = body as Record<string, unknown>;
         msg = (data?.error ?? data?.message ?? JSON.stringify(data)) as string;
       } else {
         msg = await res.text();
       }
     } catch { /* ignore */ }
-    throw new Error(msg);
+    const err = new Error(msg) as Error & { body?: unknown };
+    err.body = body;
+    throw err;
   }
 
   if (res.status === 204) return undefined as T;

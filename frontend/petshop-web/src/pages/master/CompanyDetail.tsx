@@ -14,6 +14,7 @@ import {
   fetchCompanyDomains, createCompanyDomain, verifyCompanyDomain, deleteCompanyDomain,
   fetchGoLiveReadiness,
 } from "@/features/master/companies/api";
+import type { HighRiskFeatureChange } from "@/features/master/companies/api";
 import type { CompanyDetailDto, AdminUserDto, ReadinessStatus } from "@/features/master/companies/types";
 
 type Tab = "overview" | "settings" | "admins" | "whatsapp" | "features" | "domains";
@@ -377,7 +378,10 @@ function OverviewTab({ company, onRefresh }: { company: CompanyDetailDto; onRefr
                       <label className="block text-xs text-gray-500 mb-1">Usuário *</label>
                       <input
                         value={pForm.adminUsername}
-                        onChange={(e) => setPForm((f) => ({ ...f, adminUsername: e.target.value }))}
+                        onChange={(e) => {
+                          setPForm((f) => ({ ...f, adminUsername: e.target.value }));
+                          setPErr(null);
+                        }}
                         className="w-full h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-[#7c5cf8] transition"
                         placeholder="joao.admin"
                       />
@@ -1507,6 +1511,7 @@ function FeaturesTab({ companyId }: { companyId: string }) {
   const qc = useQueryClient();
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [saved, setSaved]     = useState(false);
+  const [pendingHighRisk, setPendingHighRisk] = useState<HighRiskFeatureChange[] | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["master", "features", companyId],
@@ -1517,14 +1522,24 @@ function FeaturesTab({ companyId }: { companyId: string }) {
   useEffect(() => { if (data) setLocal(data.features); }, [data]);
 
   const saveMut = useMutation({
-    mutationFn: () => updateCompanyFeatures(companyId, local!),
+    mutationFn: (confirmHighRisk?: boolean) => updateCompanyFeatures(companyId, local!, confirmHighRisk),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["master", "features", companyId] });
       setSaved(true);
       setSaveErr(null);
+      setPendingHighRisk(null);
       setTimeout(() => setSaved(false), 3000);
     },
-    onError: (e: Error) => setSaveErr(e.message),
+    onError: (e: Error & { body?: { highRiskChanges?: HighRiskFeatureChange[] } }) => {
+      const highRisk = e.body?.highRiskChanges;
+      if (Array.isArray(highRisk) && highRisk.length > 0) {
+        setPendingHighRisk(highRisk);
+        setSaveErr(null);
+      } else {
+        setSaveErr(e.message);
+        setPendingHighRisk(null);
+      }
+    },
   });
 
   if (isLoading || !local) {
@@ -1570,12 +1585,42 @@ function FeaturesTab({ companyId }: { companyId: string }) {
         })}
       </div>
 
+      {pendingHighRisk && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+          <p className="text-sm font-semibold text-amber-800">
+            ⚠ Esta alteração envolve feature(s) de alto risco — confirme antes de aplicar:
+          </p>
+          <ul className="text-sm text-amber-700 space-y-1 pl-4 list-disc">
+            {pendingHighRisk.map((c) => (
+              <li key={c.key}>
+                <strong>{c.label}</strong>: {c.oldEnabled ? "ativado" : "desativado"} → {c.newEnabled ? "ativado" : "desativado"}
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPendingHighRisk(null)}
+              className="h-9 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-white transition"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => saveMut.mutate(true)}
+              disabled={saveMut.isPending}
+              className="h-9 px-4 rounded-xl text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 transition"
+            >
+              {saveMut.isPending ? "Confirmando…" : "Confirmar alteração de alto risco"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {saveErr && <p className="text-sm text-red-600">{saveErr}</p>}
       {saved   && <p className="text-sm text-green-600">✓ Feature flags atualizados!</p>}
 
       <button
-        onClick={() => saveMut.mutate()}
-        disabled={saveMut.isPending || !local}
+        onClick={() => saveMut.mutate(undefined)}
+        disabled={saveMut.isPending || !local || !!pendingHighRisk}
         className="h-10 px-6 rounded-xl font-semibold text-sm text-white disabled:opacity-60 transition hover:brightness-110"
         style={{ background: "linear-gradient(135deg, #7c5cf8, #6d4df2)" }}
       >

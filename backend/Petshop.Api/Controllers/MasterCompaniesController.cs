@@ -260,10 +260,11 @@ public class MasterCompaniesController : ControllerBase
             .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
         if (company is null) return NotFound();
 
-        // 2. Username deve ser globalmente único
+        // 2. Username deve ser único dentro desta empresa (não mais globalmente —
+        // empresas diferentes podem ter o mesmo username, login escopa por tenant).
         var username = req.AdminUsername.Trim();
-        if (await _db.AdminUsers.AnyAsync(u => u.Username == username, ct))
-            return Conflict(new { error = $"Username '{username}' já está em uso." });
+        if (await _db.AdminUsers.AnyAsync(u => u.Username == username && u.CompanyId == id, ct))
+            return Conflict(new { error = $"Username '{username}' já está em uso nesta empresa." });
 
         // 3. Upsert CompanySettings
         bool settingsCreated = false;

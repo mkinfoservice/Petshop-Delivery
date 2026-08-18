@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Coffee } from "lucide-react";
 import { login } from "@/features/admin/auth/api";
 import { isAuthenticated, saveToken } from "@/features/admin/auth/auth";
-import { resolveTenantFromHost, fetchTenantInfo } from "@/utils/tenant";
+import { resolveTenantFromHost, resolveActiveTenantSlugSync, fetchTenantInfo } from "@/utils/tenant";
 
 
 export default function LoginPage() {
@@ -36,7 +36,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await login({ username: u, password: p });
+      const res = await login({ username: u, password: p, slug: resolveActiveTenantSlugSync() });
       saveToken(res.token);
       navigate("/app", { replace: true });
     } catch (err: unknown) {

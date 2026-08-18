@@ -238,14 +238,28 @@ export type CompanyFeaturesDto = {
   features: Record<string, boolean>;
 };
 
+export type HighRiskFeatureChange = {
+  key: string;
+  oldEnabled: boolean;
+  newEnabled: boolean;
+  label: string;
+  group: string;
+  riskLevel: string;
+  requiresExplicitOptIn: boolean;
+};
+
 export function fetchCompanyFeatures(companyId: string) {
   return masterFetch<CompanyFeaturesDto>(`/master/companies/${companyId}/features`);
 }
 
-export function updateCompanyFeatures(companyId: string, features: Record<string, boolean>) {
+export function updateCompanyFeatures(
+  companyId: string,
+  features: Record<string, boolean>,
+  confirmHighRisk?: boolean,
+) {
   return masterFetch<CompanyFeaturesDto>(`/master/companies/${companyId}/features`, {
     method: "PUT",
-    body: JSON.stringify({ features }),
+    body: JSON.stringify({ features, confirmHighRisk }),
   });
 }
 

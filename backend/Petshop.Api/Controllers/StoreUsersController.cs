@@ -80,8 +80,8 @@ public class StoreUsersController : ControllerBase
             return StatusCode(403, new { error = $"Você não tem permissão para criar usuários com role '{req.Role}'." });
 
         var username = req.Username.Trim();
-        if (await _db.AdminUsers.AnyAsync(u => u.Username == username, ct))
-            return Conflict(new { error = $"Username '{username}' já está em uso." });
+        if (await _db.AdminUsers.AnyAsync(u => u.Username == username && u.CompanyId == companyId, ct))
+            return Conflict(new { error = $"Username '{username}' já está em uso nesta empresa." });
 
         var user = new AdminUser
         {
