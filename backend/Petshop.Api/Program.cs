@@ -42,6 +42,24 @@ QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // ===============================
+// Desliga reload-on-change do appsettings.json
+// ===============================
+// CreateBuilder registra os JSON providers com reloadOnChange:true por padrão,
+// o que cria FileSystemWatcher (inotify) por processo. Em containers Linux com
+// limite baixo de inotify (fs.inotify.max_user_instances, comum no Render),
+// isso pode esgotar o limite ao longo do tempo e derrubar o processo com
+// "System.IO.IOException: The configured user limit (128) on the number of
+// inotify instances has been reached". A app não precisa de hot-reload de
+// config em produção (deploy = novo processo), então religa as fontes sem watch.
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .SetBasePath(builder.Environment.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args);
+
+// ===============================
 // Porta dinâmica (Render define PORT)
 // ===============================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5082";
