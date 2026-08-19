@@ -64,25 +64,30 @@ async function listDeliveries(params: {
 // ── Status badges ─────────────────────────────────────────────────────────────
 
 const statusLabel: Record<string, string> = {
-  RECEBIDO:   "Recebido",
-  CONFIRMADO: "Confirmado",
-  ENTREGUE:   "Entregue",
-  CANCELADO:  "Cancelado",
+  RECEBIDO:            "Recebido",
+  EM_PREPARO:          "Em preparo",
+  PRONTO_PARA_ENTREGA: "Pronto p/ entrega",
+  SAIU_PARA_ENTREGA:   "Saiu p/ entrega",
+  ENTREGUE:            "Entregue",
+  CANCELADO:           "Cancelado",
 };
 
 const statusClass: Record<string, string> = {
-  RECEBIDO:   "bg-blue-100 text-blue-700",
-  CONFIRMADO: "bg-yellow-100 text-yellow-800",
-  ENTREGUE:   "bg-green-100 text-green-700",
-  CANCELADO:  "bg-gray-100 text-gray-500",
+  RECEBIDO:            "bg-blue-100 text-blue-700",
+  EM_PREPARO:          "bg-yellow-100 text-yellow-800",
+  PRONTO_PARA_ENTREGA: "bg-orange-100 text-orange-700",
+  SAIU_PARA_ENTREGA:   "bg-purple-100 text-purple-700",
+  ENTREGUE:            "bg-green-100 text-green-700",
+  CANCELADO:           "bg-gray-100 text-gray-500",
 };
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
 type Tab = "open" | "delivered" | "all";
 
+// Statuses de OrderStatus.cs (backend) que ainda não chegaram em ENTREGUE/CANCELADO
 const TAB_CONFIG: Record<Tab, { label: string; statuses: string[] }> = {
-  open:      { label: "Em aberto",   statuses: ["RECEBIDO", "CONFIRMADO"] },
+  open:      { label: "Em aberto",   statuses: ["RECEBIDO", "EM_PREPARO", "PRONTO_PARA_ENTREGA", "SAIU_PARA_ENTREGA"] },
   delivered: { label: "Concluídas",  statuses: ["ENTREGUE"] },
   all:       { label: "Todas",       statuses: [] },
 };
@@ -119,15 +124,16 @@ export default function DeliveriesPage() {
         });
       }
 
-      // Para "Em aberto" (RECEBIDO + CONFIRMADO): buscar os dois e combinar
-      const [r1, r2] = await Promise.all([
-        listDeliveries({ page: 1, pageSize: 50, status: "RECEBIDO", search: search || undefined }),
-        listDeliveries({ page: 1, pageSize: 50, status: "CONFIRMADO", search: search || undefined }),
-      ]);
+      // Para tabs com múltiplos status (ex: "Em aberto"): buscar cada um e combinar
+      const results = await Promise.all(
+        tabConfig.statuses.map(s =>
+          listDeliveries({ page: 1, pageSize: 50, status: s, search: search || undefined })
+        )
+      );
       // Combinar e paginar manualmente
-      const combined = [...r1.items, ...r2.items]
+      const combined = results.flatMap(r => r.items)
         .sort((a, b) => new Date(b.createdAtUtc).getTime() - new Date(a.createdAtUtc).getTime());
-      const total = r1.total + r2.total;
+      const total = results.reduce((sum, r) => sum + r.total, 0);
       const start = (page - 1) * pageSize;
       return { page, pageSize, total, items: combined.slice(start, start + pageSize) };
     },
