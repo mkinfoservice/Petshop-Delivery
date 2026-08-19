@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore vendApps.sln
+
+      - name: Build
+        run: dotnet build vendApps.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test backend/Petshop.Api.Tests/Petshop.Api.Tests.csproj --no-build --configuration Release --logger "console;verbosity=normal"
+
+  frontend:
+    name: Frontend (React/Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/petshop-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # package-lock.json não é versionado neste repo (.gitignore) — usa
+      # npm install (não npm ci, que exige lockfile) e sem cache de lockfile.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type check + build
+        run: npm run build
+
+      - name: Lint
+        # TODO: dívida técnica pré-existente (73 problemas, majoritariamente
+        # react-hooks/set-state-in-effect) nunca foi corrigida porque o lint
+        # estava quebrado (eslint@10 incompatível com typescript-eslint@8 —
+        # corrigido nesta mudança). Deixar non-blocking até a dívida ser paga.
+        run: npm run lint
+        continue-on-error: true
