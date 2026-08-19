@@ -7,8 +7,8 @@ import { usePdv } from "@/features/pdv/PdvContext";
 import {
   createSale, scanBarcode, removeItem, paySale, cancelSale, patchSaleCustomer,
   closeSession, getSessionReport, addMovement, importDav, addItem,
-  evaluateSalePromotions, searchCustomer,
-  type Sale, type CupomData, type SessionReport, type PdvCustomer,
+  evaluateSalePromotions, searchCustomer, searchPendingOrders, generateDavForOrder,
+  type Sale, type CupomData, type SessionReport, type PdvCustomer, type PendingOrder,
 } from "@/features/pdv/api";
 import { adminFetch } from "@/features/admin/auth/adminFetch";
 import type { Product, ProductAddonGroup } from "@/features/catalog/api";
@@ -913,11 +913,20 @@ function PayPanel({
 
 interface DavSummary { id: string; publicId: string; customerName: string; totalCents: number; itemCount: number; status: string; }
 
-function DavSearchModal({ onSelect, onClose }: { onSelect: (code: string) => void; onClose: () => void }) {
-  const [q, setQ]               = useState("");
-  const [results, setResults]   = useState<DavSummary[]>([]);
-  const [loading, setLoading]   = useState(false);
+export type DavSearchResult =
+  | { kind: "dav"; code: string }
+  | { kind: "order"; orderId: string; publicId: string };
 
+const channelLabel: Record<string, string> = { delivery: "Delivery", phone: "Telefone" };
+
+function DavSearchModal({ onSelect, onClose }: { onSelect: (result: DavSearchResult) => void; onClose: () => void }) {
+  const [q, setQ]                     = useState("");
+  const [results, setResults]         = useState<DavSummary[]>([]);
+  const [orderResults, setOrderResults] = useState<PendingOrder[]>([]);
+  const [loading, setLoading]         = useState(false);
+  const [searchingOrders, setSearchingOrders] = useState(false);
+
+  // DAVs em aberto do dia (comportamento original, sem busca no servidor)
   useEffect(() => {
     const from = new Date(); from.setHours(0, 0, 0, 0);
     setLoading(true);
@@ -927,10 +936,26 @@ function DavSearchModal({ onSelect, onClose }: { onSelect: (code: string) => voi
       .finally(() => setLoading(false));
   }, []);
 
+  // Pedidos de delivery/telefone sem DAV ainda: busca no servidor, com debounce
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 3) { setOrderResults([]); return; }
+    setSearchingOrders(true);
+    const timer = setTimeout(() => {
+      searchPendingOrders(term)
+        .then(setOrderResults)
+        .catch(() => setOrderResults([]))
+        .finally(() => setSearchingOrders(false));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [q]);
+
   const fmt = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const filtered = q.trim()
     ? results.filter((d) => d.publicId.toLowerCase().includes(q.toLowerCase()) || d.customerName?.toLowerCase().includes(q.toLowerCase()))
     : results;
+
+  const nothingFound = !loading && !searchingOrders && filtered.length === 0 && orderResults.length === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pb-3 sm:pb-0"
@@ -939,7 +964,7 @@ function DavSearchModal({ onSelect, onClose }: { onSelect: (code: string) => voi
         style={{ background: "var(--bg)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4"
           style={{ borderBottom: `1px solid var(--border)` }}>
-          <h3 className="font-black text-sm" style={{ color: "var(--text)" }}>Buscar Orcamento (DAV)</h3>
+          <h3 className="font-black text-sm" style={{ color: "var(--text)" }}>Buscar Venda (DAV / Delivery)</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center"
             style={{ background: "var(--surface-2)" }}>
             <X size={13} style={{ color: "var(--text-muted)" }} />
@@ -950,17 +975,17 @@ function DavSearchModal({ onSelect, onClose }: { onSelect: (code: string) => voi
             style={{ border: `1.5px solid var(--border)`, background: "var(--bg)" }}>
             <Search size={14} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)}
-              placeholder="Codigo ou nome do cliente..."
+              placeholder="Codigo, nome, telefone ou CPF..."
               className="flex-1 text-sm bg-transparent outline-none placeholder-opacity-50"
               style={{ color: "var(--text)" }} />
           </div>
         </div>
         <div className="overflow-y-auto flex-1 px-2 pb-3">
           {loading && <p className="text-center py-6 text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</p>}
-          {!loading && filtered.length === 0 && <p className="text-center py-6 text-sm" style={{ color: "var(--text-muted)", opacity: 0.6 }}>Nenhum orcamento encontrado.</p>}
+          {nothingFound && <p className="text-center py-6 text-sm" style={{ color: "var(--text-muted)", opacity: 0.6 }}>Nenhuma venda encontrada.</p>}
           {filtered.map((d) => (
             <button key={d.id} type="button"
-              onClick={() => { onSelect(d.publicId); onClose(); }}
+              onClick={() => { onSelect({ kind: "dav", code: d.publicId }); onClose(); }}
               className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left transition hover:bg-amber-50/60"
             >
               <div>
@@ -970,6 +995,27 @@ function DavSearchModal({ onSelect, onClose }: { onSelect: (code: string) => voi
                 </p>
               </div>
               <p className="text-sm font-black" style={{ color: "var(--text)" }}>{fmt(d.totalCents)}</p>
+            </button>
+          ))}
+          {searchingOrders && <p className="text-center py-3 text-xs" style={{ color: "var(--text-muted)" }}>Buscando pedidos...</p>}
+          {orderResults.map((o) => (
+            <button key={o.id} type="button"
+              onClick={() => { onSelect({ kind: "order", orderId: o.id, publicId: o.publicId }); onClose(); }}
+              className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left transition hover:bg-blue-50/60"
+            >
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(59,130,246,0.12)", color: "#2563eb" }}>
+                    {channelLabel[o.channel] ?? o.channel}
+                  </span>
+                  <p className="text-sm font-bold" style={{ color: "var(--brand-accent)" }}>{o.publicId}</p>
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)", opacity: 0.65 }}>
+                  {o.customerName || "-"} · {o.phone || "sem telefone"} · {o.itemCount} item{o.itemCount !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <p className="text-sm font-black" style={{ color: "var(--text)" }}>{fmt(o.totalCents)}</p>
             </button>
           ))}
         </div>
@@ -2278,7 +2324,20 @@ export default function PdvPage() {
       )}
       {showDavSearch && (
         <DavSearchModal
-          onSelect={(code) => setDavCode(code)}
+          onSelect={async (result) => {
+            if (result.kind === "dav") {
+              setDavCode(result.code);
+              return;
+            }
+            // Pedido de delivery/telefone sem DAV ainda: gera na hora (idempotente)
+            try {
+              const { davPublicId } = await generateDavForOrder(result.orderId);
+              setDavCode(davPublicId.replace(/^DAV-/i, ""));
+              flash(`DAV gerado para o pedido ${result.publicId}. Clique em Importar.`, true);
+            } catch (e: unknown) {
+              flash(e instanceof Error ? e.message : "Erro ao gerar DAV do pedido", false);
+            }
+          }}
           onClose={() => setShowDavSearch(false)}
         />
       )}

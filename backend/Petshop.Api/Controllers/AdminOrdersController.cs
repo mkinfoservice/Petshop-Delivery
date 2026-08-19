@@ -293,7 +293,7 @@ public class AdminOrdersController : ControllerBase
     /// Útil para importar pedidos no caixa antes de marcar como ENTREGUE.
     /// </summary>
     [HttpPost("{idOrNumber}/generate-dav")]
-    [Authorize(Roles = "admin,gerente")]
+    [Authorize(Roles = "admin,gerente,atendente")]
     public async Task<IActionResult> GenerateDav(string idOrNumber, CancellationToken ct = default)
     {
         Order? order;

@@ -70,10 +70,13 @@ public class DavController : ControllerBase
         {
             var s = search.Trim();
             var pattern = $"%{s}%";
+            var digits = new string(s.Where(char.IsDigit).ToArray());
             q = q.Where(x =>
                 EF.Functions.ILike(x.PublicId, pattern) ||
                 EF.Functions.ILike(x.CustomerName, pattern) ||
-                (x.CustomerPhone != null && EF.Functions.ILike(x.CustomerPhone, pattern)));
+                (x.CustomerPhone != null && EF.Functions.ILike(x.CustomerPhone, pattern)) ||
+                (digits.Length >= 6 && x.CustomerPhone != null && x.CustomerPhone.Contains(digits)) ||
+                (digits.Length >= 6 && x.CustomerDocument != null && x.CustomerDocument.Contains(digits)));
         }
 
         var total = await q.CountAsync(ct);

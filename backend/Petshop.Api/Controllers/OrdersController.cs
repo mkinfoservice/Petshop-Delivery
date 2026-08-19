@@ -18,6 +18,7 @@ using Petshop.Api.Services.Audit;
 using Petshop.Api.Entities.StoreFront;
 using Petshop.Api.Entities.Dav;
 using Petshop.Api.Services.Tenancy;
+using Petshop.Api.Services.Customers;
 using System.Security.Claims;
 
 namespace Petshop.Api.Controllers;
@@ -36,8 +37,9 @@ public class OrdersController : ControllerBase
     private readonly PromotionEngine _promotionEngine;
     private readonly OperationalAuditService _audit;
     private readonly IPublishEndpoint _publisher;
+    private readonly CpfProtectionService _cpfSvc;
 
-    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, PrintService print, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit, IPublishEndpoint publisher)
+    public OrdersController(AppDbContext db, IGeocodingService geo, ViaCepService viaCep, IConfiguration config, ILogger<OrdersController> logger, PrintService print, PlanFeatureService planFeatures, PromotionEngine promotionEngine, OperationalAuditService audit, IPublishEndpoint publisher, CpfProtectionService cpfSvc)
     {
         _db = db;
         _geo = geo;
@@ -49,6 +51,7 @@ public class OrdersController : ControllerBase
         _promotionEngine = promotionEngine;
         _audit = audit;
         _publisher = publisher;
+        _cpfSvc = cpfSvc;
     }
 
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
@@ -305,6 +308,73 @@ public class OrdersController : ControllerBase
             .ToListAsync(ct);
 
         return Ok(new ListOrdersResponse(page, pageSize, total, items));
+    }
+
+    // =========================
+    // GET /orders/pdv-search
+    // =========================
+    // Busca pedidos de delivery/telefone que ainda nao tem DAV convertido,
+    // para o caixa localizar e dar baixa (importar pro PDV) por codigo,
+    // nome, telefone ou CPF. Nao inclui pedidos de mesa nem vendas PDV.
+    [Authorize(Roles = "admin,gerente,atendente")]
+    [HttpGet("pdv-search")]
+    public async Task<IActionResult> PdvSearch([FromQuery] string? q, CancellationToken ct = default)
+    {
+        var term = (q ?? "").Trim();
+        if (term.Length < 3)
+            return Ok(new PdvOrderSearchResponse(Array.Empty<PdvOrderSearchItem>()));
+
+        var digits = new string(term.Where(char.IsDigit).ToArray());
+
+        var query = _db.Orders
+            .AsNoTracking()
+            .Where(o => o.CompanyId == CompanyId
+                     && o.Status != OrderStatus.CANCELADO
+                     && (o.OriginChannel == "delivery" || o.OriginChannel == "phone"
+                         || (o.OriginChannel == null && !o.IsTableOrder && o.OriginSaleOrderId == null))
+                     && !_db.SalesQuotes.Any(dq => dq.OriginOrderId == o.Id
+                                                 && dq.Status != SalesQuoteStatus.Cancelled));
+
+        if (digits.Length == 11)
+        {
+            var cpfHash = _cpfSvc.Hash(digits);
+            query = query.Where(o =>
+                o.PublicId.Contains(term) ||
+                o.CustomerName.Contains(term) ||
+                o.Phone.Contains(digits) ||
+                (o.Customer != null && o.Customer.CpfHash == cpfHash));
+        }
+        else if (digits.Length >= 6)
+        {
+            query = query.Where(o =>
+                o.PublicId.Contains(term) ||
+                o.CustomerName.Contains(term) ||
+                o.Phone.Contains(digits) ||
+                (o.Customer != null && o.Customer.Phone.Contains(digits)));
+        }
+        else
+        {
+            query = query.Where(o =>
+                o.PublicId.Contains(term) ||
+                o.CustomerName.Contains(term));
+        }
+
+        var items = await query
+            .OrderByDescending(o => o.CreatedAtUtc)
+            .Take(20)
+            .Select(o => new PdvOrderSearchItem(
+                o.Id,
+                o.PublicId,
+                o.CustomerName,
+                o.Phone,
+                o.TotalCents,
+                o.Items.Count,
+                o.OriginChannel ?? (o.IsPhoneOrder ? "phone" : "delivery"),
+                o.Status.ToString(),
+                o.CreatedAtUtc))
+            .ToListAsync(ct);
+
+        return Ok(new PdvOrderSearchResponse(items));
     }
 
     // =========================

@@ -272,6 +272,29 @@ export async function importDav(
   });
 }
 
+export interface PendingOrder {
+  id: string;
+  publicId: string;
+  customerName: string;
+  phone: string;
+  totalCents: number;
+  itemCount: number;
+  channel: string;
+  status: string;
+  createdAtUtc: string;
+}
+
+export async function searchPendingOrders(q: string): Promise<PendingOrder[]> {
+  const res = await adminFetch<{ items: PendingOrder[] }>(
+    `/orders/pdv-search?q=${encodeURIComponent(q)}`,
+  );
+  return res.items;
+}
+
+export async function generateDavForOrder(orderIdOrNumber: string): Promise<{ davPublicId: string }> {
+  return adminFetch(`/admin/orders/${orderIdOrNumber}/generate-dav`, { method: "POST" });
+}
+
 // ── Movements (Sangria / Suprimento) ──────────────────────────────────────────
 
 
