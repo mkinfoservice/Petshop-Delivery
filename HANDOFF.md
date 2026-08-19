@@ -1,7 +1,38 @@
 # vendApps — Handoff Técnico
 
-> Documento de onboarding para IA ou desenvolvedor. Reflete o estado atual do repositório (**maio 2026**).  
+> Documento de onboarding para IA ou desenvolvedor. Reflete o estado atual do repositório (**maio 2026**, com adendo de **agosto 2026** abaixo — leia o adendo primeiro, é o mais atual).  
 > Leia antes de qualquer tarefa. Atualize quando entregar algo novo.
+
+---
+
+## 0. Adendo — Prontidão para o 1º cliente (2026-08-18 / 2026-08-19)
+
+Duas sessões seguidas de hardening pré-lançamento. Resumo executivo: **20 commits em produção**, plano em 6 fases (0 a 5), Fases 0-3 completas, Fase 4 em andamento. Detalhe completo (bugs achados, decisões, pendências) na memória do projeto — se você é uma IA com acesso a memória persistente deste repositório, veja `project_golive_hardening.md` e `feedback_tenant_host_resolution.md`. Resumo abaixo pra quem não tem acesso a isso.
+
+**Concluído:**
+- **Fase 0**: `TenantGoLiveReadinessService` — checklist automático de prontidão fiscal/operacional por tenant, card na aba Overview do Master Admin.
+- **Fase 1 (Fiscal)**: guard contra `MockFiscalEngine` silencioso em produção sem certificado; cancelamento real de NFC-e via evento SEFAZ (`POST /admin/fiscal/sale/{id}/cancel`); alerta de vencimento de certificado (`FiscalCertExpiryAlertJob`).
+- **Fase 2 (LGPD/Auth/Plano)**: recuperação de senha self-service; expiração automática de trial/plano (`PlanExpirationJob`, carência de 7 dias); portabilidade de dados LGPD (`GET /admin/customers/{id}/export`); infra versionada de Termos/Privacidade (`/termos`, `/privacidade`, editor em `/master/legal` — **conteúdo ainda é placeholder, precisa de revisão jurídica real**).
+- **Fase 3 (Contingência + Financeiro)**: `ContingencyReprocessJob` reescrito (alerta real + expiração de contingência); módulo Financeiro conectado a PDV/Delivery/Compras (antes só Agenda alimentava `FinancialEntry`).
+- **Fase 4 (iniciada)**: `Petshop.Api.Tests` criado (xUnit + EF Core InMemory, 5 testes de isolamento multi-tenant); health checks `/health/live` e `/health/ready`.
+
+**Bugs cross-tenant achados e corrigidos no caminho (não estavam no plano):**
+`Deliverer`/`Route` sem `CompanyId` nenhum; `FinanceiroController` agregando dado de todos os tenants; 3 endpoints de produto sem revalidar `CompanyId`; `TenantHostValidationMiddleware` nunca validava nada em produção (ver regra abaixo); username de `AdminUser` era único globalmente.
+
+**Regra de arquitetura importante — leia antes de mexer em auth/tenant:**
+`Request.Host.Host` no backend **nunca** reflete o subdomínio do tenant — frontend (Vercel) e backend (Render) são domínios distintos, `Host` chega sempre como `vendapps.onrender.com`. Sempre usar o header `X-Tenant-Slug` (já anexado por `adminFetch.ts`/`delivererFetch.ts` via `resolveActiveTenantSlugSync()`) ou um campo `Slug` explícito no body para endpoints públicos (login, forgot-password). Isso já causou uma regressão real (login de entregador quebrado em produção) quando não seguido.
+
+**Incidentes:**
+- Backend caiu em produção com `IOException` de esgotamento de inotify (limite do container Render) + exit 139. Fix: desligado `reloadOnChange` do `appsettings.json`. Parece resolvido (app respondendo normalmente desde então) mas causa raiz não 100% confirmada.
+- **Aberto agora**: `/health/ready` (novo, deployado em 2026-08-19) retorna 503 em produção, enquanto `/health/live` retorna 200 e o resto da app funciona normalmente. Hipótese não confirmada: `DatabaseHealthCheck.CanConnectAsync()` pode estar esbarrando em limite de conexões do plano Aiven, ou algum problema de DI scope do health check. **Não investigado ainda — próximo passo.**
+
+**Pendente (ordem do plano):**
+1. Investigar `/health/ready` retornando 503.
+2. Teste de restore do Postgres no Aiven — só o usuário faz (console Aiven), nunca confirmado.
+3. Certificado fiscal real — não existe ainda; emissão/cancelamento de NFC-e nunca testados contra SEFAZ de verdade (nem homologação).
+4. Resto da Fase 4: resolver conflito de porta 5432 local (serviço nativo Windows PostgreSQL 17 ocupa a porta que o `docker-compose.yml` deveria usar — bloqueia testes de integração reais); staging real; CI/CD; mais testes (Routes, Financeiro, PDV — usam SQL raw, precisam de Postgres real, não InMemory).
+5. Fase 5 — onboarding wizard fechando no Go-Live Readiness Service.
+6. Comissões/gorjetas não foram conectadas ao Financeiro (deixado fora de escopo deliberadamente em 19/08).
 
 ---
 
