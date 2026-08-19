@@ -110,6 +110,7 @@ const fiscalStatusLabel: Record<string, string> = {
   Rejected:    "Rejeitada",
   Contingency: "Contingência",
   Cancelled:   "Cancelada",
+  Expired:     "Expirada (regularização manual)",
 };
 
 const fiscalStatusClass: Record<string, string> = {
@@ -118,6 +119,7 @@ const fiscalStatusClass: Record<string, string> = {
   Rejected:    "bg-red-100 text-red-700",
   Contingency: "bg-orange-100 text-orange-700",
   Cancelled:   "bg-gray-100 text-gray-500",
+  Expired:     "bg-red-200 text-red-800",
 };
 
 // ── Row expandido ──────────────────────────────────────────────────────────────
@@ -373,6 +375,7 @@ export default function FiscalDocumentsPage() {
               <option value="Rejected">Rejeitada</option>
               <option value="Contingency">Contingência</option>
               <option value="Cancelled">Cancelada</option>
+              <option value="Expired">Expirada</option>
             </select>
           </div>
           <div>
