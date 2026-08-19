@@ -77,6 +77,12 @@ builder.Services
     });
 
 // ===============================
+// Health checks (/health/live, /health/ready)
+// ===============================
+builder.Services.AddHealthChecks()
+    .AddCheck<Petshop.Api.Health.DatabaseHealthCheck>("postgres", tags: new[] { "ready" });
+
+// ===============================
 // SignalR
 // ===============================
 builder.Services.AddSignalR(o =>
@@ -1197,6 +1203,20 @@ app.UseAuthorization();
 app.UseMiddleware<Petshop.Api.Middleware.TenantHostValidationMiddleware>();
 
 app.MapControllers();
+
+// ===============================
+// Health checks
+// ===============================
+// /health/live  — o processo está de pé (sem checar dependências).
+// /health/ready — a API consegue de fato servir tráfego (checa Postgres).
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false,
+});
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+});
 
 // ===============================
 // SignalR Hubs
