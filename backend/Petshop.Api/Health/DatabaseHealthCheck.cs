@@ -22,7 +22,7 @@ public class DatabaseHealthCheck : IHealthCheck
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy("Falha ao conectar no Postgres.", ex);
+            return HealthCheckResult.Unhealthy($"Falha ao conectar no Postgres: {ex.GetType().Name}: {ex.Message}", ex);
         }
     }
 }

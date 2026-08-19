@@ -1216,6 +1216,20 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready"),
+    // TODO(temp-diagnóstico 2026-08-19): expõe a descrição de cada check pra
+    // diagnosticar o 503 sem precisar dos logs do Render. Reverter depois.
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var payload = JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            entries = report.Entries.ToDictionary(
+                e => e.Key,
+                e => new { status = e.Value.Status.ToString(), description = e.Value.Description })
+        });
+        await context.Response.WriteAsync(payload);
+    },
 });
 
 // ===============================
