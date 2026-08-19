@@ -2,9 +2,10 @@ namespace Petshop.Api.Messaging.Contracts;
 
 /// <summary>
 /// Publicado quando um pedido de delivery é marcado como ENTREGUE.
-/// Dispara dois side effects desacoplados via consumers independentes:
+/// Dispara side effects desacoplados via consumers independentes:
 ///   - DavCreationConsumer: cria SalesQuote (DAV) para confirmação fiscal
 ///   - LoyaltyEarnConsumer: acumula pontos de fidelidade se cliente cadastrado
+///   - FinancialEntryConsumer: gera Receita paga no módulo financeiro
 ///
 /// Nota: a notificação WhatsApp de ENTREGUE é publicada separadamente via
 /// WhatsAppNotificationRequestedEvent pelo mesmo UpdateStatus, sem dependência deste evento.
@@ -15,6 +16,7 @@ public record OrderDeliveredEvent
     public Guid  CompanyId     { get; init; }
     public string PublicId     { get; init; } = "";
     public Guid? CustomerId    { get; init; } // null = sem cliente cadastrado, loyalty não roda
+    public int   TotalCents    { get; init; }
     public string? CorrelationId { get; init; }
     public DateTime OccurredAtUtc { get; init; }
 }

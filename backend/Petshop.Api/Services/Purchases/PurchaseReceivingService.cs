@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
+using Petshop.Api.Entities.Financial;
 using Petshop.Api.Entities.Purchases;
 using Petshop.Api.Entities.Stock;
 using Petshop.Api.Services.Stock;
@@ -31,6 +32,7 @@ public class PurchaseReceivingService
     {
         var po = await _db.PurchaseOrders
             .Include(p => p.Items)
+            .Include(p => p.Supplier)
             .FirstOrDefaultAsync(p => p.Id == purchaseOrderId && p.CompanyId == companyId, ct)
             ?? throw new InvalidOperationException("Ordem de compra não encontrada.");
 
@@ -74,6 +76,29 @@ public class PurchaseReceivingService
         po.Status        = PurchaseOrderStatus.Received;
         po.ReceivedAtUtc = DateTime.UtcNow;
         po.UpdatedAtUtc  = DateTime.UtcNow;
+
+        // Lançamento financeiro automático — Despesa pendente (compra a prazo por padrão;
+        // operador marca como paga no módulo Financeiro quando de fato quitar o fornecedor).
+        if (po.TotalCents > 0)
+        {
+            var dueDate = DateOnly.FromDateTime(po.ReceivedAtUtc.Value);
+            var supplierName = po.Supplier?.Name;
+            _db.FinancialEntries.Add(new FinancialEntry
+            {
+                CompanyId     = companyId,
+                Type          = FinancialEntryType.Despesa,
+                Title         = string.IsNullOrWhiteSpace(supplierName)
+                    ? $"Compra #{shortPoId}"
+                    : $"Compra #{shortPoId} — {supplierName}",
+                AmountCents   = po.TotalCents,
+                DueDate       = dueDate,
+                IsPaid        = false,
+                Category      = "Compras",
+                Notes         = po.InvoiceNumber is not null ? $"NF {po.InvoiceNumber}" : null,
+                ReferenceType = "PurchaseOrder",
+                ReferenceId   = po.Id,
+            });
+        }
 
         await _db.SaveChangesAsync(ct);
 

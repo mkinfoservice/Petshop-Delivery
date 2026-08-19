@@ -247,6 +247,13 @@ public class FiscalAdminController : ControllerBase
         fiscalDoc.CancelledAtUtc = DateTime.UtcNow;
         fiscalDoc.UpdatedAtUtc   = DateTime.UtcNow;
 
+        // Reverte o lançamento financeiro automático da venda — nota cancelada não é
+        // mais receita real. O cancelamento em si já fica auditado via FiscalAuditLogs.
+        var linkedEntry = await _db.FinancialEntries.FirstOrDefaultAsync(e =>
+            e.CompanyId == CompanyId && e.ReferenceType == "SaleOrder" && e.ReferenceId == sale.Id, ct);
+        if (linkedEntry is not null)
+            _db.FinancialEntries.Remove(linkedEntry);
+
         await _db.SaveChangesAsync(ct);
 
         return Ok(new

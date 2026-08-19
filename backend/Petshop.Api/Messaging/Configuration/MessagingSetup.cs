@@ -92,6 +92,9 @@ public static class MessagingSetup
         x.AddConsumer<DavCreationConsumer, DavCreationConsumerDefinition>();
         x.AddConsumer<LoyaltyEarnConsumer, LoyaltyEarnConsumerDefinition>();
 
+        // Fase 3 (go-live) — OrderDeliveredEvent: lançamento financeiro automático
+        x.AddConsumer<FinancialEntryConsumer, FinancialEntryConsumerDefinition>();
+
         // Etapa 8 — PDV/fiscal WhatsApp: comprovante NFC-e + fidelidade PDV
         x.AddConsumer<PdvWhatsAppNotificationConsumer, PdvWhatsAppNotificationConsumerDefinition>();
     }

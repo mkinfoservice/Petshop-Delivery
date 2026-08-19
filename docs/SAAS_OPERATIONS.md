@@ -172,7 +172,7 @@ Feature flags controlam quais módulos e funcionalidades cada tenant enxerga. H�
 | `commissions` | Comissões | Cálculo e distribuição de comissões por vendedor |
 | `tips` | Comissões | Pool de gorjetas por sessão |
 | `dav_menu` | Orçamento/DAV | Criação de orçamentos e conversão em pedido |
-| `financial_menu` | Financeiro | Tela de lançamentos e fluxo de caixa — **inativa** |
+| `financial_menu` | Financeiro | Tela de lançamentos e fluxo de caixa — Receita/Despesa geradas automaticamente por venda PDV, pedido delivery entregue e recebimento de compra (2026-08-19); lançamentos manuais continuam disponíveis |
 | `loyalty_program` | Fidelidade | Programa de pontos, resgates e comunicações |
 | `accounting_email_dispatch` | Contabilidade | Fechamento automático e envio ao contador |
 | `own_delivery` | Logística | Rotas, entregadores e rastreamento próprio |

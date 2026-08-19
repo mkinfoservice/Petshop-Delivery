@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities;
 using Petshop.Api.Entities.Dav;
+using Petshop.Api.Entities.Financial;
 using Petshop.Api.Entities.Fiscal;
 using Petshop.Api.Entities.Pdv;
 using Petshop.Api.Messaging.Contracts;
@@ -938,7 +939,25 @@ public class PdvController : ControllerBase
             });
         }
 
-        // Salva apenas INSERTs (SalePayments + StockMovements + FiscalQueue)
+        // Lançamento financeiro automático — Receita paga na hora (venda PDV é à vista).
+        // Dentro da transação principal (não é side effect best-effort como loyalty/WhatsApp):
+        // é dado financeiro núcleo, deve ser atômico com a venda.
+        var financialDueDate = DateOnly.FromDateTime(completedAt);
+        _db.FinancialEntries.Add(new FinancialEntry
+        {
+            CompanyId     = CompanyId,
+            Type          = FinancialEntryType.Receita,
+            Title         = $"Venda PDV",
+            AmountCents   = totalCents,
+            DueDate       = financialDueDate,
+            PaidDate      = financialDueDate,
+            IsPaid        = true,
+            Category      = "Vendas PDV",
+            ReferenceType = "SaleOrder",
+            ReferenceId   = saleId,
+        });
+
+        // Salva apenas INSERTs (SalePayments + StockMovements + FiscalQueue + FinancialEntry)
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 

@@ -407,6 +407,7 @@ public class OrdersController : ControllerBase
                 CompanyId     = CompanyId,
                 PublicId      = order.PublicId,
                 CustomerId    = order.CustomerId,
+                TotalCents    = order.TotalCents,
                 CorrelationId = correlationId,
                 OccurredAtUtc = DateTime.UtcNow
             }, ct);
