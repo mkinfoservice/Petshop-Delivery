@@ -76,11 +76,25 @@ public static class DbSeeder
                 CreatedAtUtc = DateTime.UtcNow
             });
         }
-        else if (existing.Name != name || existing.Slug != slug || existing.Segment != segment)
+        else
         {
-            existing.Name    = name;
-            existing.Slug    = slug;
-            existing.Segment = segment;
+            if (existing.Name != name || existing.Slug != slug || existing.Segment != segment)
+            {
+                existing.Name    = name;
+                existing.Slug    = slug;
+                existing.Segment = segment;
+            }
+
+            // Empresas demo de baseline devem sempre existir e estar acessíveis
+            // (usadas em onboarding/testes) — reativa se ficaram inativas/deletadas
+            // em uma restauração de banco de outro ambiente (ex: troca Aiven → Neon).
+            if (!existing.IsActive || existing.IsDeleted || existing.SuspendedAtUtc is not null)
+            {
+                existing.IsActive       = true;
+                existing.IsDeleted      = false;
+                existing.SuspendedAtUtc = null;
+                existing.SuspendedReason = null;
+            }
         }
         await db.SaveChangesAsync();
 
