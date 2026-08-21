@@ -40,6 +40,11 @@ public class MercadoLivreIntegrationController : ControllerBase
     private Guid CompanyId => Guid.Parse(User.FindFirstValue("companyId")!);
 
     // ── GET /api/integrations/mercadolivre/authorize ──────────────────────────
+    // Retorna a URL em JSON em vez de redirecionar — um clique de botão que
+    // navega direto pra essa rota não consegue enviar o header Authorization
+    // (browser não anexa headers customizados em navegação de topo). O
+    // frontend chama isto via fetch autenticado e só então navega o browser
+    // para a URL retornada.
     [Authorize(Roles = "admin,gerente")]
     [HttpGet("authorize")]
     public async Task<IActionResult> Authorize(CancellationToken ct)
@@ -56,7 +61,7 @@ public class MercadoLivreIntegrationController : ControllerBase
         });
         await _db.SaveChangesAsync(ct);
 
-        return Redirect(_auth.BuildAuthorizeUrl(state));
+        return Ok(new { authorizeUrl = _auth.BuildAuthorizeUrl(state) });
     }
 
     // ── GET /api/integrations/mercadolivre/callback ───────────────────────────

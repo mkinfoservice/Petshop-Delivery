@@ -76,3 +76,14 @@ export async function syncCatalog(id: string): Promise<CatalogSyncResult> {
     method: "POST",
   });
 }
+
+// ── Mercado Livre (OAuth) ──────────────────────────────────────────────────────
+// Fluxo separado do CRUD genérico acima: o vendedor autoriza no próprio
+// Mercado Livre em vez de digitar client id/secret manualmente (como no iFood).
+
+export async function startMercadoLivreConnect(): Promise<string> {
+  const res = await adminFetch<{ authorizeUrl: string }>(
+    "/api/integrations/mercadolivre/authorize",
+  );
+  return res.authorizeUrl;
+}

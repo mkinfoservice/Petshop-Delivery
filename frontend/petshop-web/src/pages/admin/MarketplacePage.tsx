@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   listIntegrations, createIntegration, updateIntegration,
-  deactivateIntegration, syncCatalog,
+  deactivateIntegration, syncCatalog, startMercadoLivreConnect,
   type MarketplaceIntegrationDto, type UpsertIntegrationRequest,
 } from "@/features/marketplace/marketplaceApi";
 import {
@@ -125,13 +125,21 @@ function IntegrationCard({
         style={{ borderColor: "var(--border)" }}
       >
         <div className="flex items-center gap-3">
-          {/* iFood logo placeholder */}
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-base font-black"
-            style={{ background: "rgba(234,76,0,0.12)", color: "#ea4c00" }}
-          >
-            iF
-          </div>
+          {integration.type === "MercadoLivre" ? (
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black"
+              style={{ background: "rgba(255,230,0,0.18)", color: "#8a6d00" }}
+            >
+              ML
+            </div>
+          ) : (
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-base font-black"
+              style={{ background: "rgba(234,76,0,0.12)", color: "#ea4c00" }}
+            >
+              iF
+            </div>
+          )}
           <div>
             <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>
               {integration.displayName}
@@ -195,19 +203,23 @@ function IntegrationCard({
         </div>
       </div>
 
-      {/* Webhook URL */}
-      <div className="px-5 py-3 border-t" style={{ borderColor: "var(--border)" }}>
-        <p className="text-xs mb-1.5" style={{ color: "var(--text-muted)" }}>
-          URL do webhook — configure no portal iFood Parceiro
-        </p>
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono"
-          style={{ background: "var(--surface-2)", color: "var(--text)" }}
-        >
-          <span className="flex-1 truncate">{webhookFull}</span>
-          <CopyButton text={webhookFull} />
+      {/* Webhook URL — só faz sentido para iFood (URL por integração).
+          Mercado Livre usa uma única URL fixa por aplicação, já configurada
+          no painel developer, nada pro lojista copiar aqui. */}
+      {integration.type !== "MercadoLivre" && (
+        <div className="px-5 py-3 border-t" style={{ borderColor: "var(--border)" }}>
+          <p className="text-xs mb-1.5" style={{ color: "var(--text-muted)" }}>
+            URL do webhook — configure no portal iFood Parceiro
+          </p>
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono"
+            style={{ background: "var(--surface-2)", color: "var(--text)" }}
+          >
+            <span className="flex-1 truncate">{webhookFull}</span>
+            <CopyButton text={webhookFull} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Config badges */}
       <div className="flex items-center gap-2 px-5 pb-3">
@@ -238,29 +250,32 @@ function IntegrationCard({
         </div>
       )}
 
-      {/* Actions */}
-      <div
-        className="flex items-center gap-2 px-5 py-3 border-t"
-        style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
-      >
-        <button
-          onClick={handleSync}
-          disabled={syncing || !integration.isActive}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
-          style={{
-            background: "linear-gradient(135deg,#C8953A,#A07230)",
-            color: "#fff",
-          }}
+      {/* Actions — sync manual só existe para iFood por ora (backend rejeita
+          outros tipos); Mercado Livre ainda não tem endpoint de catálogo. */}
+      {integration.type !== "MercadoLivre" && (
+        <div
+          className="flex items-center gap-2 px-5 py-3 border-t"
+          style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
         >
-          <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
-          Sync catálogo
-        </button>
-        {syncMsg && (
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-            {syncMsg}
-          </span>
-        )}
-      </div>
+          <button
+            onClick={handleSync}
+            disabled={syncing || !integration.isActive}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
+            style={{
+              background: "linear-gradient(135deg,#C8953A,#A07230)",
+              color: "#fff",
+            }}
+          >
+            <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
+            Sync catálogo
+          </button>
+          {syncMsg && (
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {syncMsg}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -542,15 +557,36 @@ function Toggle({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+const ML_STATUS_MESSAGE: Record<string, { text: string; ok: boolean }> = {
+  connected: { text: "Mercado Livre conectado com sucesso.", ok: true },
+  ml_denied: { text: "Conexão com o Mercado Livre cancelada.", ok: false },
+  ml_error: { text: "Falha ao conectar com o Mercado Livre — tente novamente.", ok: false },
+};
+
 export default function MarketplacePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<MarketplaceIntegrationDto | null>(null);
+  const [connectingMl, setConnectingMl] = useState(false);
   const qc = useQueryClient();
 
   const { data: integrations = [], isLoading } = useQuery({
     queryKey: ["marketplace"],
     queryFn: listIntegrations,
   });
+
+  const mlParam = new URLSearchParams(window.location.search).get("ml");
+  const mlStatus = mlParam ? ML_STATUS_MESSAGE[mlParam] : null;
+
+  async function handleConnectMercadoLivre() {
+    setConnectingMl(true);
+    try {
+      const url = await startMercadoLivreConnect();
+      window.location.href = url;
+    } catch {
+      setConnectingMl(false);
+      alert("Não foi possível iniciar a conexão com o Mercado Livre.");
+    }
+  }
 
   function openCreate() {
     setEditing(null);
@@ -578,18 +614,41 @@ export default function MarketplacePage() {
             Marketplaces
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
-            Cada integração conecta esta loja a uma conta do iFood.
+            Cada integração conecta esta loja a uma conta de marketplace.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
-        >
-          <Plus size={15} />
-          Nova integração
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleConnectMercadoLivre}
+            disabled={connectingMl}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-60"
+            style={{ background: "#FFE600", color: "#1c1a24" }}
+          >
+            <Plus size={15} />
+            {connectingMl ? "Redirecionando..." : "Conectar Mercado Livre"}
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
+          >
+            <Plus size={15} />
+            Nova integração (iFood)
+          </button>
+        </div>
       </div>
+
+      {mlStatus && (
+        <div
+          className="mb-6 px-4 py-3 rounded-xl text-sm"
+          style={{
+            background: mlStatus.ok ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+            color: mlStatus.ok ? "#16a34a" : "#dc2626",
+          }}
+        >
+          {mlStatus.text}
+        </div>
+      )}
 
       {/* Content */}
       {isLoading ? (
