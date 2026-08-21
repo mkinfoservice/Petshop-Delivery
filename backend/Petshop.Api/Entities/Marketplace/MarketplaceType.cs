@@ -3,5 +3,6 @@ namespace Petshop.Api.Entities.Marketplace;
 public enum MarketplaceType
 {
     IFood = 1,
-    // Rappi = 2,  // reservado para expansão futura
+    MercadoLivre = 2,
+    // Rappi, Magalu, CasasBahia — reservados para expansão futura
 }

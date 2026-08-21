@@ -400,6 +400,21 @@ builder.Services.AddScoped<Petshop.Api.Services.Marketplace.IMarketplaceOrderIng
 builder.Services.AddScoped<Petshop.Api.Services.Marketplace.IMarketplaceStatusCallback>(
     sp => sp.GetRequiredService<Petshop.Api.Services.Marketplace.IFood.iFoodStatusCallbackService>());
 
+builder.Services.AddSingleton<Petshop.Api.Services.Marketplace.MarketplaceCredentialProtectionService>();
+
+// ── Mercado Livre ──────────────────────────────────────────────────────────
+builder.Services.Configure<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOptions>(
+    builder.Configuration.GetSection(Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOptions.SectionName));
+builder.Services.AddHttpClient("mercadolivre", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("vendApps-marketplace/1.0");
+});
+builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreAuthService>();
+builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOrderIngester>();
+builder.Services.AddScoped<Petshop.Api.Services.Marketplace.IMarketplaceOrderIngester>(
+    sp => sp.GetRequiredService<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOrderIngester>());
+
 // ===============================
 // Services — WhatsApp
 // ===============================

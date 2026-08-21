@@ -28,9 +28,20 @@ public class MarketplaceIntegration
     [MaxLength(200)]
     public string ClientId { get; set; } = "";
 
-    /// <summary>OAuth2 clientSecret (armazenado criptografado em produção via env var ou vault).</summary>
+    /// <summary>OAuth2 clientSecret, criptografado via Data Protection API (MarketplaceCredentialProtectionService).</summary>
     [MaxLength(400)]
     public string ClientSecretEncrypted { get; set; } = "";
+
+    /// <summary>Access token OAuth2 (authorization_code), criptografado. Nulo para integrações client_credentials (ex: iFood).</summary>
+    [MaxLength(2000)]
+    public string? AccessTokenEncrypted { get; set; }
+
+    /// <summary>Refresh token OAuth2, criptografado. Usado para renovar o access token sem novo login do vendedor.</summary>
+    [MaxLength(2000)]
+    public string? RefreshTokenEncrypted { get; set; }
+
+    /// <summary>Expiração do access token atual — renovar via refresh token antes desse horário.</summary>
+    public DateTime? TokenExpiresAtUtc { get; set; }
 
     /// <summary>
     /// Token de verificação do webhook (HMAC secret).

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Petshop.Api.Data;
 using Petshop.Api.Entities.Marketplace;
+using Petshop.Api.Services.Marketplace;
 using Petshop.Api.Services.Marketplace.IFood;
 
 namespace Petshop.Api.Controllers;
@@ -19,15 +20,18 @@ public class AdminMarketplaceController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly iFoodCatalogSyncService _catalogSync;
+    private readonly MarketplaceCredentialProtectionService _credentials;
     private readonly ILogger<AdminMarketplaceController> _logger;
 
     public AdminMarketplaceController(
         AppDbContext db,
         iFoodCatalogSyncService catalogSync,
+        MarketplaceCredentialProtectionService credentials,
         ILogger<AdminMarketplaceController> logger)
     {
         _db = db;
         _catalogSync = catalogSync;
+        _credentials = credentials;
         _logger = logger;
     }
 
@@ -81,7 +85,7 @@ public class AdminMarketplaceController : ControllerBase
             MerchantId             = req.MerchantId.Trim(),
             DisplayName            = req.DisplayName?.Trim() ?? req.MerchantId.Trim(),
             ClientId               = req.ClientId.Trim(),
-            ClientSecretEncrypted  = req.ClientSecret.Trim(), // em produção: criptografar via IDataProtector
+            ClientSecretEncrypted  = _credentials.Protect(req.ClientSecret.Trim())!,
             WebhookSecret          = req.WebhookSecret?.Trim(),
             AutoAcceptOrders       = req.AutoAcceptOrders,
             AutoPrint              = req.AutoPrint,
@@ -119,7 +123,7 @@ public class AdminMarketplaceController : ControllerBase
 
         // Só atualiza o secret se foi enviado (não vazio)
         if (!string.IsNullOrWhiteSpace(req.ClientSecret))
-            integration.ClientSecretEncrypted = req.ClientSecret.Trim();
+            integration.ClientSecretEncrypted = _credentials.Protect(req.ClientSecret.Trim())!;
 
         await _db.SaveChangesAsync(ct);
         return ToDto(integration);

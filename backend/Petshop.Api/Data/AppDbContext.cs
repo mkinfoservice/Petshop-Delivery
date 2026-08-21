@@ -116,6 +116,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // ── Marketplace (iFood, etc.) ─────────────────────────────
     public DbSet<MarketplaceIntegration> MarketplaceIntegrations => Set<MarketplaceIntegration>();
     public DbSet<MarketplaceOrder>       MarketplaceOrders       => Set<MarketplaceOrder>();
+    public DbSet<MarketplaceOAuthState>  MarketplaceOAuthStates  => Set<MarketplaceOAuthState>();
 
     // ── PDV ───────────────────────────────────────────────────
     public DbSet<CashRegister>            CashRegisters            => Set<CashRegister>();
@@ -353,6 +354,16 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
         modelBuilder.Entity<MarketplaceOrder>()
             .HasIndex(o => new { o.MarketplaceIntegrationId, o.ExternalOrderId })
+            .IsUnique();
+
+        modelBuilder.Entity<MarketplaceOAuthState>()
+            .HasOne(s => s.Company)
+            .WithMany()
+            .HasForeignKey(s => s.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceOAuthState>()
+            .HasIndex(s => s.State)
             .IsUnique();
 
         // ── ExternalSource ────────────────────────────────────

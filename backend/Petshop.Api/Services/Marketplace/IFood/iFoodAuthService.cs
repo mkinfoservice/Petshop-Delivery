@@ -11,6 +11,7 @@ namespace Petshop.Api.Services.Marketplace.IFood;
 public class iFoodAuthService
 {
     private readonly IHttpClientFactory _http;
+    private readonly MarketplaceCredentialProtectionService _credentials;
     private readonly ILogger<iFoodAuthService> _logger;
 
     // Cache por integrationId → (token, expiresAt)
@@ -19,9 +20,13 @@ public class iFoodAuthService
 
     private const string TokenUrl = "https://merchant-api.ifood.com.br/authentication/v1.0/oauth/token";
 
-    public iFoodAuthService(IHttpClientFactory http, ILogger<iFoodAuthService> logger)
+    public iFoodAuthService(
+        IHttpClientFactory http,
+        MarketplaceCredentialProtectionService credentials,
+        ILogger<iFoodAuthService> logger)
     {
         _http = http;
+        _credentials = credentials;
         _logger = logger;
     }
 
@@ -61,7 +66,7 @@ public class iFoodAuthService
         {
             new KeyValuePair<string, string>("grantType", "client_credentials"),
             new KeyValuePair<string, string>("clientId", integration.ClientId),
-            new KeyValuePair<string, string>("clientSecret", integration.ClientSecretEncrypted),
+            new KeyValuePair<string, string>("clientSecret", _credentials.Unprotect(integration.ClientSecretEncrypted) ?? ""),
         });
 
         var response = await client.PostAsync(TokenUrl, form, ct);
