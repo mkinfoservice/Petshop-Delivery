@@ -617,15 +617,16 @@ using (var scope = app.Services.CreateScope())
         END $$;
         """);
 
-    // Corrige o inverso do backfill acima (achado em 2026-08-22, banco Neon
-    // restaurado de snapshot antigo): __EFMigrationsHistory marca
-    // AddMarketplaceIntegration como já aplicada, mas a tabela nunca existiu
-    // de fato nesse banco. Tentei apagar a entrada do histórico pra forçar
-    // o EF a recriar — não funcionou (histórico continuou "aplicado" mesmo
-    // após o DELETE rodar sem erro). Em vez de depender de entender esse
-    // histórico dessincronizado, cria a tabela direto e de forma idempotente
-    // (mesmo padrão dos safety nets abaixo) — o schema exato é o da migration
-    // original (20260401000001_AddMarketplaceIntegration).
+    // Causa raiz confirmada via Neon MCP em 2026-08-22: a migration
+    // AddMarketplaceIntegration nunca tinha os atributos [Migration]/[DbContext]
+    // (nem Designer.cs) — mesmo problema recorrente já corrigido antes em
+    // outras migrations deste projeto. Sem os atributos, o EF nunca a
+    // "enxergava" como migration válida: nunca ficou registrada no
+    // __EFMigrationsHistory e nunca criava a tabela sozinha. Isso já foi
+    // corrigido no arquivo da migration (atributos adicionados), mas em
+    // produção a tabela precisa existir e o histórico precisa refletir que
+    // essa migration já rodou — cria a tabela de forma idempotente e
+    // registra no histórico, pra próximos deploys não tentarem recriá-la.
     await db.Database.ExecuteSqlRawAsync("""
         CREATE TABLE IF NOT EXISTS "MarketplaceIntegrations" (
             "Id" uuid NOT NULL,
@@ -672,6 +673,13 @@ using (var scope = app.Services.CreateScope())
             ON "MarketplaceOrders" ("MarketplaceIntegrationId", "ExternalOrderId");
         CREATE INDEX IF NOT EXISTS "IX_MarketplaceOrders_OrderId"
             ON "MarketplaceOrders" ("OrderId");
+
+        INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+        SELECT '20260401000001_AddMarketplaceIntegration', '8.0.0'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM "__EFMigrationsHistory"
+            WHERE "MigrationId" = '20260401000001_AddMarketplaceIntegration'
+        );
         """);
 
     await db.Database.MigrateAsync();

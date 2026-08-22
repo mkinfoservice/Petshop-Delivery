@@ -1,11 +1,16 @@
 using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Petshop.Api.Data;
 
 #nullable disable
 
 namespace Petshop.Api.Migrations
 {
     /// <inheritdoc />
+    [Migration("20260401000001_AddMarketplaceIntegration")]
+    [DbContext(typeof(AppDbContext))]
     public partial class AddMarketplaceIntegration : Migration
     {
         /// <inheritdoc />
