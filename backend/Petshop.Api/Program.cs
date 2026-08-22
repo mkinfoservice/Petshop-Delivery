@@ -620,24 +620,58 @@ using (var scope = app.Services.CreateScope())
     // Corrige o inverso do backfill acima (achado em 2026-08-22, banco Neon
     // restaurado de snapshot antigo): __EFMigrationsHistory marca
     // AddMarketplaceIntegration como já aplicada, mas a tabela nunca existiu
-    // de fato nesse banco — sem isso o EF pula a criação da tabela e quebra
-    // (exit 139) na primeira migration seguinte que faz ALTER TABLE nela.
+    // de fato nesse banco. Tentei apagar a entrada do histórico pra forçar
+    // o EF a recriar — não funcionou (histórico continuou "aplicado" mesmo
+    // após o DELETE rodar sem erro). Em vez de depender de entender esse
+    // histórico dessincronizado, cria a tabela direto e de forma idempotente
+    // (mesmo padrão dos safety nets abaixo) — o schema exato é o da migration
+    // original (20260401000001_AddMarketplaceIntegration).
     await db.Database.ExecuteSqlRawAsync("""
-        DO $$
-        BEGIN
-          IF NOT EXISTS (
-              SELECT 1 FROM information_schema.tables
-              WHERE table_name = 'MarketplaceIntegrations'
-          )
-          AND EXISTS (
-              SELECT 1 FROM information_schema.tables
-              WHERE table_name = '__EFMigrationsHistory'
-          )
-          THEN
-            DELETE FROM "__EFMigrationsHistory"
-            WHERE "MigrationId" = '20260401000001_AddMarketplaceIntegration';
-          END IF;
-        END $$;
+        CREATE TABLE IF NOT EXISTS "MarketplaceIntegrations" (
+            "Id" uuid NOT NULL,
+            "CompanyId" uuid NOT NULL,
+            "Type" character varying(30) NOT NULL,
+            "MerchantId" character varying(100) NOT NULL,
+            "DisplayName" character varying(120) NOT NULL,
+            "ClientId" character varying(200) NOT NULL,
+            "ClientSecretEncrypted" character varying(400) NOT NULL,
+            "WebhookSecret" character varying(200),
+            "AutoAcceptOrders" boolean NOT NULL DEFAULT true,
+            "AutoPrint" boolean NOT NULL DEFAULT true,
+            "IsActive" boolean NOT NULL DEFAULT true,
+            "CreatedAtUtc" timestamp with time zone NOT NULL,
+            "LastOrderReceivedAtUtc" timestamp with time zone,
+            "LastCatalogSyncAtUtc" timestamp with time zone,
+            "LastErrorMessage" character varying(500),
+            CONSTRAINT "PK_MarketplaceIntegrations" PRIMARY KEY ("Id"),
+            CONSTRAINT "FK_MarketplaceIntegrations_Companies_CompanyId"
+                FOREIGN KEY ("CompanyId") REFERENCES "Companies"("Id") ON DELETE RESTRICT
+        );
+        CREATE INDEX IF NOT EXISTS "IX_MarketplaceIntegrations_CompanyId"
+            ON "MarketplaceIntegrations" ("CompanyId");
+        CREATE UNIQUE INDEX IF NOT EXISTS "IX_MarketplaceIntegrations_Type_MerchantId"
+            ON "MarketplaceIntegrations" ("Type", "MerchantId");
+
+        CREATE TABLE IF NOT EXISTS "MarketplaceOrders" (
+            "Id" uuid NOT NULL,
+            "MarketplaceIntegrationId" uuid NOT NULL,
+            "OrderId" uuid NOT NULL,
+            "ExternalOrderId" character varying(100) NOT NULL,
+            "ExternalStatus" character varying(60) NOT NULL,
+            "LastCallbackStatus" character varying(60),
+            "ReceivedAtUtc" timestamp with time zone NOT NULL,
+            "LastCallbackAtUtc" timestamp with time zone,
+            "RawPayloadJson" text NOT NULL,
+            CONSTRAINT "PK_MarketplaceOrders" PRIMARY KEY ("Id"),
+            CONSTRAINT "FK_MarketplaceOrders_MarketplaceIntegrations_MarketplaceIntegrationId"
+                FOREIGN KEY ("MarketplaceIntegrationId") REFERENCES "MarketplaceIntegrations"("Id") ON DELETE RESTRICT,
+            CONSTRAINT "FK_MarketplaceOrders_Orders_OrderId"
+                FOREIGN KEY ("OrderId") REFERENCES "Orders"("Id") ON DELETE RESTRICT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS "IX_MarketplaceOrders_MarketplaceIntegrationId_ExternalOrderId"
+            ON "MarketplaceOrders" ("MarketplaceIntegrationId", "ExternalOrderId");
+        CREATE INDEX IF NOT EXISTS "IX_MarketplaceOrders_OrderId"
+            ON "MarketplaceOrders" ("OrderId");
         """);
 
     await db.Database.MigrateAsync();
