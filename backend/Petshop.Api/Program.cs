@@ -617,6 +617,29 @@ using (var scope = app.Services.CreateScope())
         END $$;
         """);
 
+    // Corrige o inverso do backfill acima (achado em 2026-08-22, banco Neon
+    // restaurado de snapshot antigo): __EFMigrationsHistory marca
+    // AddMarketplaceIntegration como já aplicada, mas a tabela nunca existiu
+    // de fato nesse banco — sem isso o EF pula a criação da tabela e quebra
+    // (exit 139) na primeira migration seguinte que faz ALTER TABLE nela.
+    await db.Database.ExecuteSqlRawAsync("""
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+              SELECT 1 FROM information_schema.tables
+              WHERE table_name = 'MarketplaceIntegrations'
+          )
+          AND EXISTS (
+              SELECT 1 FROM information_schema.tables
+              WHERE table_name = '__EFMigrationsHistory'
+          )
+          THEN
+            DELETE FROM "__EFMigrationsHistory"
+            WHERE "MigrationId" = '20260401000001_AddMarketplaceIntegration';
+          END IF;
+        END $$;
+        """);
+
     await db.Database.MigrateAsync();
 
     // ── Safety nets idempotentes (ADD COLUMN IF NOT EXISTS) ──────────────────
