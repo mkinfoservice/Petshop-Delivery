@@ -337,6 +337,11 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<MarketplaceIntegration>()
+            .Property(i => i.Type)
+            .HasConversion<string>()
+            .HasMaxLength(30);
+
+        modelBuilder.Entity<MarketplaceIntegration>()
             .HasIndex(i => new { i.Type, i.MerchantId })
             .IsUnique();
 
