@@ -25,6 +25,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import threading
 import csv
+import datetime
 import io
 import json
 import re
@@ -38,10 +39,11 @@ except ImportError:
     PIL_OK = False
 
 # ── Configurações ─────────────────────────────────────────────────────────────
-API_BASE   = "https://vendapps.onrender.com"
-IMG_SIZE   = 150   # pixels do thumbnail
-IMG_COLS   = 4     # colunas no grid de imagens
-PAGE_SIZE  = 200
+API_BASE        = "https://vendapps.onrender.com"
+IMG_SIZE        = 150   # pixels do thumbnail
+IMG_COLS        = 4     # colunas no grid de imagens
+PAGE_SIZE       = 200
+GCSE_DAILY_LIMIT = 100  # cota gratuita do Google Custom Search — nunca ultrapassa isso por dia
 
 CONFIG_PATH = Path.home() / ".vendapps_enrich_images.json"
 
@@ -53,11 +55,43 @@ def load_config() -> dict:
         return {}
 
 
-def save_config(data: dict) -> None:
+def save_config(updates: dict) -> None:
+    """Faz merge com o config existente — nunca apaga campos não incluídos em `updates`."""
     try:
+        data = load_config()
+        data.update(updates)
         CONFIG_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
     except Exception:
         pass
+
+
+_gcse_quota_lock = threading.Lock()
+
+
+def _gcse_quota_status() -> tuple[int, int]:
+    """Retorna (usado, limite) da cota do dia, sem consumir."""
+    today = datetime.date.today().isoformat()
+    cfg = load_config()
+    used = cfg.get("gcse_quota_used", 0) if cfg.get("gcse_quota_date") == today else 0
+    return used, GCSE_DAILY_LIMIT
+
+
+def _gcse_quota_allow() -> bool:
+    """Verifica e consome 1 unidade da cota diária do Google — nunca deixa passar de
+    GCSE_DAILY_LIMIT buscas/dia, mesmo entre execuções diferentes do app (persistido em disco).
+    Reseta automaticamente à virada do dia (data local)."""
+    today = datetime.date.today().isoformat()
+    with _gcse_quota_lock:
+        cfg = load_config()
+        if cfg.get("gcse_quota_date") != today:
+            cfg["gcse_quota_date"] = today
+            cfg["gcse_quota_used"] = 0
+        used = cfg.get("gcse_quota_used", 0)
+        if used >= GCSE_DAILY_LIMIT:
+            return False
+        cfg["gcse_quota_used"] = used + 1
+        save_config(cfg)
+        return True
 
 # ── Busca de imagens ──────────────────────────────────────────────────────────
 
@@ -74,10 +108,18 @@ LAST_GOOGLE_ERROR: str | None = None
 
 def search_google_cse(query: str, api_key: str, cx: str, n: int = 8) -> list[str]:
     """Google Custom Search JSON API (imagens) — índice real do Google, sem scraping.
-    Requer api_key + cx configurados (ver docstring do arquivo). Cota gratuita: 100/dia.
+    Requer api_key + cx configurados (ver docstring do arquivo). Nunca ultrapassa
+    GCSE_DAILY_LIMIT buscas/dia (persistido em disco), pra nunca gerar cobrança
+    excedente enquanto a cota gratuita não é confirmada como suficiente.
     Erros ficam disponíveis em LAST_GOOGLE_ERROR (nunca lança exceção)."""
     global LAST_GOOGLE_ERROR
     if not api_key or not cx:
+        return []
+    if not _gcse_quota_allow():
+        LAST_GOOGLE_ERROR = (
+            f"Cota diária de {GCSE_DAILY_LIMIT} buscas atingida — "
+            "usando Mercado Livre/Bing/DDG até virar o dia"
+        )
         return []
     try:
         r = requests.get(
@@ -659,6 +701,7 @@ class App(tk.Tk):
         threading.Thread(target=work, daemon=True).start()
 
     def _show_images(self, urls: list[str]):
+        self._update_gcse_label()
         if not urls:
             msg = "Nenhuma imagem encontrada — tente refinar o nome"
             if LAST_GOOGLE_ERROR:
@@ -866,6 +909,7 @@ class App(tk.Tk):
         self._prog_lbl.config(text=f"{done}/{total}  ({pct}%)")
         self._result_lbl.config(
             text=f"✓ {self.n_applied} concluídos   ⏭ {self.n_skipped} pulados")
+        self._update_gcse_label()
 
     def _set_status(self, msg: str):
         self._status_lbl.config(text=msg)
@@ -878,9 +922,14 @@ class App(tk.Tk):
 
     def _update_gcse_label(self):
         configured = bool(self.gcse_key.get().strip() and self.gcse_cx.get().strip())
-        self._gcse_lbl.config(
-            text="✓ Google configurado" if configured else "⚠ Google não configurado (usando Bing/DDG)",
-            fg=self.GREEN if configured else "#f38ba8")
+        if configured:
+            used, limit = _gcse_quota_status()
+            text = f"✓ Google configurado ({used}/{limit} hoje)"
+            fg = self.GREEN if used < limit else "#f38ba8"
+        else:
+            text = "⚠ Google não configurado (usando Bing/DDG)"
+            fg = "#f38ba8"
+        self._gcse_lbl.config(text=text, fg=fg)
 
     def _config_google(self):
         dlg = tk.Toplevel(self)
