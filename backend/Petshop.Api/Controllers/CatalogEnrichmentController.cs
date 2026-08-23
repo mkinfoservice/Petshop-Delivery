@@ -145,8 +145,8 @@ public class CatalogEnrichmentController : ControllerBase
             .Include(s => s.Product)
             .Where(s => s.CompanyId == CompanyId);
 
-        if (!string.IsNullOrWhiteSpace(status))
-            q = q.Where(s => s.Status.ToString() == status);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<NameSuggestionStatus>(status, true, out var statusFilter))
+            q = q.Where(s => s.Status == statusFilter);
 
         if (batchId.HasValue)
             q = q.Where(s => s.BatchId == batchId.Value);
@@ -337,8 +337,8 @@ public class CatalogEnrichmentController : ControllerBase
             .Include(c => c.Product)
             .Where(c => c.CompanyId == CompanyId);
 
-        if (!string.IsNullOrWhiteSpace(status))
-            q = q.Where(c => c.Status.ToString() == status);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ImageCandidateStatus>(status, true, out var statusFilter))
+            q = q.Where(c => c.Status == statusFilter);
 
         if (batchId.HasValue)
             q = q.Where(c => c.BatchId == batchId.Value);
@@ -523,8 +523,8 @@ public class CatalogEnrichmentController : ControllerBase
             .Include(s => s.Product)
             .Where(s => s.CompanyId == CompanyId);
 
-        if (!string.IsNullOrWhiteSpace(status))
-            q = q.Where(s => s.Status.ToString() == status);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<DescriptionSuggestionStatus>(status, true, out var statusFilter))
+            q = q.Where(s => s.Status == statusFilter);
 
         if (batchId.HasValue)
             q = q.Where(s => s.BatchId == batchId.Value);
