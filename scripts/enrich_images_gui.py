@@ -7,6 +7,15 @@ Interface gráfica para buscar e aplicar imagens em produtos sem foto.
 DEPENDÊNCIAS:
     pip install requests duckduckgo-search pillow
 
+GOOGLE CUSTOM SEARCH (recomendado — Bing/DDG são scraping e falham com frequência):
+    1. https://programmablesearchengine.google.com/ → criar mecanismo → ativar
+       "Pesquisar toda a Web" e "Pesquisa de imagens" → copiar o "ID do mecanismo" (cx)
+    2. https://console.cloud.google.com/apis/library/customsearch.googleapis.com
+       → ativar a API → Credenciais → criar chave de API
+    3. No app, clicar em "⚙ Google API" e colar as duas informações (fica salvo local)
+    Cota gratuita: 100 buscas/dia. Acima disso, cobrança de ~US$5 a cada 1000 buscas
+    (precisa ativar faturamento no mesmo projeto do Google Cloud).
+
 GERAR EXE:
     pip install pyinstaller
     pyinstaller --onefile --windowed --name "VendApps Imagens" enrich_images_gui.py
@@ -17,8 +26,10 @@ from tkinter import ttk, filedialog, messagebox
 import threading
 import csv
 import io
+import json
 import re
 import requests
+from pathlib import Path
 
 try:
     from PIL import Image, ImageTk
@@ -32,6 +43,22 @@ IMG_SIZE   = 150   # pixels do thumbnail
 IMG_COLS   = 4     # colunas no grid de imagens
 PAGE_SIZE  = 200
 
+CONFIG_PATH = Path.home() / ".vendapps_enrich_images.json"
+
+
+def load_config() -> dict:
+    try:
+        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_config(data: dict) -> None:
+    try:
+        CONFIG_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
 # ── Busca de imagens ──────────────────────────────────────────────────────────
 
 def _simplify(name: str) -> str:
@@ -40,6 +67,29 @@ def _simplify(name: str) -> str:
     clean = re.sub(r'[^\w\s]', ' ', clean)
     words = [w for w in clean.split() if len(w) >= 3][:5]
     return " ".join(words).strip() or name
+
+
+def search_google_cse(query: str, api_key: str, cx: str, n: int = 8) -> list[str]:
+    """Google Custom Search JSON API (imagens) — índice real do Google, sem scraping.
+    Requer api_key + cx configurados (ver docstring do arquivo). Cota gratuita: 100/dia."""
+    if not api_key or not cx:
+        return []
+    try:
+        r = requests.get(
+            "https://www.googleapis.com/customsearch/v1",
+            params={
+                "key": api_key, "cx": cx, "q": query,
+                "searchType": "image", "num": min(n, 10),
+                "gl": "br", "hl": "pt-BR", "safe": "off",
+            },
+            timeout=12,
+        )
+        if not r.ok:
+            return []
+        items = r.json().get("items", [])
+        return [it["link"] for it in items if it.get("link")]
+    except Exception:
+        return []
 
 
 def search_ml(query: str, barcode: str | None = None, n: int = 5) -> list[str]:
@@ -125,11 +175,17 @@ def _cache_key(query: str) -> str:
     return re.sub(r'\s+', ' ', query.lower().strip())
 
 
-def find_images(name: str, barcode: str | None = None) -> list[str]:
+def find_images(
+    name: str,
+    barcode: str | None = None,
+    gcse_key: str | None = None,
+    gcse_cx: str | None = None,
+) -> list[str]:
     """
-    Busca em cascata: nome EXATO do catálogo primeiro (é o que casa melhor — inclusive
-    é o que funciona colando direto no Google Images) → versão simplificada (sem doses/
-    pesos) só como fallback, quando o nome completo não traz resultado suficiente.
+    Busca em cascata: Google Custom Search (se configurado — mais confiável, sem
+    scraping) → Mercado Livre → Bing/DDG (scraping, fallback). Nome EXATO do catálogo
+    primeiro (é o que casa melhor — inclusive é o que funciona colando direto no Google
+    Images) → versão simplificada (sem doses/pesos) só como último recurso.
     Cache por query normalizada — mesmo resultado não vai ao servidor duas vezes.
     """
     import time
@@ -144,7 +200,7 @@ def find_images(name: str, barcode: str | None = None) -> list[str]:
                 seen.add(u)
                 result.append(u)
 
-    def search_all(q: str, use_ml: bool = True):
+    def search_all(q: str, use_ml: bool = True, use_google: bool = True):
         key = _cache_key(q)
         if key in _IMAGE_CACHE:
             add(_IMAGE_CACHE[key])
@@ -152,6 +208,8 @@ def find_images(name: str, barcode: str | None = None) -> list[str]:
 
         found = []
         sources = []
+        if use_google and gcse_key and gcse_cx:
+            sources.append(lambda: search_google_cse(q, gcse_key, gcse_cx))
         if use_ml:
             sources.append(lambda: search_ml(q, barcode))
         sources += [lambda: search_bing(q), lambda: search_ddg(q)]
@@ -172,7 +230,7 @@ def find_images(name: str, barcode: str | None = None) -> list[str]:
 
     # 2. Nome exato restrito a site:mercadolivre.com.br (fotos de melhor qualidade)
     if len(result) < 4:
-        search_all(f"site:mercadolivre.com.br {raw}", use_ml=False)
+        search_all(f"site:mercadolivre.com.br {raw}", use_ml=False, use_google=False)
 
     # 3. Fallback: versão simplificada (sem doses/pesos) — útil quando o nome completo
     # tem código interno/detalhe que nenhuma fonte indexa exatamente
@@ -270,7 +328,10 @@ class App(tk.Tk):
         self.minsize(900, 600)
         self.configure(bg=self.BG)
 
-        self.token   = tk.StringVar()
+        cfg = load_config()
+        self.token    = tk.StringVar()
+        self.gcse_key = tk.StringVar(value=cfg.get("gcse_key", ""))
+        self.gcse_cx  = tk.StringVar(value=cfg.get("gcse_cx", ""))
         self.products: list[dict] = []
         self.current  = -1
         self.n_applied = 0
@@ -311,6 +372,12 @@ class App(tk.Tk):
         self._btn(src, "💾  Exportar CSV",        "#fab387", self._export_csv).pack(side="left", padx=4)
         self._auto_btn = self._btn(src, "⚡  Automático", "#cba6f7", self._toggle_auto)
         self._auto_btn.pack(side="left", padx=4)
+        self._btn(src, "⚙  Google API", "#f9e2af", self._config_google, fg="#333").pack(side="left", padx=4)
+
+        self._gcse_lbl = tk.Label(src, text="", bg="#2d2d44", fg=self.GRAY,
+                                  font=("Segoe UI", 8))
+        self._gcse_lbl.pack(side="left", padx=(6, 0))
+        self._update_gcse_label()
 
         self._src_info = tk.Label(src, text="", bg="#2d2d44", fg=self.GRAY,
                                   font=("Segoe UI", 9))
@@ -570,7 +637,7 @@ class App(tk.Tk):
         self._search_lbl.config(text="🔍 Buscando...")
 
         def work():
-            urls = find_images(query, barcode)
+            urls = find_images(query, barcode, self.gcse_key.get().strip(), self.gcse_cx.get().strip())
             self.after(0, lambda: self._show_images(urls))
 
         threading.Thread(target=work, daemon=True).start()
@@ -667,7 +734,7 @@ class App(tk.Tk):
                 text=f"Auto: buscando '{n[:40]}'..."))
 
             query = p.get("name", "").strip()
-            urls  = find_images(query, p.get("barcode"))
+            urls  = find_images(query, p.get("barcode"), self.gcse_key.get().strip(), self.gcse_cx.get().strip())
             url   = next((u for u in urls if u and u.startswith("http")), None)
 
             if url and self._auto_running:
@@ -786,6 +853,53 @@ class App(tk.Tk):
             messagebox.showwarning("Token", "Informe o JWT token no campo acima.")
             return False
         return True
+
+    def _update_gcse_label(self):
+        configured = bool(self.gcse_key.get().strip() and self.gcse_cx.get().strip())
+        self._gcse_lbl.config(
+            text="✓ Google configurado" if configured else "⚠ Google não configurado (usando Bing/DDG)",
+            fg=self.GREEN if configured else "#f38ba8")
+
+    def _config_google(self):
+        dlg = tk.Toplevel(self)
+        dlg.title("Configurar Google Custom Search")
+        dlg.configure(bg="white")
+        dlg.geometry("480x260")
+        dlg.resizable(False, False)
+        dlg.transient(self)
+        dlg.grab_set()
+
+        tk.Label(dlg, text="Google Custom Search — busca de imagem oficial",
+                 font=("Segoe UI", 10, "bold"), bg="white"
+                 ).pack(anchor="w", padx=16, pady=(16, 4))
+        tk.Label(dlg,
+                 text="Sem isso, o app usa só Mercado Livre/Bing/DDG (scraping, menos "
+                      "confiável). Cota gratuita: 100 buscas/dia.",
+                 font=("Segoe UI", 8), fg="#888", bg="white", wraplength=440, justify="left"
+                 ).pack(anchor="w", padx=16)
+
+        tk.Label(dlg, text="API Key:", bg="white", font=("Segoe UI", 9)
+                 ).pack(anchor="w", padx=16, pady=(14, 0))
+        key_var = tk.StringVar(value=self.gcse_key.get())
+        tk.Entry(dlg, textvariable=key_var, width=54, font=("Consolas", 9)
+                 ).pack(padx=16, pady=(2, 8))
+
+        tk.Label(dlg, text="Search Engine ID (cx):", bg="white", font=("Segoe UI", 9)
+                 ).pack(anchor="w", padx=16)
+        cx_var = tk.StringVar(value=self.gcse_cx.get())
+        tk.Entry(dlg, textvariable=cx_var, width=54, font=("Consolas", 9)
+                 ).pack(padx=16, pady=(2, 8))
+
+        def _save():
+            self.gcse_key.set(key_var.get().strip())
+            self.gcse_cx.set(cx_var.get().strip())
+            save_config({"gcse_key": self.gcse_key.get(), "gcse_cx": self.gcse_cx.get()})
+            self._update_gcse_label()
+            dlg.destroy()
+
+        tk.Button(dlg, text="Salvar", command=_save, bg=self.ACCENT, fg="white",
+                  font=("Segoe UI", 9, "bold"), relief="flat", padx=14, pady=6,
+                  cursor="hand2").pack(pady=10)
 
     def _err(self, msg: str):
         self._src_info.config(text="Erro")
