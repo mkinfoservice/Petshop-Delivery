@@ -11,11 +11,13 @@ namespace Petshop.Api.Services.Marketplace.MercadoLivre;
 /// respeitando o escopo escolhido em MarketplaceIntegration.CatalogSyncMode
 /// (nunca sincroniza o catálogo inteiro sem essa escolha ser explícita).
 ///
-/// ATENÇÃO — partes que precisam de validação contra conta real antes do
-/// piloto (Fase 4), sinalizadas inline: listing_type_id fixo em
-/// "gold_special", sem endpoint de descrição (POST /items/{id}/description),
-/// GTIN tratado como falha visível (não bloqueia o resto do lote) quando a
-/// categoria exige e o produto não tem.
+/// ATENÇÃO — pontos ainda em aberto, sinalizados inline: listing_type_id
+/// fixo em "gold_special" (exige foto — produto sem imagem falha, correto);
+/// sem endpoint de descrição (POST /items/{id}/description); preço abaixo
+/// do mínimo da categoria falha com a mensagem do próprio Mercado Livre
+/// (não pré-valida). Atributo obrigatório sem valor mapeado (GTIN e outros
+/// fora do conjunto pragmático em ResolveRequiredAttributes) vira falha
+/// visível por produto, não bloqueia o resto do lote.
 /// </summary>
 public class MercadoLivreCatalogSyncService
 {
@@ -92,6 +94,7 @@ public class MercadoLivreCatalogSyncService
             return result;
 
         var products = await _db.Products
+            .Include(p => p.Brand)
             .Where(p => productIds.Contains(p.Id))
             .ToListAsync(ct);
 
@@ -170,16 +173,15 @@ public class MercadoLivreCatalogSyncService
             ?? throw new InvalidOperationException("Não foi possível prever a categoria no Mercado Livre para este produto.");
 
         var attributes = await GetCategoryAttributesAsync(prediction.CategoryId!, client, ct);
-        var itemAttributes = new List<MercadoLivreItemAttributeValue>();
+        var (itemAttributes, missing) = ResolveRequiredAttributes(product, attributes);
 
-        var gtinAttr = attributes.FirstOrDefault(a => a.Id == "GTIN");
-        if (gtinAttr is not null && (gtinAttr.Tags?.Required == true || gtinAttr.Tags?.CatalogRequired == true))
+        if (missing.Count > 0)
         {
-            // vendApps ainda não tem campo de GTIN no cadastro de produto —
-            // sem ele, categorias que exigem GTIN vão falhar aqui de propósito
-            // (visível no LastErrorMessage) em vez de publicar incompleto.
+            // vendApps não tem (ou o produto não preencheu) um valor pro atributo
+            // que essa categoria exige — falha visível em vez de publicar
+            // incompleto/inventar valor. Cadastrar o campo no produto resolve.
             throw new InvalidOperationException(
-                $"Categoria \"{prediction.CategoryName}\" exige GTIN e o produto não tem um cadastrado.");
+                $"Categoria \"{prediction.CategoryName}\" exige atributos que faltam no produto: {string.Join(", ", missing)}.");
         }
 
         var request = new MercadoLivreItemRequest
@@ -192,6 +194,9 @@ public class MercadoLivreCatalogSyncService
                 ? null
                 : new List<MercadoLivrePictureRequest> { new() { Source = product.ImageUrl! } },
             Attributes = itemAttributes.Count > 0 ? itemAttributes : null,
+            // Retirada no local — evita depender de Mercado Envios (ME1/ME2), que
+            // exige adesão prévia na conta do vendedor (decisão de 2026-08-23).
+            Shipping = new MercadoLivreShippingRequest { LocalPickUp = true, Mode = "not_specified" },
         };
 
         var response = await client.PostAsJsonAsync($"{ApiBaseUrl}/items", request, ct);
@@ -203,6 +208,43 @@ public class MercadoLivreCatalogSyncService
 
         var created = await response.Content.ReadFromJsonAsync<MercadoLivreItemResponse>(cancellationToken: ct);
         return created?.Id ?? throw new InvalidOperationException("Mercado Livre não retornou o ID do item criado.");
+    }
+
+    /// <summary>
+    /// Mapeia os atributos obrigatórios da categoria (tags.required ou
+    /// catalog_required) para campos conhecidos do produto. Atributo exigido
+    /// sem valor disponível vira "faltando" — nunca inventa valor. Conjunto
+    /// pragmático e pequeno (não é um sistema genérico de atributos por
+    /// categoria): GTIN, BRAND, RECOMMENDED_PET, PET_FOOD_TYPE, MODEL.
+    /// </summary>
+    private static (List<MercadoLivreItemAttributeValue> Attributes, List<string> Missing) ResolveRequiredAttributes(
+        Product product, List<MercadoLivreCategoryAttribute> categoryAttributes)
+    {
+        var resolved = new List<MercadoLivreItemAttributeValue>();
+        var missing = new List<string>();
+
+        foreach (var attr in categoryAttributes)
+        {
+            if (attr.Tags?.Required != true && attr.Tags?.CatalogRequired != true) continue;
+            if (string.IsNullOrEmpty(attr.Id)) continue;
+
+            string? value = attr.Id switch
+            {
+                "BRAND" => product.Brand?.Name,
+                "RECOMMENDED_PET" => product.RecommendedPet,
+                "PET_FOOD_TYPE" => product.PetFoodType,
+                "MODEL" => product.Model,
+                "GTIN" => null, // vendApps ainda não tem campo de GTIN no cadastro
+                _ => null,
+            };
+
+            if (string.IsNullOrWhiteSpace(value))
+                missing.Add($"{attr.Id} ({attr.Name})");
+            else
+                resolved.Add(new MercadoLivreItemAttributeValue { Id = attr.Id, ValueName = value });
+        }
+
+        return (resolved, missing);
     }
 
     private async Task UpdateItemAsync(string externalItemId, Product product, string token, CancellationToken ct)

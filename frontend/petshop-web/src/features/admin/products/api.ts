@@ -63,6 +63,9 @@ export type ProductDetail = {
   categoryName: string | null;
   brandId: string | null;
   brandName: string | null;
+  recommendedPet: string | null;
+  petFoodType: string | null;
+  model: string | null;
   description: string | null;
   unit: string;
   priceCents: number;
@@ -85,6 +88,9 @@ export type CreateProductRequest = {
   slug?: string;
   categoryId: string;
   brandId?: string | null;
+  recommendedPet?: string | null;
+  petFoodType?: string | null;
+  model?: string | null;
   internalCode?: string | null;
   barcode?: string | null;
   description?: string | null;

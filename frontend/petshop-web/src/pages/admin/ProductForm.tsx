@@ -77,6 +77,9 @@ type FormState = {
   isActive: boolean;
   hasAddons: boolean;
   isSupply: boolean;
+  recommendedPet: string;
+  petFoodType: string;
+  model: string;
 };
 
 const EMPTY: FormState = {
@@ -94,6 +97,9 @@ const EMPTY: FormState = {
   isActive:     true,
   hasAddons:    false,
   isSupply:     false,
+  recommendedPet: "",
+  petFoodType:    "",
+  model:          "",
 };
 
 export default function ProductForm() {
@@ -160,6 +166,9 @@ export default function ProductForm() {
       isActive:     p.isActive,
       hasAddons:    p.hasAddons,
       isSupply:     p.isSupply,
+      recommendedPet: p.recommendedPet ?? "",
+      petFoodType:    p.petFoodType ?? "",
+      model:          p.model ?? "",
     });
     setSlugManual(true); // em edição, slug não é auto-derivado
   }, [productQuery.data]);
@@ -236,6 +245,9 @@ export default function ProductForm() {
       isActive:     form.isActive,
       hasAddons:    form.hasAddons,
       isSupply:     form.isSupply,
+      recommendedPet: form.recommendedPet.trim() || null,
+      petFoodType:    form.petFoodType.trim() || null,
+      model:          form.model.trim() || null,
     };
 
     try {
@@ -490,6 +502,46 @@ export default function ProductForm() {
                   className="w-full h-10 rounded-xl border px-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/40"
                   style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text)" }}
                 />
+              </div>
+
+              {/* Atributos usados apenas quando o marketplace (ex: Mercado
+                  Livre) exige pra categoria do produto — opcionais aqui. */}
+              <div className="pt-2 space-y-3">
+                <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                  Atributos para marketplace (opcional)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs" style={{ color: "var(--text-muted)" }}>Animal recomendado</label>
+                    <input
+                      value={form.recommendedPet}
+                      onChange={(e) => set("recommendedPet", e.target.value)}
+                      placeholder="Ex: Cão, Gato, Cão/Gato"
+                      className="w-full h-10 rounded-xl border px-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/40"
+                      style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text)" }}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs" style={{ color: "var(--text-muted)" }}>Tipo de alimento</label>
+                    <input
+                      value={form.petFoodType}
+                      onChange={(e) => set("petFoodType", e.target.value)}
+                      placeholder="Ex: Seca, Úmida"
+                      className="w-full h-10 rounded-xl border px-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/40"
+                      style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text)" }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>Modelo</label>
+                  <input
+                    value={form.model}
+                    onChange={(e) => set("model", e.target.value)}
+                    placeholder="Opcional"
+                    className="w-full h-10 rounded-xl border px-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#7c5cf8]/40"
+                    style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text)" }}
+                  />
+                </div>
               </div>
             </section>
 

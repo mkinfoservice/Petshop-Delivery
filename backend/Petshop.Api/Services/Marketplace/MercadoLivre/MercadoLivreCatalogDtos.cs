@@ -75,12 +75,28 @@ public sealed class MercadoLivreItemRequest
 
     [JsonPropertyName("attributes")]
     public List<MercadoLivreItemAttributeValue>? Attributes { get; set; }
+
+    [JsonPropertyName("shipping")]
+    public MercadoLivreShippingRequest? Shipping { get; set; }
 }
 
 public sealed class MercadoLivrePictureRequest
 {
     [JsonPropertyName("source")]
     public string Source { get; set; } = "";
+}
+
+/// <summary>
+/// Retirada no local — evita depender de adesão prévia a Mercado Envios
+/// (ME1/ME2) na conta do vendedor (decisão de produto, 2026-08-23).
+/// </summary>
+public sealed class MercadoLivreShippingRequest
+{
+    [JsonPropertyName("mode")]
+    public string Mode { get; set; } = "not_specified";
+
+    [JsonPropertyName("local_pick_up")]
+    public bool LocalPickUp { get; set; } = true;
 }
 
 public sealed class MercadoLivreItemResponse

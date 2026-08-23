@@ -33,6 +33,17 @@ public class Product
     public Guid? BrandId { get; set; }
     public Brand? Brand { get; set; }
 
+    // ── Atributos de marketplace (opcionais, usados quando a categoria do
+    // canal exige — ex: Mercado Livre categoria de ração de animais) ──────
+    [MaxLength(60)]
+    public string? RecommendedPet { get; set; }
+
+    [MaxLength(60)]
+    public string? PetFoodType { get; set; }
+
+    [MaxLength(120)]
+    public string? Model { get; set; }
+
     // ── Conteúdo ─────────────────────────────────────────────
     public string? Description { get; set; }
 

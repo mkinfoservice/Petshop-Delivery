@@ -149,6 +149,7 @@ public class AdminProductsController : ControllerBase
         return Ok(new ProductDetailResponse(
             p.Id, p.CompanyId, p.Name, p.Slug, p.InternalCode, p.Barcode,
             p.CategoryId, p.Category.Name, p.BrandId, p.Brand?.Name,
+            p.RecommendedPet, p.PetFoodType, p.Model,
             p.Description, p.Unit, p.PriceCents, p.CostCents, p.MarginPercent,
             p.StockQty, p.Ncm, p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc,
             p.Images.OrderBy(i => i.SortOrder).Select(i => new ProductImageDto(i.Id, i.Url, i.StorageProvider, i.IsPrimary, i.SortOrder)).ToList(),
@@ -174,6 +175,9 @@ public class AdminProductsController : ControllerBase
             Slug             = slug,
             CategoryId       = req.CategoryId,
             BrandId          = req.BrandId,
+            RecommendedPet   = req.RecommendedPet,
+            PetFoodType      = req.PetFoodType,
+            Model            = req.Model,
             InternalCode     = req.InternalCode,
             Barcode          = req.Barcode,
             Description      = req.Description,
@@ -222,6 +226,9 @@ public class AdminProductsController : ControllerBase
         if (req.Slug != null) product.Slug = req.Slug;
         if (req.CategoryId.HasValue) product.CategoryId = req.CategoryId.Value;
         if (req.BrandId.HasValue) product.BrandId = req.BrandId.Value;
+        if (req.RecommendedPet != null) product.RecommendedPet = req.RecommendedPet;
+        if (req.PetFoodType != null) product.PetFoodType = req.PetFoodType;
+        if (req.Model != null) product.Model = req.Model;
         if (req.InternalCode != null) product.InternalCode = req.InternalCode;
         if (req.Barcode != null) product.Barcode = req.Barcode;
         if (req.Description != null) product.Description = req.Description;
@@ -426,6 +433,9 @@ public class AdminProductsController : ControllerBase
             Slug             = newSlug,
             CategoryId       = original.CategoryId,
             BrandId          = original.BrandId,
+            RecommendedPet   = original.RecommendedPet,
+            PetFoodType      = original.PetFoodType,
+            Model            = original.Model,
             InternalCode     = req?.NewInternalCode ?? original.InternalCode,
             Barcode          = req?.NewBarcode,
             Description      = original.Description,

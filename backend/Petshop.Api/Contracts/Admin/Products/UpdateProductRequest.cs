@@ -23,5 +23,9 @@ public record UpdateProductRequest(
     decimal? ScaleTareWeight = null,
     // ── Adicionais / Insumo ───────────────────────────────────
     bool? HasAddons = null,
-    bool? IsSupply = null
+    bool? IsSupply = null,
+    // ── Atributos de marketplace (opcionais) ─────────────────
+    string? RecommendedPet = null,
+    string? PetFoodType = null,
+    string? Model = null
 );
