@@ -13,11 +13,13 @@ namespace Petshop.Api.Services.Marketplace.MercadoLivre;
 ///
 /// ATENÇÃO — pontos ainda em aberto, sinalizados inline: listing_type_id
 /// fixo em "gold_special" (exige foto — produto sem imagem falha, correto);
-/// sem endpoint de descrição (POST /items/{id}/description); preço abaixo
-/// do mínimo da categoria falha com a mensagem do próprio Mercado Livre
-/// (não pré-valida). Atributo obrigatório sem valor mapeado (GTIN e outros
-/// fora do conjunto pragmático em ResolveRequiredAttributes) vira falha
-/// visível por produto, não bloqueia o resto do lote.
+/// preço abaixo do mínimo da categoria falha com a mensagem do próprio
+/// Mercado Livre (não pré-valida). Atributo obrigatório sem valor mapeado
+/// (GTIN e outros fora do conjunto pragmático em ResolveRequiredAttributes)
+/// vira falha visível por produto, não bloqueia o resto do lote. Descrição
+/// cai pro nome do produto quando o produto não tem descrição própria —
+/// vendApps não gera descrição automaticamente hoje (gap separado, fora
+/// do escopo deste serviço).
 /// </summary>
 public class MercadoLivreCatalogSyncService
 {
@@ -27,17 +29,24 @@ public class MercadoLivreCatalogSyncService
     private readonly AppDbContext _db;
     private readonly MercadoLivreAuthService _auth;
     private readonly IHttpClientFactory _http;
+    private readonly string _publicBaseUrl;
     private readonly ILogger<MercadoLivreCatalogSyncService> _logger;
 
     public MercadoLivreCatalogSyncService(
         AppDbContext db,
         MercadoLivreAuthService auth,
         IHttpClientFactory http,
+        IConfiguration config,
         ILogger<MercadoLivreCatalogSyncService> logger)
     {
         _db = db;
         _auth = auth;
         _http = http;
+        // Product.ImageUrl às vezes é caminho relativo (upload manual, serve via
+        // wwwroot/UseStaticFiles) e às vezes URL externa completa (enriquecimento
+        // via Cosmos/GTIN) — precisa virar URL absoluta pro Mercado Livre buscar
+        // a foto. Mesmo padrão já usado no frontend (ProductForm/ProductsList).
+        _publicBaseUrl = (config["PublicBaseUrl"] ?? "https://vendapps.onrender.com").TrimEnd('/');
         _logger = logger;
     }
 
@@ -190,9 +199,9 @@ public class MercadoLivreCatalogSyncService
             CategoryId = prediction.CategoryId!,
             Price = product.PriceCents / 100m,
             AvailableQuantity = (int)Math.Max(0, product.StockQty),
-            Pictures = string.IsNullOrWhiteSpace(product.ImageUrl)
-                ? null
-                : new List<MercadoLivrePictureRequest> { new() { Source = product.ImageUrl! } },
+            Pictures = ResolveAbsoluteImageUrl(product.ImageUrl) is { } absoluteUrl
+                ? new List<MercadoLivrePictureRequest> { new() { Source = absoluteUrl } }
+                : null,
             Attributes = itemAttributes.Count > 0 ? itemAttributes : null,
             // Retirada no local — evita depender de Mercado Envios (ME1/ME2), que
             // exige adesão prévia na conta do vendedor (decisão de 2026-08-23).
@@ -207,7 +216,43 @@ public class MercadoLivreCatalogSyncService
         }
 
         var created = await response.Content.ReadFromJsonAsync<MercadoLivreItemResponse>(cancellationToken: ct);
-        return created?.Id ?? throw new InvalidOperationException("Mercado Livre não retornou o ID do item criado.");
+        var itemId = created?.Id ?? throw new InvalidOperationException("Mercado Livre não retornou o ID do item criado.");
+
+        // Descrição é um endpoint separado no Mercado Livre (POST /items/{id}/description),
+        // não vai no payload de criação. Falha aqui não desfaz o anúncio já criado —
+        // só fica sem descrição, visível pra corrigir manualmente depois.
+        try
+        {
+            var descriptionText = string.IsNullOrWhiteSpace(product.Description) ? product.Name : product.Description;
+            var descResponse = await client.PostAsJsonAsync(
+                $"{ApiBaseUrl}/items/{itemId}/description",
+                new { plain_text = descriptionText },
+                ct);
+            if (!descResponse.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorAsync(descResponse, ct);
+                _logger.LogWarning("[MercadoLivre] Item {ItemId} criado, mas descrição falhou: {Error}", itemId, error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MercadoLivre] Item {ItemId} criado, mas descrição falhou.", itemId);
+        }
+
+        return itemId;
+    }
+
+    /// <summary>
+    /// Product.ImageUrl é caminho relativo (upload manual, ex: "/product-images/x.jpg")
+    /// ou já uma URL externa completa (enriquecimento via Cosmos/GTIN) — o
+    /// Mercado Livre só consegue buscar a foto se for URL absoluta.
+    /// </summary>
+    private string? ResolveAbsoluteImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl)) return null;
+        return imageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? imageUrl
+            : $"{_publicBaseUrl}{imageUrl}";
     }
 
     /// <summary>
