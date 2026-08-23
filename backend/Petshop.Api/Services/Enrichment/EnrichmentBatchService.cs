@@ -112,6 +112,32 @@ public sealed class EnrichmentBatchService
             .FirstOrDefaultAsync(b => b.Id == batchId && b.CompanyId == companyId, ct);
 
     /// <summary>
+    /// Retorna (ou cria, na primeira submissão) o lote "coletor" de candidatas de imagem
+    /// submetidas por ferramentas externas (ex: script Python de busca de imagem).
+    /// Um único lote por empresa, nunca finalizado — serve apenas para agrupar as
+    /// candidatas na fila de revisão e nas estatísticas da aba Lotes.
+    /// </summary>
+    public async Task<EnrichmentBatch> GetOrCreateExternalBatchAsync(Guid companyId, CancellationToken ct = default)
+    {
+        var batch = await _db.EnrichmentBatches
+            .FirstOrDefaultAsync(b => b.CompanyId == companyId && b.Trigger == EnrichmentTrigger.External, ct);
+
+        if (batch is not null) return batch;
+
+        batch = new EnrichmentBatch
+        {
+            CompanyId    = companyId,
+            Trigger      = EnrichmentTrigger.External,
+            Status       = EnrichmentBatchStatus.Running,
+            StartedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        _db.EnrichmentBatches.Add(batch);
+        await _db.SaveChangesAsync(ct);
+        return batch;
+    }
+
+    /// <summary>
     /// Retorna ou cria a configuração de enriquecimento da empresa.
     /// </summary>
     public async Task<EnrichmentConfig> GetOrCreateConfigAsync(Guid companyId, CancellationToken ct = default)

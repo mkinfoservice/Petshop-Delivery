@@ -1,7 +1,7 @@
 // ── Enums ──────────────────────────────────────────────────────────────────────
 
 export type EnrichmentBatchStatus = "Queued" | "Running" | "Done" | "Failed";
-export type EnrichmentTrigger = "Manual" | "PostSync" | "Scheduled";
+export type EnrichmentTrigger = "Manual" | "PostSync" | "Scheduled" | "External";
 
 /** Values match the backend switch: all | without-image | recently-imported | by-category */
 export type EnrichmentScope = "all" | "without-image" | "recently-imported" | "by-category";

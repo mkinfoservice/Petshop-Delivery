@@ -4,7 +4,7 @@ using Petshop.Api.Models;
 namespace Petshop.Api.Entities.Enrichment;
 
 public enum ImageCandidateStatus { Pending, Approved, Rejected, AutoApplied, Failed }
-public enum ImageCandidateSource { EanDatabase, NameSearch, Manual }
+public enum ImageCandidateSource { EanDatabase, NameSearch, Manual, ExternalTool }
 
 /// <summary>
 /// Candidata de imagem encontrada para um produto durante o enriquecimento.

@@ -5,7 +5,7 @@ using Petshop.Api.Entities.Sync;
 namespace Petshop.Api.Entities.Enrichment;
 
 public enum EnrichmentBatchStatus { Queued, Running, Done, Failed }
-public enum EnrichmentTrigger { Manual, PostSync, Scheduled }
+public enum EnrichmentTrigger { Manual, PostSync, Scheduled, External }
 
 /// <summary>
 /// Representa um lote de enriquecimento de catálogo.

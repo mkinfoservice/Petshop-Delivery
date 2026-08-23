@@ -454,6 +454,51 @@ public class CatalogEnrichmentController : ControllerBase
         return Ok(new { message = "Candidata rejeitada." });
     }
 
+    /// <summary>
+    /// Submete uma candidata de imagem encontrada por uma ferramenta externa
+    /// (ex: script Python de busca em Mercado Livre/Bing/DuckDuckGo).
+    /// Sempre entra como Pending na fila de revisão — nunca auto-aplica, pois
+    /// não há score de confiança calculado pela fonte externa.
+    /// </summary>
+    [HttpPost("review/images/submit")]
+    public async Task<IActionResult> SubmitImageCandidate(
+        [FromBody] SubmitImageCandidateRequest req,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(req.CandidateUrl))
+            return BadRequest(new { error = "CandidateUrl é obrigatório." });
+
+        var product = await _db.Products
+            .FirstOrDefaultAsync(p => p.Id == req.ProductId && p.CompanyId == CompanyId, ct);
+        if (product is null) return NotFound();
+
+        var hasImage = await _db.ProductImages.AnyAsync(i => i.ProductId == product.Id, ct);
+        if (hasImage)
+            return Conflict(new { error = "Produto já possui imagem." });
+
+        var batch = await _batchService.GetOrCreateExternalBatchAsync(CompanyId, ct);
+
+        var candidate = new ProductImageCandidate
+        {
+            CompanyId       = CompanyId,
+            ProductId       = product.Id,
+            BatchId         = batch.Id,
+            SearchQuery     = req.Query,
+            CandidateUrl    = req.CandidateUrl,
+            CandidateName   = req.CandidateName,
+            Source          = ImageCandidateSource.ExternalTool.ToString(),
+            ConfidenceScore = 0m,
+            Status          = ImageCandidateStatus.Pending,
+            AttemptedAtUtc  = DateTime.UtcNow
+        };
+
+        _db.ProductImageCandidates.Add(candidate);
+        batch.PendingReview++;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new { candidateId = candidate.Id, message = "Candidata enviada para revisão." });
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // FILA DE REVISÃO — DESCRIÇÕES (IA)
     // ═══════════════════════════════════════════════════════════════

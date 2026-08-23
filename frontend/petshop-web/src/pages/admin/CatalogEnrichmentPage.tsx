@@ -104,6 +104,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 // ── Batch card ─────────────────────────────────────────────────────────────────
 
 function BatchCard({ batch }: { batch: EnrichmentBatchResponse }) {
+  const isExternal = batch.trigger === "External";
   const nameProgress = pct(batch.processed, batch.totalQueued);
   // Imagens processadas = aplicadas + pendentes + falhas de imagem
   const imagesProcessed = batch.imagesApplied + batch.pendingReview;
@@ -115,39 +116,46 @@ function BatchCard({ batch }: { batch: EnrichmentBatchResponse }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <StatusBadge status={batch.status} />
-          <span className="text-xs text-gray-500">{batch.trigger}</span>
+          <span className="text-xs text-gray-500">
+            {isExternal ? "Ferramenta externa (Python)" : batch.trigger}
+          </span>
         </div>
         <span className="text-xs text-gray-400">{formatDate(batch.startedAtUtc)}</span>
       </div>
 
-      {/* Barra de nomes */}
-      <div>
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Nomes: {batch.processed} / {batch.totalQueued}</span>
-          <span className={nameProgress === 100 ? "text-green-600 font-semibold" : ""}>{nameProgress}%</span>
-        </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${nameProgress === 100 ? "bg-green-500" : "bg-violet-500"}`}
-            style={{ width: `${nameProgress}%` }}
-          />
-        </div>
-      </div>
+      {/* Lote externo não roda normalização/matching internos — só acumula candidatas de imagem */}
+      {!isExternal && (
+        <>
+          {/* Barra de nomes */}
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Nomes: {batch.processed} / {batch.totalQueued}</span>
+              <span className={nameProgress === 100 ? "text-green-600 font-semibold" : ""}>{nameProgress}%</span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${nameProgress === 100 ? "bg-green-500" : "bg-violet-500"}`}
+                style={{ width: `${nameProgress}%` }}
+              />
+            </div>
+          </div>
 
-      {/* Barra de imagens — só exibe se o job de imagens já rodou */}
-      {(imagesProcessed > 0 || (nameProgress === 100 && isRunning)) && (
-        <div>
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Imagens: {imagesProcessed} / {batch.totalQueued}</span>
-            <span>{imageProgress}%</span>
-          </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-400 rounded-full transition-all"
-              style={{ width: `${imageProgress}%` }}
-            />
-          </div>
-        </div>
+          {/* Barra de imagens — só exibe se o job de imagens já rodou */}
+          {(imagesProcessed > 0 || (nameProgress === 100 && isRunning)) && (
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Imagens: {imagesProcessed} / {batch.totalQueued}</span>
+                <span>{imageProgress}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-400 rounded-full transition-all"
+                  style={{ width: `${imageProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Stats */}

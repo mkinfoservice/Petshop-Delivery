@@ -29,6 +29,14 @@ public record BulkRejectNamesRequest(IReadOnlyList<Guid> SuggestionIds);
 
 public record BulkApproveDescriptionsRequest(IReadOnlyList<Guid> SuggestionIds);
 
+/// <summary>Submissão de candidata de imagem por uma ferramenta externa (ex: script Python de busca).</summary>
+public record SubmitImageCandidateRequest(
+    Guid    ProductId,
+    string  CandidateUrl,
+    string? CandidateName = null,
+    string? Query         = null
+);
+
 // ── Responses — Batch ─────────────────────────────────────────────────────────
 
 public record EnrichmentBatchResponse(

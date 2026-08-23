@@ -230,6 +230,16 @@ def api_apply_image(product_id: str, url: str, token: str) -> bool:
         timeout=15)
     return r.status_code == 200
 
+def api_submit_candidate(product_id: str, url: str, query: str, name: str, token: str) -> bool:
+    """Envia uma candidata para a fila de revisão do vendApps (não aplica direto —
+    usado pelo modo Automático, que escolhe a imagem sem confirmação humana)."""
+    r = requests.post(
+        f"{API_BASE}/admin/enrichment/review/images/submit",
+        json={"productId": product_id, "candidateUrl": url, "candidateName": name, "query": query},
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=15)
+    return r.status_code == 200
+
 def fetch_photo(url: str) -> "ImageTk.PhotoImage | None":
     if not PIL_OK:
         return None
@@ -630,8 +640,10 @@ class App(tk.Tk):
 
         if not messagebox.askyesno("Automático",
             f"{len(pending)} produtos pendentes.\n\n"
-            "O sistema vai buscar e aplicar a primeira imagem encontrada "
-            "automaticamente, pulando os que não tiver imagem.\n\n"
+            "O sistema vai buscar a primeira imagem encontrada e enviar para a "
+            "fila de revisão do vendApps (aba Revisão de Imagens) — nada é aplicado "
+            "direto ao produto sem você aprovar lá, já que a escolha aqui é automática "
+            "e sem confirmação visual.\n\n"
             "Deseja continuar?"):
             return
 
@@ -653,19 +665,20 @@ class App(tk.Tk):
             self.after(0, lambda n=p["name"]: self._search_lbl.config(
                 text=f"Auto: buscando '{n[:40]}'..."))
 
-            urls = find_images(_simplify(p.get("name", "")), p.get("barcode"))
-            url  = next((u for u in urls if u and u.startswith("http")), None)
+            query = _simplify(p.get("name", ""))
+            urls  = find_images(query, p.get("barcode"))
+            url   = next((u for u in urls if u and u.startswith("http")), None)
 
             if url and self._auto_running:
-                ok = api_apply_image(p["id"], url, token)
+                ok = api_submit_candidate(p["id"], url, query, p.get("name", ""), token)
                 if ok:
                     p["_applied"] = True
                     self.n_applied += 1
-                    self.after(0, lambda i=idx: self._mark_item(i, "✓"))
+                    self.after(0, lambda i=idx: self._mark_item(i, "→"))
                 else:
                     p["_skipped"] = True
                     self.n_skipped += 1
-                    self._record_failure(idx, p, "Falha ao aplicar imagem via API")
+                    self._record_failure(idx, p, "Falha ao enviar candidata para revisão via API")
                     self.after(0, lambda i=idx: self._mark_item(i, "⏭"))
             else:
                 p["_skipped"] = True
@@ -685,8 +698,10 @@ class App(tk.Tk):
             self.after(0, self._offer_failures_export)
         self.after(0, lambda: messagebox.showinfo("Auto concluído",
             f"Processamento automático finalizado!\n\n"
-            f"✓ Aplicados : {applied}\n"
-            f"⏭ Pulados   : {skipped}"))
+            f"→ Enviados p/ revisão : {applied}\n"
+            f"⏭ Pulados             : {skipped}\n\n"
+            "Acesse Admin → Enriquecimento de Catálogo → Revisão de Imagens "
+            "para aprovar as candidatas enviadas."))
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -697,10 +712,10 @@ class App(tk.Tk):
 
     def _mark_item(self, idx: int, icon: str):
         if 0 <= idx < self._listbox.size():
-            old = self._listbox.get(idx).strip().lstrip("✓⏭ ")
+            old = self._listbox.get(idx).strip().lstrip("✓→⏭ ")
             self._listbox.delete(idx)
             self._listbox.insert(idx, f"{icon} {old}")
-            fg = self.GREEN if icon == "✓" else self.GRAY
+            fg = self.GREEN if icon == "✓" else self.ACCENT if icon == "→" else self.GRAY
             self._listbox.itemconfig(idx, fg=fg)
         self._update_progress()
 
@@ -760,7 +775,7 @@ class App(tk.Tk):
         self._prog.config(maximum=max(total, 1), value=done)
         self._prog_lbl.config(text=f"{done}/{total}  ({pct}%)")
         self._result_lbl.config(
-            text=f"✓ {self.n_applied} aplicados   ⏭ {self.n_skipped} pulados")
+            text=f"✓ {self.n_applied} concluídos   ⏭ {self.n_skipped} pulados")
 
     def _set_status(self, msg: str):
         self._status_lbl.config(text=msg)
