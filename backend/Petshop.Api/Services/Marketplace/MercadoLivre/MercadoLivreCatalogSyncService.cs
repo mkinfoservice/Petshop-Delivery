@@ -142,7 +142,7 @@ public class MercadoLivreCatalogSyncService
             {
                 _logger.LogWarning(ex, "[MercadoLivre] Falha ao sincronizar produto {ProductId}.", product.Id);
                 mapping.Status = MarketplaceSyncStatus.Failed;
-                mapping.LastErrorMessage = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
+                mapping.LastErrorMessage = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
                 result.Failed++;
             }
             finally
@@ -265,14 +265,25 @@ public class MercadoLivreCatalogSyncService
 
     private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken ct)
     {
+        // Lê o corpo bruto primeiro — erros de validação do Mercado Livre vêm com
+        // detalhe por campo em "cause", que a mensagem genérica ("Validation error")
+        // não mostra. Sem isso, todo erro 400 parece igual e não dá pra corrigir.
+        var raw = await response.Content.ReadAsStringAsync(ct);
         try
         {
-            var error = await response.Content.ReadFromJsonAsync<MercadoLivreApiError>(cancellationToken: ct);
-            return error?.Message ?? error?.Error ?? response.StatusCode.ToString();
+            var error = System.Text.Json.JsonSerializer.Deserialize<MercadoLivreApiError>(raw,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            var causes = error?.Cause is { Count: > 0 }
+                ? string.Join("; ", error.Cause.Select(c => $"{c.Code}: {c.Message}"))
+                : null;
+
+            var summary = error?.Message ?? error?.Error ?? response.StatusCode.ToString();
+            return causes is not null ? $"{summary} — {causes}" : $"{summary} — {raw}";
         }
         catch
         {
-            return response.StatusCode.ToString();
+            return $"{response.StatusCode}: {raw}";
         }
     }
 }
