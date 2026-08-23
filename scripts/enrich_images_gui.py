@@ -69,9 +69,14 @@ def _simplify(name: str) -> str:
     return " ".join(words).strip() or name
 
 
+LAST_GOOGLE_ERROR: str | None = None
+
+
 def search_google_cse(query: str, api_key: str, cx: str, n: int = 8) -> list[str]:
     """Google Custom Search JSON API (imagens) — índice real do Google, sem scraping.
-    Requer api_key + cx configurados (ver docstring do arquivo). Cota gratuita: 100/dia."""
+    Requer api_key + cx configurados (ver docstring do arquivo). Cota gratuita: 100/dia.
+    Erros ficam disponíveis em LAST_GOOGLE_ERROR (nunca lança exceção)."""
+    global LAST_GOOGLE_ERROR
     if not api_key or not cx:
         return []
     try:
@@ -85,10 +90,17 @@ def search_google_cse(query: str, api_key: str, cx: str, n: int = 8) -> list[str
             timeout=12,
         )
         if not r.ok:
+            try:
+                detail = r.json().get("error", {}).get("message", "")
+            except Exception:
+                detail = ""
+            LAST_GOOGLE_ERROR = f"HTTP {r.status_code}: {detail or r.text[:200]}"
             return []
+        LAST_GOOGLE_ERROR = None
         items = r.json().get("items", [])
         return [it["link"] for it in items if it.get("link")]
-    except Exception:
+    except Exception as e:
+        LAST_GOOGLE_ERROR = f"Exceção: {e}"
         return []
 
 
@@ -189,6 +201,10 @@ def find_images(
     Cache por query normalizada — mesmo resultado não vai ao servidor duas vezes.
     """
     import time
+
+    global LAST_GOOGLE_ERROR
+    if gcse_key and gcse_cx:
+        LAST_GOOGLE_ERROR = None
 
     raw    = name.strip()
     simple = _simplify(name)
@@ -644,7 +660,10 @@ class App(tk.Tk):
 
     def _show_images(self, urls: list[str]):
         if not urls:
-            self._search_lbl.config(text="Nenhuma imagem encontrada — tente refinar o nome")
+            msg = "Nenhuma imagem encontrada — tente refinar o nome"
+            if LAST_GOOGLE_ERROR:
+                msg += f"   |   Google API: {LAST_GOOGLE_ERROR}"
+            self._search_lbl.config(text=msg)
             return
         self._search_lbl.config(text=f"{len(urls)} imagens — clique para aplicar")
 
@@ -751,7 +770,10 @@ class App(tk.Tk):
             else:
                 p["_skipped"] = True
                 self.n_skipped += 1
-                self._record_failure(idx, p, "Nenhuma imagem encontrada")
+                reason = "Nenhuma imagem encontrada"
+                if LAST_GOOGLE_ERROR:
+                    reason += f" | Google API: {LAST_GOOGLE_ERROR}"
+                self._record_failure(idx, p, reason)
                 self.after(0, lambda i=idx: self._mark_item(i, "⏭"))
 
             self.after(0, self._update_progress)
