@@ -237,7 +237,12 @@ public class MercadoLivreCatalogSyncService
     {
         var url = $"{ApiBaseUrl}/sites/{SiteId}/category_predictor/predict?q={Uri.EscapeDataString(title)}&limit=1";
         var response = await client.GetAsync(url, ct);
-        if (!response.IsSuccessStatusCode) return null;
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await ReadErrorAsync(response, ct);
+            throw new InvalidOperationException(
+                $"category_predictor retornou {(int)response.StatusCode} {response.StatusCode}: {error}");
+        }
 
         var predictions = await response.Content
             .ReadFromJsonAsync<List<MercadoLivreCategoryPrediction>>(cancellationToken: ct);
