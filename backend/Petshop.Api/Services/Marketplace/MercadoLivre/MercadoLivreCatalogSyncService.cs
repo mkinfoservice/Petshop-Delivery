@@ -235,7 +235,10 @@ public class MercadoLivreCatalogSyncService
     private static async Task<MercadoLivreCategoryPrediction?> PredictCategoryAsync(
         string title, HttpClient client, CancellationToken ct)
     {
-        var url = $"{ApiBaseUrl}/sites/{SiteId}/category_predictor/predict?q={Uri.EscapeDataString(title)}&limit=1";
+        // category_predictor/predict foi descontinuado — domain_discovery/search é o
+        // endpoint atual (confirmado em produção em 2026-08-23: o antigo retornava
+        // 404 "resource not found", este retorna 200 com category_id/category_name).
+        var url = $"{ApiBaseUrl}/sites/{SiteId}/domain_discovery/search?q={Uri.EscapeDataString(title)}&limit=1";
         var response = await client.GetAsync(url, ct);
         if (!response.IsSuccessStatusCode)
         {
