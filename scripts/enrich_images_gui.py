@@ -127,11 +127,14 @@ def _cache_key(query: str) -> str:
 
 def find_images(name: str, barcode: str | None = None) -> list[str]:
     """
-    Busca em cascata: ML API → Bing/DDG com site:mercadolivre.com.br → fallback geral.
+    Busca em cascata: nome EXATO do catálogo primeiro (é o que casa melhor — inclusive
+    é o que funciona colando direto no Google Images) → versão simplificada (sem doses/
+    pesos) só como fallback, quando o nome completo não traz resultado suficiente.
     Cache por query normalizada — mesmo resultado não vai ao servidor duas vezes.
     """
     import time
 
+    raw    = name.strip()
     simple = _simplify(name)
     seen, result = set(), []
 
@@ -164,25 +167,22 @@ def find_images(name: str, barcode: str | None = None) -> list[str]:
             _IMAGE_CACHE[key] = found
         add(found)
 
-    # 1. ML API direto (melhor qualidade)
-    search_all(simple)
+    # 1. Nome EXATO do catálogo — prioridade máxima, é o que mais casa com a imagem certa
+    search_all(raw)
 
-    # 2. Bing + DDG forçando site:mercadolivre.com.br
+    # 2. Nome exato restrito a site:mercadolivre.com.br (fotos de melhor qualidade)
     if len(result) < 4:
-        search_all(f"site:mercadolivre.com.br {simple}", use_ml=False)
+        search_all(f"site:mercadolivre.com.br {raw}", use_ml=False)
 
-    # 3. Variações como fallback geral
-    variations = []
-    if simple != name.lower().strip():
-        variations.append(name)
+    # 3. Fallback: versão simplificada (sem doses/pesos) — útil quando o nome completo
+    # tem código interno/detalhe que nenhuma fonte indexa exatamente
+    if len(result) < 4 and simple != raw.lower().strip():
+        search_all(simple)
+
+    # 4. Último fallback: só as 2 primeiras palavras da versão simplificada
     words = simple.split()
-    if len(words) > 2:
-        variations.append(" ".join(words[:2]))
-
-    for q in variations:
-        if len(result) >= 4:
-            break
-        search_all(q)
+    if len(result) < 4 and len(words) > 2:
+        search_all(" ".join(words[:2]))
 
     return result[:12]
 
@@ -533,8 +533,9 @@ class App(tk.Tk):
             f"Categoria: {p.get('categoryName') or p.get('category') or '—'}  |  "
             f"#{idx + 1} de {len(self.products)}")
 
-        # Popula campo de busca com nome simplificado (editável, não afeta o banco)
-        self._query_var.set(_simplify(p.get("name", "")))
+        # Popula campo de busca com o nome exato do catálogo (editável, não afeta o banco) —
+        # é o que dá mais match, já que fontes de imagem casam melhor com o nome completo
+        self._query_var.set(p.get("name", "").strip())
 
         self._clear_grid()
         self._do_search()
@@ -665,7 +666,7 @@ class App(tk.Tk):
             self.after(0, lambda n=p["name"]: self._search_lbl.config(
                 text=f"Auto: buscando '{n[:40]}'..."))
 
-            query = _simplify(p.get("name", ""))
+            query = p.get("name", "").strip()
             urls  = find_images(query, p.get("barcode"))
             url   = next((u for u in urls if u and u.startswith("http")), None)
 
