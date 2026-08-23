@@ -37,5 +37,8 @@ public class EnrichmentConfig
     /// <summary>Habilita normalização automática de nomes (padrão: true).</summary>
     public bool EnableNameNormalization { get; set; } = true;
 
+    /// <summary>Habilita geração de descrição via IA (padrão: false — opt-in, requer Anthropic__ApiKey configurada).</summary>
+    public bool EnableDescriptionGeneration { get; set; } = false;
+
     public DateTime? UpdatedAtUtc { get; set; }
 }

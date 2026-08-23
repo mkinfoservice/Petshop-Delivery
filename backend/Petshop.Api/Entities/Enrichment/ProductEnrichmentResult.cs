@@ -29,6 +29,9 @@ public class ProductEnrichmentResult
     /// <summary>true se o matching de imagem foi tentado.</summary>
     public bool ImageProcessed { get; set; }
 
+    /// <summary>true se a geração de descrição por IA foi tentada.</summary>
+    public bool DescriptionProcessed { get; set; }
+
     [MaxLength(500)]
     public string? FailureReason { get; set; }
 

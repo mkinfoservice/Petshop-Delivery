@@ -1,6 +1,7 @@
 import { adminFetch } from "@/features/admin/auth/adminFetch";
 import type {
   CreateEnrichmentBatchRequest,
+  DescriptionSuggestionListResponse,
   EnrichmentBatchListResponse,
   EnrichmentBatchResponse,
   EnrichmentConfigResponse,
@@ -90,6 +91,32 @@ export function approveImage(id: string): Promise<{ localUrl: string; message: s
 
 export function rejectImage(id: string): Promise<void> {
   return adminFetch<void>(`/admin/enrichment/review/images/${id}/reject`, { method: "POST" });
+}
+
+// ── Description suggestions ─────────────────────────────────────────────────────
+
+export function fetchPendingDescriptions(page = 1, pageSize = 20): Promise<DescriptionSuggestionListResponse> {
+  return adminFetch<DescriptionSuggestionListResponse>(
+    `/admin/enrichment/review/descriptions?status=Pending&page=${page}&pageSize=${pageSize}`
+  );
+}
+
+export function approveDescription(id: string): Promise<void> {
+  return adminFetch<void>(`/admin/enrichment/review/descriptions/${id}/approve`, { method: "POST" });
+}
+
+export function rejectDescription(id: string): Promise<void> {
+  return adminFetch<void>(`/admin/enrichment/review/descriptions/${id}/reject`, { method: "POST" });
+}
+
+export function bulkApproveDescriptions(ids: string[]): Promise<{ applied: number; message: string }> {
+  return adminFetch<{ applied: number; message: string }>(
+    "/admin/enrichment/review/descriptions/bulk-approve",
+    {
+      method: "POST",
+      body: JSON.stringify({ suggestionIds: ids }),
+    }
+  );
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────────

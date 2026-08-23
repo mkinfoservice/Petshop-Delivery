@@ -31,6 +31,7 @@ public class EnrichmentBatch
     public int Processed { get; set; }
     public int NamesNormalized { get; set; }
     public int ImagesApplied { get; set; }
+    public int DescriptionsGenerated { get; set; }
     public int PendingReview { get; set; }
     public int FailedItems { get; set; }
 

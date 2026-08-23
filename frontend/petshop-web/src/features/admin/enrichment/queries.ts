@@ -3,7 +3,9 @@ import {
   approveName,
   approveAllNames,
   approveImage,
+  approveDescription,
   bulkApproveNames,
+  bulkApproveDescriptions,
   clearAllImages,
   createBatch,
   fetchBatch,
@@ -11,9 +13,11 @@ import {
   fetchConfig,
   fetchPendingImages,
   fetchPendingNames,
+  fetchPendingDescriptions,
   normalizeCategories,
   rejectImage,
   rejectName,
+  rejectDescription,
   reprocessWithoutImage,
   updateConfig,
 } from "./api";
@@ -24,6 +28,7 @@ const KEYS = {
   batch: (id: string) => ["enrichment-batch", id] as const,
   pendingNames: (page: number) => ["enrichment-pending-names", page] as const,
   pendingImages: (page: number) => ["enrichment-pending-images", page] as const,
+  pendingDescriptions: (page: number) => ["enrichment-pending-descriptions", page] as const,
   config: ["enrichment-config"] as const,
 };
 
@@ -158,6 +163,45 @@ export function useRejectImage() {
     mutationFn: rejectImage,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["enrichment-pending-images"] });
+    },
+  });
+}
+
+// ── Description suggestions ─────────────────────────────────────────────────────
+
+export function usePendingDescriptions(page = 1) {
+  return useQuery({
+    queryKey: KEYS.pendingDescriptions(page),
+    queryFn: () => fetchPendingDescriptions(page),
+  });
+}
+
+export function useApproveDescription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: approveDescription,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrichment-pending-descriptions"] });
+    },
+  });
+}
+
+export function useRejectDescription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: rejectDescription,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrichment-pending-descriptions"] });
+    },
+  });
+}
+
+export function useBulkApproveDescriptions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => bulkApproveDescriptions(ids),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrichment-pending-descriptions"] });
     },
   });
 }

@@ -8,6 +8,7 @@ export type EnrichmentScope = "all" | "without-image" | "recently-imported" | "b
 
 export type NameSuggestionStatus = "Pending" | "Approved" | "Rejected" | "AutoApplied";
 export type ImageCandidateStatus = "Pending" | "Approved" | "Rejected" | "AutoApplied" | "Failed";
+export type DescriptionSuggestionStatus = "Pending" | "Approved" | "Rejected";
 
 // ── Batch ──────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ export type EnrichmentBatchResponse = {
   processed: number;
   namesNormalized: number;
   imagesApplied: number;
+  descriptionsGenerated: number;
   pendingReview: number;
   failedItems: number;
   startedAtUtc: string | null;
@@ -39,6 +41,7 @@ export type CreateEnrichmentBatchRequest = {
   recentHours?: number;
   categoryId?: string;
   includeImages?: boolean;
+  includeDescriptions?: boolean;
 };
 
 // ── Name Suggestions ───────────────────────────────────────────────────────────
@@ -86,6 +89,26 @@ export type ImageCandidateListResponse = {
   items: ImageCandidateResponse[];
 };
 
+// ── Description Suggestions ────────────────────────────────────────────────────
+
+export type DescriptionSuggestionResponse = {
+  id: string;
+  productId: string;
+  productName: string;
+  originalDescription: string | null;
+  suggestedDescription: string;
+  modelUsed: string | null;
+  status: DescriptionSuggestionStatus;
+  createdAtUtc: string;
+};
+
+export type DescriptionSuggestionListResponse = {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: DescriptionSuggestionResponse[];
+};
+
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 export type EnrichmentConfigResponse = {
@@ -96,6 +119,7 @@ export type EnrichmentConfigResponse = {
   delayBetweenItemsMs: number;
   enableImageMatching: boolean;
   enableNameNormalization: boolean;
+  enableDescriptionGeneration: boolean;
 };
 
 /** All fields required — backend does not accept partial updates. */

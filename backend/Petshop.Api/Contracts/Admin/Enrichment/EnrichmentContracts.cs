@@ -9,7 +9,8 @@ public record CreateEnrichmentBatchRequest(
     string Scope = "all",
     Guid? CategoryId    = null,
     int?  RecentHours   = null,
-    bool  IncludeImages = false
+    bool  IncludeImages = false,
+    bool  IncludeDescriptions = false
 );
 
 public record UpdateEnrichmentConfigRequest(
@@ -19,11 +20,14 @@ public record UpdateEnrichmentConfigRequest(
     int     BatchSize,
     int     DelayBetweenItemsMs,
     bool    EnableImageMatching,
-    bool    EnableNameNormalization
+    bool    EnableNameNormalization,
+    bool    EnableDescriptionGeneration
 );
 
 public record BulkApproveNamesRequest(IReadOnlyList<Guid> SuggestionIds);
 public record BulkRejectNamesRequest(IReadOnlyList<Guid> SuggestionIds);
+
+public record BulkApproveDescriptionsRequest(IReadOnlyList<Guid> SuggestionIds);
 
 // ── Responses — Batch ─────────────────────────────────────────────────────────
 
@@ -35,6 +39,7 @@ public record EnrichmentBatchResponse(
     int       Processed,
     int       NamesNormalized,
     int       ImagesApplied,
+    int       DescriptionsGenerated,
     int       PendingReview,
     int       FailedItems,
     DateTime? StartedAtUtc,
@@ -93,6 +98,24 @@ public record ImageCandidateListResponse(
     IReadOnlyList<ImageCandidateResponse> Items
 );
 
+public record DescriptionSuggestionResponse(
+    Guid      Id,
+    Guid      ProductId,
+    string    ProductName,
+    string?   OriginalDescription,
+    string    SuggestedDescription,
+    string?   ModelUsed,
+    string    Status,
+    DateTime  CreatedAtUtc
+);
+
+public record DescriptionSuggestionListResponse(
+    int Page,
+    int PageSize,
+    int Total,
+    IReadOnlyList<DescriptionSuggestionResponse> Items
+);
+
 // ── Responses — Config ────────────────────────────────────────────────────────
 
 public record EnrichmentConfigResponse(
@@ -102,5 +125,6 @@ public record EnrichmentConfigResponse(
     int     BatchSize,
     int     DelayBetweenItemsMs,
     bool    EnableImageMatching,
-    bool    EnableNameNormalization
+    bool    EnableNameNormalization,
+    bool    EnableDescriptionGeneration
 );

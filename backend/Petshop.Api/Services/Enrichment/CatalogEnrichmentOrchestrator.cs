@@ -14,9 +14,10 @@ namespace Petshop.Api.Services.Enrichment;
 /// Pipeline por produto:
 ///   1. Normalização de nome → ProductNameSuggestion
 ///   2. Matching de imagem   → ProductImageCandidate  (se EnableImageMatching = true)
-///   3. Auto-apply de imagem se score >= threshold e produto sem imagem existente
-///   4. Auto-apply de nome   se score >= threshold (padrão 1.0 = idêntico, i.e. nunca auto-aplica)
-///   5. Atualiza stats do EnrichmentBatch em tempo real
+///   3. Geração de descrição → ProductDescriptionSuggestion (se EnableDescriptionGeneration = true) — NUNCA auto-aplica
+///   4. Auto-apply de imagem se score >= threshold e produto sem imagem existente
+///   5. Auto-apply de nome   se score >= threshold (padrão 0.70)
+///   6. Atualiza stats do EnrichmentBatch em tempo real
 /// </summary>
 public sealed class CatalogEnrichmentOrchestrator
 {
@@ -26,6 +27,7 @@ public sealed class CatalogEnrichmentOrchestrator
     private readonly EnrichmentScoringService _scorer;
     private readonly IImageStorageProvider _imageStorage;
     private readonly IHttpClientFactory _httpFactory;
+    private readonly ProductDescriptionGeneratorService _descriptionGenerator;
     private readonly ILogger<CatalogEnrichmentOrchestrator> _logger;
 
     public CatalogEnrichmentOrchestrator(
@@ -35,6 +37,7 @@ public sealed class CatalogEnrichmentOrchestrator
         EnrichmentScoringService scorer,
         IImageStorageProvider imageStorage,
         IHttpClientFactory httpFactory,
+        ProductDescriptionGeneratorService descriptionGenerator,
         ILogger<CatalogEnrichmentOrchestrator> logger)
     {
         _db           = db;
@@ -43,6 +46,7 @@ public sealed class CatalogEnrichmentOrchestrator
         _scorer       = scorer;
         _imageStorage = imageStorage;
         _httpFactory  = httpFactory;
+        _descriptionGenerator = descriptionGenerator;
         _logger       = logger;
     }
 
@@ -105,6 +109,38 @@ public sealed class CatalogEnrichmentOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Matching de imagem do lote {BatchId} falhou", batchId);
+        }
+    }
+
+    // ── Ponto de entrada para o job de geração de descrição ───────────────────
+
+    public async Task RunDescriptionGenerationAsync(Guid batchId, CancellationToken ct)
+    {
+        var batch = await LoadBatchAsync(batchId, ct);
+        if (batch is null) return;
+
+        var config = await GetOrCreateConfigAsync(batch.CompanyId, ct);
+        if (!config.EnableDescriptionGeneration)
+        {
+            _logger.LogInformation("Geração de descrição desabilitada para empresa {CompanyId}", batch.CompanyId);
+            return;
+        }
+
+        if (!_descriptionGenerator.IsConfigured)
+        {
+            _logger.LogWarning("Anthropic__ApiKey não configurada — geração de descrição do lote {BatchId} pulada.", batchId);
+            return;
+        }
+
+        _logger.LogInformation("Iniciando geração de descrição do lote {BatchId}", batchId);
+
+        try
+        {
+            await ProcessDescriptionGenerationBatchAsync(batch, config, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Geração de descrição do lote {BatchId} falhou", batchId);
         }
     }
 
@@ -330,6 +366,94 @@ public sealed class CatalogEnrichmentOrchestrator
         }
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    // ── Geração de descrição ──────────────────────────────────────────────────
+
+    private async Task ProcessDescriptionGenerationBatchAsync(
+        EnrichmentBatch batch,
+        EnrichmentConfig config,
+        CancellationToken ct)
+    {
+        var pageSize = config.BatchSize;
+
+        while (true)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            // Busca itens Done (normalização concluída) que ainda não tiveram descrição processada
+            var results = await _db.ProductEnrichmentResults
+                .Where(r => r.BatchId == batch.Id
+                         && r.Status  == EnrichmentResultStatus.Done
+                         && !r.DescriptionProcessed)
+                .Include(r => r.Product)
+                    .ThenInclude(p => p.Brand)
+                .Include(r => r.Product)
+                    .ThenInclude(p => p.Category)
+                .OrderBy(r => r.Id)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            if (results.Count == 0) break;
+
+            foreach (var result in results)
+            {
+                if (ct.IsCancellationRequested) break;
+                await ProcessDescriptionGenerationItemAsync(result, batch, ct);
+
+                // Delay entre itens para respeitar rate limit da API do LLM
+                if (config.DelayBetweenItemsMs > 0)
+                    await Task.Delay(config.DelayBetweenItemsMs, ct);
+            }
+
+            if (results.Count < pageSize) break;
+        }
+    }
+
+    private async Task ProcessDescriptionGenerationItemAsync(
+        ProductEnrichmentResult result,
+        EnrichmentBatch batch,
+        CancellationToken ct)
+    {
+        var product = result.Product;
+        result.DescriptionProcessed = true;
+
+        try
+        {
+            var input = new DescriptionGenerationInput(
+                Name:                product.Name,
+                Brand:               product.Brand?.Name,
+                CategoryName:        product.Category?.Name,
+                RecommendedPet:      product.RecommendedPet,
+                PetFoodType:         product.PetFoodType,
+                ExistingDescription: product.Description);
+
+            var suggested = await _descriptionGenerator.GenerateAsync(input, ct);
+
+            if (!string.IsNullOrWhiteSpace(suggested))
+            {
+                _db.ProductDescriptionSuggestions.Add(new ProductDescriptionSuggestion
+                {
+                    CompanyId            = batch.CompanyId,
+                    ProductId            = product.Id,
+                    BatchId              = batch.Id,
+                    OriginalDescription  = product.Description,
+                    SuggestedDescription = suggested,
+                    ModelUsed            = "claude-haiku-4-5-20251001",
+                    Status               = DescriptionSuggestionStatus.Pending
+                });
+
+                batch.DescriptionsGenerated++;
+                batch.PendingReview++;
+            }
+
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao gerar descrição para produto {ProductId}", result.ProductId);
+            await _db.SaveChangesAsync(ct);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

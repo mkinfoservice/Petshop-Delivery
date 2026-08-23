@@ -79,10 +79,18 @@ public class CatalogEnrichmentController : ControllerBase
             var normalizeJobId = _jobs.Enqueue<EnrichNormalizeProductsJob>(
                 j => j.ExecuteAsync(batch.Id, CancellationToken.None));
 
-            // Matching de imagem roda após normalização (ContinueJobWith garante ordem)
+            // Matching de imagem e geração de descrição rodam após normalização
+            // (ContinueJobWith garante ordem — cada um é um continuation independente do mesmo pai)
             if (req.IncludeImages)
             {
                 _jobs.ContinueJobWith<EnrichMatchImagesJob>(
+                    normalizeJobId,
+                    j => j.ExecuteAsync(batch.Id, CancellationToken.None));
+            }
+
+            if (req.IncludeDescriptions)
+            {
+                _jobs.ContinueJobWith<EnrichGenerateDescriptionsJob>(
                     normalizeJobId,
                     j => j.ExecuteAsync(batch.Id, CancellationToken.None));
             }
@@ -447,6 +455,152 @@ public class CatalogEnrichmentController : ControllerBase
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // FILA DE REVISÃO — DESCRIÇÕES (IA)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Retorna sugestões de descrição pendentes de revisão, com filtros.
+    /// Descrições geradas por IA NUNCA são auto-aplicadas — sempre exigem aprovação manual.
+    /// </summary>
+    [HttpGet("review/descriptions")]
+    public async Task<IActionResult> ListDescriptionSuggestions(
+        [FromQuery] string  status   = "Pending",
+        [FromQuery] int     page     = 1,
+        [FromQuery] int     pageSize = 50,
+        [FromQuery] Guid?   batchId  = null,
+        CancellationToken ct = default)
+    {
+        if (page < 1) page = 1;
+        if (pageSize is < 1 or > 200) pageSize = 50;
+
+        var q = _db.ProductDescriptionSuggestions
+            .AsNoTracking()
+            .Include(s => s.Product)
+            .Where(s => s.CompanyId == CompanyId);
+
+        if (!string.IsNullOrWhiteSpace(status))
+            q = q.Where(s => s.Status.ToString() == status);
+
+        if (batchId.HasValue)
+            q = q.Where(s => s.BatchId == batchId.Value);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        var mapped = items.Select(s => new DescriptionSuggestionResponse(
+            s.Id, s.ProductId, s.Product.Name,
+            s.OriginalDescription, s.SuggestedDescription,
+            s.ModelUsed, s.Status.ToString(), s.CreatedAtUtc)).ToList();
+
+        return Ok(new DescriptionSuggestionListResponse(page, pageSize, total, mapped));
+    }
+
+    /// <summary>Aprova uma sugestão de descrição — aplica ao produto.</summary>
+    [HttpPost("review/descriptions/{suggestionId:guid}/approve")]
+    public async Task<IActionResult> ApproveDescription(Guid suggestionId, CancellationToken ct)
+    {
+        var suggestion = await _db.ProductDescriptionSuggestions
+            .Include(s => s.Product)
+            .FirstOrDefaultAsync(s => s.Id == suggestionId && s.CompanyId == CompanyId, ct);
+
+        if (suggestion is null) return NotFound();
+        if (suggestion.Status != DescriptionSuggestionStatus.Pending)
+            return BadRequest("Sugestão não está pendente.");
+
+        var product    = suggestion.Product;
+        var oldDescription = product.Description;
+
+        product.Description  = suggestion.SuggestedDescription;
+        product.UpdatedAtUtc = DateTime.UtcNow;
+
+        suggestion.Status           = DescriptionSuggestionStatus.Approved;
+        suggestion.ReviewedByUserId = UserId;
+        suggestion.ReviewedAtUtc    = DateTime.UtcNow;
+
+        _db.ProductChangeLogs.Add(new Entities.Audit.ProductChangeLog
+        {
+            CompanyId       = CompanyId,
+            ProductId       = product.Id,
+            Source          = Entities.Audit.ChangeSource.Admin,
+            FieldName       = "Description",
+            OldValue        = oldDescription,
+            NewValue        = suggestion.SuggestedDescription,
+            ChangedAtUtc    = DateTime.UtcNow,
+            ChangedByUserId = UserId
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { message = "Descrição aprovada e aplicada ao produto." });
+    }
+
+    /// <summary>Rejeita uma sugestão de descrição — produto não é alterado.</summary>
+    [HttpPost("review/descriptions/{suggestionId:guid}/reject")]
+    public async Task<IActionResult> RejectDescription(Guid suggestionId, CancellationToken ct)
+    {
+        var suggestion = await _db.ProductDescriptionSuggestions
+            .FirstOrDefaultAsync(s => s.Id == suggestionId && s.CompanyId == CompanyId, ct);
+
+        if (suggestion is null) return NotFound();
+        if (suggestion.Status != DescriptionSuggestionStatus.Pending)
+            return BadRequest("Sugestão não está pendente.");
+
+        suggestion.Status           = DescriptionSuggestionStatus.Rejected;
+        suggestion.ReviewedByUserId = UserId;
+        suggestion.ReviewedAtUtc    = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { message = "Sugestão rejeitada." });
+    }
+
+    /// <summary>Aprova múltiplas sugestões de descrição em lote.</summary>
+    [HttpPost("review/descriptions/bulk-approve")]
+    public async Task<IActionResult> BulkApproveDescriptions(
+        [FromBody] BulkApproveDescriptionsRequest req,
+        CancellationToken ct)
+    {
+        if (req.SuggestionIds.Count == 0) return BadRequest("Lista vazia.");
+        if (req.SuggestionIds.Count > 500) return BadRequest("Máximo de 500 itens por lote.");
+
+        var suggestions = await _db.ProductDescriptionSuggestions
+            .Include(s => s.Product)
+            .Where(s => req.SuggestionIds.Contains(s.Id)
+                     && s.CompanyId == CompanyId
+                     && s.Status    == DescriptionSuggestionStatus.Pending)
+            .ToListAsync(ct);
+
+        int applied = 0;
+        foreach (var s in suggestions)
+        {
+            var oldDescription = s.Product.Description;
+            s.Product.Description = s.SuggestedDescription;
+            s.Product.UpdatedAtUtc = DateTime.UtcNow;
+            s.Status              = DescriptionSuggestionStatus.Approved;
+            s.ReviewedByUserId    = UserId;
+            s.ReviewedAtUtc       = DateTime.UtcNow;
+
+            _db.ProductChangeLogs.Add(new Entities.Audit.ProductChangeLog
+            {
+                CompanyId       = CompanyId,
+                ProductId       = s.ProductId,
+                Source          = Entities.Audit.ChangeSource.Admin,
+                FieldName       = "Description",
+                OldValue        = oldDescription,
+                NewValue        = s.SuggestedDescription,
+                ChangedAtUtc    = DateTime.UtcNow,
+                ChangedByUserId = UserId
+            });
+            applied++;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { applied, message = $"{applied} descrição(ões) aprovada(s) e aplicada(s)." });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // NORMALIZAÇÃO DE CATEGORIAS
     // ═══════════════════════════════════════════════════════════════
 
@@ -564,6 +718,7 @@ public class CatalogEnrichmentController : ControllerBase
         config.DelayBetweenItemsMs     = req.DelayBetweenItemsMs;
         config.EnableImageMatching     = req.EnableImageMatching;
         config.EnableNameNormalization = req.EnableNameNormalization;
+        config.EnableDescriptionGeneration = req.EnableDescriptionGeneration;
 
         await _batchService.SaveConfigAsync(config, ct);
         return Ok(MapConfig(config));
@@ -674,13 +829,14 @@ public class CatalogEnrichmentController : ControllerBase
     private static EnrichmentBatchResponse MapBatch(EnrichmentBatch b) => new(
         b.Id, b.Trigger.ToString(), b.Status.ToString(),
         b.TotalQueued, b.Processed, b.NamesNormalized,
-        b.ImagesApplied, b.PendingReview, b.FailedItems,
+        b.ImagesApplied, b.DescriptionsGenerated, b.PendingReview, b.FailedItems,
         b.StartedAtUtc, b.FinishedAtUtc, b.ErrorMessage, b.CreatedAtUtc);
 
     private static EnrichmentConfigResponse MapConfig(EnrichmentConfig c) => new(
         c.AutoApplyImageThreshold, c.ReviewImageThreshold,
         c.AutoApplyNameThreshold, c.BatchSize,
-        c.DelayBetweenItemsMs, c.EnableImageMatching, c.EnableNameNormalization);
+        c.DelayBetweenItemsMs, c.EnableImageMatching, c.EnableNameNormalization,
+        c.EnableDescriptionGeneration);
 }
 
 public record SetProductImageRequest(string Url);

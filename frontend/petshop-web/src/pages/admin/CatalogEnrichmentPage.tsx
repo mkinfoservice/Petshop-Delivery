@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Image,
   Type,
+  FileText,
   Settings2,
   ChevronLeft,
   ChevronRight,
@@ -27,12 +28,17 @@ import {
   usePendingImages,
   useApproveImage,
   useRejectImage,
+  usePendingDescriptions,
+  useApproveDescription,
+  useRejectDescription,
+  useBulkApproveDescriptions,
   useEnrichmentConfig,
   useUpdateEnrichmentConfig,
   useNormalizeCategories,
   useClearAllImages,
 } from "@/features/admin/enrichment/queries";
 import type {
+  DescriptionSuggestionResponse,
   EnrichmentBatchResponse,
   EnrichmentConfigResponse,
   EnrichmentScope,
@@ -85,12 +91,13 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-type Tab = "batches" | "names" | "images" | "config";
+type Tab = "batches" | "names" | "images" | "descriptions" | "config";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "batches", label: "Lotes", icon: <Sparkles className="w-4 h-4" /> },
   { id: "names", label: "Revisão de Nomes", icon: <Type className="w-4 h-4" /> },
   { id: "images", label: "Revisão de Imagens", icon: <Image className="w-4 h-4" /> },
+  { id: "descriptions", label: "Revisão de Descrições (IA)", icon: <FileText className="w-4 h-4" /> },
   { id: "config", label: "Configuração", icon: <Settings2 className="w-4 h-4" /> },
 ];
 
@@ -144,7 +151,7 @@ function BatchCard({ batch }: { batch: EnrichmentBatchResponse }) {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+      <div className="grid grid-cols-5 gap-2 text-center text-xs">
         <div>
           <div className="font-semibold text-green-600">{batch.namesNormalized}</div>
           <div className="text-gray-500">Nomes</div>
@@ -152,6 +159,10 @@ function BatchCard({ batch }: { batch: EnrichmentBatchResponse }) {
         <div>
           <div className="font-semibold text-blue-600">{batch.imagesApplied}</div>
           <div className="text-gray-500">Imagens</div>
+        </div>
+        <div>
+          <div className="font-semibold text-violet-600">{batch.descriptionsGenerated}</div>
+          <div className="text-gray-500">Descrições</div>
         </div>
         <div>
           <div className="font-semibold text-amber-600">{batch.pendingReview}</div>
@@ -186,7 +197,7 @@ function BatchesTab() {
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.pageSize ?? 20)));
 
   function handleCreate(scope: EnrichmentScope) {
-    createBatch.mutate({ scope, includeImages: true });
+    createBatch.mutate({ scope, includeImages: true, includeDescriptions: true });
   }
 
   return (
@@ -575,6 +586,158 @@ function ImagesTab() {
   );
 }
 
+// ── Description review card ─────────────────────────────────────────────────────
+
+function DescriptionCard({
+  item,
+  selected,
+  onSelect,
+  onApprove,
+  onReject,
+}: {
+  item: DescriptionSuggestionResponse;
+  selected: boolean;
+  onSelect: (id: string, checked: boolean) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(e) => onSelect(item.id, e.target.checked)}
+            className="rounded mt-1"
+          />
+          <div className="text-sm font-medium text-gray-900">{item.productName}</div>
+        </div>
+        {item.modelUsed && (
+          <span className="text-[11px] text-gray-400 font-mono shrink-0">{item.modelUsed}</span>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {item.originalDescription && (
+          <div>
+            <div className="text-[11px] font-medium text-gray-400 uppercase mb-0.5">Descrição atual</div>
+            <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">{item.originalDescription}</div>
+          </div>
+        )}
+        <div>
+          <div className="text-[11px] font-medium text-violet-500 uppercase mb-0.5">Sugestão da IA</div>
+          <div className="text-sm text-gray-800 bg-violet-50 rounded-lg p-2">{item.suggestedDescription}</div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <button
+          onClick={() => onReject(item.id)}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-red-600 hover:bg-red-50"
+        >
+          <XCircle className="w-3.5 h-3.5" />
+          Rejeitar
+        </button>
+        <button
+          onClick={() => onApprove(item.id)}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-green-700 bg-green-50 hover:bg-green-100"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Aprovar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Descriptions tab ─────────────────────────────────────────────────────────────
+
+function DescriptionsTab() {
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const { data, isLoading } = usePendingDescriptions(page);
+  const approve = useApproveDescription();
+  const reject = useRejectDescription();
+  const bulkApprove = useBulkApproveDescriptions();
+
+  const items = data?.items ?? [];
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.pageSize ?? 20)));
+
+  function toggleSelect(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function handleBulkApprove() {
+    if (selected.size === 0) return;
+    bulkApprove.mutate([...selected], { onSuccess: () => setSelected(new Set()) });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        Descrições geradas por IA nunca são aplicadas automaticamente — revise cada uma antes de aprovar,
+        já que o texto pode não refletir características reais do produto.
+      </div>
+
+      {selected.size > 0 && (
+        <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-1.5 w-fit">
+          <span className="text-xs text-violet-700 font-medium">{selected.size} selecionadas</span>
+          <button
+            onClick={handleBulkApprove}
+            disabled={bulkApprove.isPending}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-violet-600 text-white text-xs rounded-lg hover:bg-violet-700 disabled:opacity-50"
+          >
+            <CheckCircle2 className="w-3 h-3" />
+            Aprovar
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-xs text-gray-500 hover:text-gray-700">
+            Limpar
+          </button>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="text-sm text-gray-500 py-8 text-center">Carregando...</div>
+      ) : items.length === 0 ? (
+        <div className="text-sm text-gray-400 py-8 text-center">
+          Nenhuma descrição pendente de revisão.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {items.map((item) => (
+            <DescriptionCard
+              key={item.id}
+              item={item}
+              selected={selected.has(item.id)}
+              onSelect={toggleSelect}
+              onApprove={(id) => approve.mutate(id)}
+              onReject={(id) => reject.mutate(id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border disabled:opacity-40 hover:bg-gray-50">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm text-gray-600">{page} / {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border disabled:opacity-40 hover:bg-gray-50">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Config tab ─────────────────────────────────────────────────────────────────
 
 function ConfigTab() {
@@ -596,7 +759,7 @@ function ConfigTab() {
 
   function handleSave() {
     if (!data) return; // config not yet loaded
-    // Send full object — backend requires all 7 fields
+    // Send full object — backend requires all fields
     update.mutate({ ...data, ...overrides }, {
       onSuccess: () => {
         setSaved(true);
@@ -635,6 +798,19 @@ function ConfigTab() {
             type="checkbox"
             checked={current.enableImageMatching ?? false}
             onChange={(e) => handleChange("enableImageMatching", e.target.checked)}
+            className="w-4 h-4 rounded"
+          />
+        </label>
+
+        <label className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-gray-700">Geração de descrição (IA)</div>
+            <div className="text-xs text-gray-500">Gera sugestão de descrição — sempre exige revisão manual</div>
+          </div>
+          <input
+            type="checkbox"
+            checked={current.enableDescriptionGeneration ?? false}
+            onChange={(e) => handleChange("enableDescriptionGeneration", e.target.checked)}
             className="w-4 h-4 rounded"
           />
         </label>
@@ -765,6 +941,7 @@ export default function CatalogEnrichmentPage() {
       {tab === "batches" && <BatchesTab />}
       {tab === "names" && <NamesTab />}
       {tab === "images" && <ImagesTab />}
+      {tab === "descriptions" && <DescriptionsTab />}
       {tab === "config" && <ConfigTab />}
     </div>
   );

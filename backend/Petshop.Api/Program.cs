@@ -279,6 +279,7 @@ builder.Services.AddScoped<EnrichmentBatchService>();
 builder.Services.AddScoped<CatalogEnrichmentOrchestrator>();
 builder.Services.AddScoped<EnrichNormalizeProductsJob>();
 builder.Services.AddScoped<EnrichMatchImagesJob>();
+builder.Services.AddScoped<EnrichGenerateDescriptionsJob>();
 
 // Cosmos (Bluesoft) — busca de imagem por EAN/GTIN, base brasileira
 // Requer COSMOS_TOKEN nas variáveis de ambiente (cadastro gratuito em cosmos.bluesoft.com.br)
@@ -292,6 +293,14 @@ builder.Services.AddHttpClient<CosmosImageMatcher>(client =>
 });
 builder.Services.AddScoped<CosmosImageMatcher>();
 builder.Services.AddScoped<IProductImageMatcher, CosmosImageMatcher>();
+
+// Anthropic (Claude Haiku) — geração de descrição de produto via IA
+// Requer Anthropic__ApiKey nas variáveis de ambiente; sem ela, a geração fica desabilitada
+// mesmo com EnableDescriptionGeneration = true (ver ProductDescriptionGeneratorService.IsConfigured)
+builder.Services.AddHttpClient<ProductDescriptionGeneratorService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // ===============================
 // Services — Master Admin

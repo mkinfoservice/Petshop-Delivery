@@ -67,6 +67,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<ProductEnrichmentResult> ProductEnrichmentResults  => Set<ProductEnrichmentResult>();
     public DbSet<ProductNameSuggestion>   ProductNameSuggestions    => Set<ProductNameSuggestion>();
     public DbSet<ProductImageCandidate>   ProductImageCandidates    => Set<ProductImageCandidate>();
+    public DbSet<ProductDescriptionSuggestion> ProductDescriptionSuggestions => Set<ProductDescriptionSuggestion>();
     public DbSet<EnrichmentConfig>        EnrichmentConfigs         => Set<EnrichmentConfig>();
 
     // ── Loja Online (StoreFront) ──────────────────────────────────────────────
@@ -1311,6 +1312,28 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         // Fila de revisão: empresa + status
         modelBuilder.Entity<ProductImageCandidate>()
             .HasIndex(c => new { c.CompanyId, c.Status });
+
+        // ── ProductDescriptionSuggestion ──────────────────────
+        modelBuilder.Entity<ProductDescriptionSuggestion>()
+            .HasOne(s => s.Product)
+            .WithMany()
+            .HasForeignKey(s => s.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductDescriptionSuggestion>()
+            .HasOne(s => s.Batch)
+            .WithMany()
+            .HasForeignKey(s => s.BatchId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductDescriptionSuggestion>()
+            .Property(s => s.Status)
+            .HasConversion<string>()
+            .HasMaxLength(30);
+
+        // Fila de revisão: empresa + status
+        modelBuilder.Entity<ProductDescriptionSuggestion>()
+            .HasIndex(s => new { s.CompanyId, s.Status });
 
         // ── EnrichmentConfig (1:1 por empresa) ────────────────
         modelBuilder.Entity<EnrichmentConfig>()
