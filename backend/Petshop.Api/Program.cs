@@ -411,6 +411,7 @@ builder.Services.AddHttpClient("mercadolivre", client =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("vendApps-marketplace/1.0");
 });
 builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreAuthService>();
+builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreCatalogSyncService>();
 builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOrderIngester>();
 builder.Services.AddScoped<Petshop.Api.Services.Marketplace.IMarketplaceOrderIngester>(
     sp => sp.GetRequiredService<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOrderIngester>());

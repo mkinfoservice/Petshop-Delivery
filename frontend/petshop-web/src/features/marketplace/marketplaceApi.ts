@@ -16,7 +16,20 @@ export interface MarketplaceIntegrationDto {
   lastOrderReceivedAtUtc: string | null;
   lastCatalogSyncAtUtc: string | null;
   lastErrorMessage: string | null;
+  catalogSyncMode: string; // NotConfigured | AllProducts | SelectedCategories | SelectedProducts
   webhookUrl: string;     // URL relativa para configurar no portal iFood
+}
+
+export interface CatalogScope {
+  mode: string;
+  categoryIds: string[];
+  productIds: string[];
+}
+
+export interface UpsertCatalogScopeRequest {
+  mode: string;
+  categoryIds?: string[];
+  productIds?: string[];
 }
 
 export interface UpsertIntegrationRequest {
@@ -80,6 +93,20 @@ export async function syncCatalog(id: string): Promise<CatalogSyncResult> {
 // ── Mercado Livre (OAuth) ──────────────────────────────────────────────────────
 // Fluxo separado do CRUD genérico acima: o vendedor autoriza no próprio
 // Mercado Livre em vez de digitar client id/secret manualmente (como no iFood).
+
+export async function getCatalogScope(id: string): Promise<CatalogScope> {
+  return adminFetch<CatalogScope>(`/admin/marketplace/${id}/catalog-scope`);
+}
+
+export async function setCatalogScope(
+  id: string,
+  req: UpsertCatalogScopeRequest,
+): Promise<CatalogScope> {
+  return adminFetch<CatalogScope>(`/admin/marketplace/${id}/catalog-scope`, {
+    method: "PUT",
+    body: JSON.stringify(req),
+  });
+}
 
 export async function startMercadoLivreConnect(): Promise<string> {
   const res = await adminFetch<{ authorizeUrl: string }>(

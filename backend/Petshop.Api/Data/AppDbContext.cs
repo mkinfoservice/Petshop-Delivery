@@ -117,6 +117,9 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<MarketplaceIntegration> MarketplaceIntegrations => Set<MarketplaceIntegration>();
     public DbSet<MarketplaceOrder>       MarketplaceOrders       => Set<MarketplaceOrder>();
     public DbSet<MarketplaceOAuthState>  MarketplaceOAuthStates  => Set<MarketplaceOAuthState>();
+    public DbSet<MarketplaceCategorySync> MarketplaceCategorySyncs => Set<MarketplaceCategorySync>();
+    public DbSet<MarketplaceProductSelection> MarketplaceProductSelections => Set<MarketplaceProductSelection>();
+    public DbSet<MarketplaceProductMapping> MarketplaceProductMappings => Set<MarketplaceProductMapping>();
 
     // ── PDV ───────────────────────────────────────────────────
     public DbSet<CashRegister>            CashRegisters            => Set<CashRegister>();
@@ -345,6 +348,11 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             .HasIndex(i => new { i.Type, i.MerchantId })
             .IsUnique();
 
+        modelBuilder.Entity<MarketplaceIntegration>()
+            .Property(i => i.CatalogSyncMode)
+            .HasConversion<string>()
+            .HasMaxLength(30);
+
         modelBuilder.Entity<MarketplaceOrder>()
             .HasOne(o => o.Integration)
             .WithMany(i => i.Orders)
@@ -370,6 +378,59 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<MarketplaceOAuthState>()
             .HasIndex(s => s.State)
             .IsUnique();
+
+        modelBuilder.Entity<MarketplaceCategorySync>()
+            .HasOne(c => c.Integration)
+            .WithMany(i => i.CategorySyncs)
+            .HasForeignKey(c => c.MarketplaceIntegrationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceCategorySync>()
+            .HasOne(c => c.Category)
+            .WithMany()
+            .HasForeignKey(c => c.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceCategorySync>()
+            .HasIndex(c => new { c.MarketplaceIntegrationId, c.CategoryId })
+            .IsUnique();
+
+        modelBuilder.Entity<MarketplaceProductSelection>()
+            .HasOne(p => p.Integration)
+            .WithMany(i => i.ProductSelections)
+            .HasForeignKey(p => p.MarketplaceIntegrationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceProductSelection>()
+            .HasOne(p => p.Product)
+            .WithMany()
+            .HasForeignKey(p => p.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceProductSelection>()
+            .HasIndex(p => new { p.MarketplaceIntegrationId, p.ProductId })
+            .IsUnique();
+
+        modelBuilder.Entity<MarketplaceProductMapping>()
+            .HasOne(m => m.Integration)
+            .WithMany(i => i.ProductMappings)
+            .HasForeignKey(m => m.MarketplaceIntegrationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceProductMapping>()
+            .HasOne(m => m.Product)
+            .WithMany()
+            .HasForeignKey(m => m.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceProductMapping>()
+            .HasIndex(m => new { m.MarketplaceIntegrationId, m.ProductId })
+            .IsUnique();
+
+        modelBuilder.Entity<MarketplaceProductMapping>()
+            .Property(m => m.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20);
 
         // ── ExternalSource ────────────────────────────────────
         modelBuilder.Entity<ExternalSource>()

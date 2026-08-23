@@ -57,6 +57,13 @@ public class MarketplaceIntegration
     /// <summary>Imprimir pedido automaticamente ao receber do marketplace.</summary>
     public bool AutoPrint { get; set; } = true;
 
+    /// <summary>
+    /// O que publicar do catálogo — nunca sincroniza tudo por padrão sem
+    /// escolha explícita (nasce em NotConfigured). Padrão reutilizável para
+    /// qualquer marketplace, não só Mercado Livre.
+    /// </summary>
+    public MarketplaceCatalogSyncMode CatalogSyncMode { get; set; } = MarketplaceCatalogSyncMode.NotConfigured;
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -68,4 +75,7 @@ public class MarketplaceIntegration
     public string? LastErrorMessage { get; set; }
 
     public ICollection<MarketplaceOrder> Orders { get; set; } = new List<MarketplaceOrder>();
+    public ICollection<MarketplaceCategorySync> CategorySyncs { get; set; } = new List<MarketplaceCategorySync>();
+    public ICollection<MarketplaceProductSelection> ProductSelections { get; set; } = new List<MarketplaceProductSelection>();
+    public ICollection<MarketplaceProductMapping> ProductMappings { get; set; } = new List<MarketplaceProductMapping>();
 }

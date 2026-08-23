@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   listIntegrations, createIntegration, updateIntegration,
   deactivateIntegration, syncCatalog, startMercadoLivreConnect,
+  getCatalogScope, setCatalogScope,
   type MarketplaceIntegrationDto, type UpsertIntegrationRequest,
 } from "@/features/marketplace/marketplaceApi";
+import { fetchCategories, type Category } from "@/features/catalog/api";
+import { fetchAdminProducts, type ProductListItem } from "@/features/admin/products/api";
 import {
   Plus, Copy, Check, RefreshCw, Pencil, Trash2,
-  AlertCircle, Zap, ShoppingBag, Clock,
+  AlertCircle, Zap, ShoppingBag, Clock, Settings2, Search,
 } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -76,10 +79,12 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 function IntegrationCard({
   integration,
   onEdit,
+  onConfigureCatalog,
   onRefresh,
 }: {
   integration: MarketplaceIntegrationDto;
   onEdit: (i: MarketplaceIntegrationDto) => void;
+  onConfigureCatalog: (i: MarketplaceIntegrationDto) => void;
   onRefresh: () => void;
 }) {
   const qc = useQueryClient();
@@ -95,8 +100,19 @@ function IntegrationCard({
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const r = await syncCatalog(integration.id);
-      setSyncMsg(`✓ ${r.updated} atualizados, ${r.skipped} sem mudança, ${r.failed} falhas${r.notFound.length ? `, ${r.notFound.length} não encontrados no iFood` : ""}`);
+      // Formato varia por marketplace: iFood devolve updated/skipped/failed/notFound,
+      // Mercado Livre devolve created/updated/failed.
+      const r = await syncCatalog(integration.id) as unknown as Record<string, unknown>;
+      const parts: string[] = [];
+      if (typeof r.created === "number" && r.created > 0) parts.push(`${r.created} criados`);
+      if (typeof r.updated === "number") parts.push(`${r.updated} atualizados`);
+      if (typeof r.skipped === "number") parts.push(`${r.skipped} sem mudança`);
+      if (typeof r.failed === "number" && r.failed > 0) parts.push(`${r.failed} falhas`);
+      const notFound = Array.isArray(r.notFound) ? r.notFound as unknown[] : [];
+      if (notFound.length > 0) parts.push(`${notFound.length} não encontrados`);
+      setSyncMsg(typeof r.errorMessage === "string" && r.errorMessage
+        ? `Erro: ${r.errorMessage}`
+        : `✓ ${parts.join(", ")}`);
     } catch {
       setSyncMsg("Erro ao sincronizar catálogo.");
     } finally {
@@ -250,32 +266,272 @@ function IntegrationCard({
         </div>
       )}
 
-      {/* Actions — sync manual só existe para iFood por ora (backend rejeita
-          outros tipos); Mercado Livre ainda não tem endpoint de catálogo. */}
-      {integration.type !== "MercadoLivre" && (
-        <div
-          className="flex items-center gap-2 px-5 py-3 border-t"
-          style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+      {/* Actions */}
+      <div
+        className="flex items-center gap-2 px-5 py-3 border-t flex-wrap"
+        style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+      >
+        <button
+          onClick={() => onConfigureCatalog(integration)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80"
+          style={{ border: `1.5px solid var(--border)`, color: "var(--text)" }}
         >
-          <button
-            onClick={handleSync}
-            disabled={syncing || !integration.isActive}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
-            style={{
-              background: "linear-gradient(135deg,#C8953A,#A07230)",
-              color: "#fff",
-            }}
-          >
-            <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
-            Sync catálogo
-          </button>
-          {syncMsg && (
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-              {syncMsg}
-            </span>
+          <Settings2 size={13} />
+          Configurar catálogo
+          {integration.catalogSyncMode === "NotConfigured" && (
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#f59e0b" }} title="Não configurado" />
           )}
+        </button>
+        <button
+          onClick={handleSync}
+          disabled={syncing || !integration.isActive || integration.catalogSyncMode === "NotConfigured"}
+          title={integration.catalogSyncMode === "NotConfigured" ? "Configure o escopo antes de sincronizar" : undefined}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
+          style={{
+            background: "linear-gradient(135deg,#C8953A,#A07230)",
+            color: "#fff",
+          }}
+        >
+          <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
+          Sync catálogo
+        </button>
+        {syncMsg && (
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+            {syncMsg}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Catalog scope modal ─────────────────────────────────────────────────────────
+// Padrão para qualquer marketplace: escolher entre todo o catálogo, categorias
+// específicas ou produtos selecionados — nunca sincroniza tudo sem essa escolha.
+
+const SCOPE_MODES: { value: string; label: string; description: string }[] = [
+  { value: "AllProducts", label: "Todo o catálogo", description: "Publica todos os produtos ativos (exceto insumos)" },
+  { value: "SelectedCategories", label: "Categorias específicas", description: "Só produtos das categorias marcadas abaixo" },
+  { value: "SelectedProducts", label: "Produtos selecionados", description: "Só os produtos escolhidos manualmente" },
+];
+
+function CatalogScopeModal({
+  integration,
+  onClose,
+}: {
+  integration: MarketplaceIntegrationDto;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [mode, setMode] = useState("AllProducts");
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
+  const [productIds, setProductIds] = useState<Set<string>>(new Set());
+  const [selectedProductNames, setSelectedProductNames] = useState<Map<string, string>>(new Map());
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getCatalogScope(integration.id), fetchCategories()])
+      .then(([scope, cats]) => {
+        if (cancelled) return;
+        setMode(scope.mode === "NotConfigured" ? "AllProducts" : scope.mode);
+        setCategoryIds(new Set(scope.categoryIds));
+        setProductIds(new Set(scope.productIds));
+        setCategories(cats);
+      })
+      .catch(() => setError("Erro ao carregar configuração atual."))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [integration.id]);
+
+  useEffect(() => {
+    if (mode !== "SelectedProducts" || products.length > 0) return;
+    fetchAdminProducts({ pageSize: 500, active: true })
+      .then((r) => {
+        setProducts(r.items);
+        setSelectedProductNames((prev) => {
+          const next = new Map(prev);
+          for (const p of r.items) if (productIds.has(p.id)) next.set(p.id, p.name);
+          return next;
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  const visibleProducts = productSearch.trim()
+    ? products.filter((p) => p.name.toLowerCase().includes(productSearch.trim().toLowerCase()))
+    : products;
+
+  function toggleCategory(id: string) {
+    setCategoryIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleProduct(id: string, name: string) {
+    setProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setSelectedProductNames((prev) => {
+      const next = new Map(prev);
+      next.set(id, name);
+      return next;
+    });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      await setCatalogScope(integration.id, {
+        mode,
+        categoryIds: mode === "SelectedCategories" ? Array.from(categoryIds) : undefined,
+        productIds: mode === "SelectedProducts" ? Array.from(productIds) : undefined,
+      });
+      qc.invalidateQueries({ queryKey: ["marketplace"] });
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar escopo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-y-auto max-h-[90dvh]" style={{ background: "var(--surface)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
+          <div>
+            <h2 className="font-semibold" style={{ color: "var(--text)" }}>Configurar catálogo</h2>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{integration.displayName}</p>
+          </div>
+          <button onClick={onClose} className="text-lg" style={{ color: "var(--text-muted)" }}>✕</button>
         </div>
-      )}
+
+        {loading ? (
+          <div className="p-8 text-center text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</div>
+        ) : (
+          <div className="p-6 flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              {SCOPE_MODES.map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMode(m.value)}
+                  className="flex items-start gap-2.5 p-3 rounded-xl text-left border transition-colors"
+                  style={{
+                    background: mode === m.value ? "color-mix(in srgb, var(--brand-accent) 8%, transparent)" : "var(--surface-2)",
+                    borderColor: mode === m.value ? "var(--brand-accent)" : "var(--border)",
+                  }}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full mt-0.5 shrink-0 border-2 flex items-center justify-center"
+                    style={{ borderColor: mode === m.value ? "var(--brand-accent)" : "var(--border)" }}
+                  >
+                    {mode === m.value && <div className="w-2 h-2 rounded-full" style={{ background: "var(--brand-accent)" }} />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>{m.label}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>{m.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {mode === "SelectedCategories" && (
+              <div className="flex flex-col gap-1 max-h-52 overflow-y-auto rounded-xl border p-2" style={{ borderColor: "var(--border)" }}>
+                {categories.length === 0 && (
+                  <p className="text-xs p-2" style={{ color: "var(--text-muted)" }}>Nenhuma categoria encontrada.</p>
+                )}
+                {categories.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer hover:bg-black/5">
+                    <input type="checkbox" checked={categoryIds.has(c.id)} onChange={() => toggleCategory(c.id)} />
+                    <span style={{ color: "var(--text)" }}>{c.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {mode === "SelectedProducts" && (
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="text"
+                    placeholder="Buscar produto..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="w-full pl-7 pr-3 py-2 rounded-xl text-xs outline-none"
+                    style={{ background: "var(--surface-2)", border: `1px solid var(--border)`, color: "var(--text)" }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 max-h-52 overflow-y-auto rounded-xl border p-2" style={{ borderColor: "var(--border)" }}>
+                  {visibleProducts.length === 0 && (
+                    <p className="text-xs p-2" style={{ color: "var(--text-muted)" }}>Nenhum produto encontrado.</p>
+                  )}
+                  {visibleProducts.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer hover:bg-black/5">
+                      <input type="checkbox" checked={productIds.has(p.id)} onChange={() => toggleProduct(p.id, p.name)} />
+                      <span style={{ color: "var(--text)" }}>{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+                {productIds.size > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from(productIds).map((id) => (
+                      <span
+                        key={id}
+                        className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-full"
+                        style={{ background: "var(--surface-2)", color: "var(--text)" }}
+                      >
+                        {selectedProductNames.get(id) ?? id}
+                        <button type="button" onClick={() => toggleProduct(id, selectedProductNames.get(id) ?? "")} className="opacity-60 hover:opacity-100">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <p className="text-sm text-red-400 flex items-center gap-1.5">
+                <AlertCircle size={13} /> {error}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-sm"
+                style={{ color: "var(--text-muted)", background: "var(--surface-2)" }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 72%, #000))" }}
+              >
+                {saving ? "Salvando..." : "Salvar escopo"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -566,6 +822,7 @@ const ML_STATUS_MESSAGE: Record<string, { text: string; ok: boolean }> = {
 export default function MarketplacePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<MarketplaceIntegrationDto | null>(null);
+  const [configuringCatalog, setConfiguringCatalog] = useState<MarketplaceIntegrationDto | null>(null);
   const [connectingMl, setConnectingMl] = useState(false);
   const qc = useQueryClient();
 
@@ -670,6 +927,7 @@ export default function MarketplacePage() {
               key={i.id}
               integration={i}
               onEdit={openEdit}
+              onConfigureCatalog={setConfiguringCatalog}
               onRefresh={() => qc.invalidateQueries({ queryKey: ["marketplace"] })}
             />
           ))}
@@ -683,6 +941,7 @@ export default function MarketplacePage() {
                   key={i.id}
                   integration={i}
                   onEdit={openEdit}
+                  onConfigureCatalog={setConfiguringCatalog}
                   onRefresh={() => qc.invalidateQueries({ queryKey: ["marketplace"] })}
                 />
               ))}
@@ -697,6 +956,13 @@ export default function MarketplacePage() {
           editing={editing}
           onClose={() => setModalOpen(false)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {configuringCatalog && (
+        <CatalogScopeModal
+          integration={configuringCatalog}
+          onClose={() => setConfiguringCatalog(null)}
         />
       )}
     </div>

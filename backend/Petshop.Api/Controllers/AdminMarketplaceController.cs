@@ -6,6 +6,7 @@ using Petshop.Api.Data;
 using Petshop.Api.Entities.Marketplace;
 using Petshop.Api.Services.Marketplace;
 using Petshop.Api.Services.Marketplace.IFood;
+using Petshop.Api.Services.Marketplace.MercadoLivre;
 
 namespace Petshop.Api.Controllers;
 
@@ -20,17 +21,20 @@ public class AdminMarketplaceController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly iFoodCatalogSyncService _catalogSync;
+    private readonly MercadoLivreCatalogSyncService _mlCatalogSync;
     private readonly MarketplaceCredentialProtectionService _credentials;
     private readonly ILogger<AdminMarketplaceController> _logger;
 
     public AdminMarketplaceController(
         AppDbContext db,
         iFoodCatalogSyncService catalogSync,
+        MercadoLivreCatalogSyncService mlCatalogSync,
         MarketplaceCredentialProtectionService credentials,
         ILogger<AdminMarketplaceController> logger)
     {
         _db = db;
         _catalogSync = catalogSync;
+        _mlCatalogSync = mlCatalogSync;
         _credentials = credentials;
         _logger = logger;
     }
@@ -147,22 +151,108 @@ public class AdminMarketplaceController : ControllerBase
     // ── POST /admin/marketplace/{id}/sync-catalog ─────────────────────────────
 
     [HttpPost("{id:guid}/sync-catalog")]
-    public async Task<ActionResult<CatalogSyncResult>> SyncCatalog(Guid id, CancellationToken ct)
+    public async Task<IActionResult> SyncCatalog(Guid id, CancellationToken ct)
     {
         var integration = await _db.MarketplaceIntegrations
             .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == CompanyId && i.IsActive, ct);
 
         if (integration is null) return NotFound();
 
-        if (integration.Type != MarketplaceType.IFood)
-            return BadRequest(new { error = "Sync de catálogo só está disponível para integrações iFood." });
+        switch (integration.Type)
+        {
+            case MarketplaceType.IFood:
+            {
+                var result = await _catalogSync.SyncPricesAsync(integration, ct);
+                return result.ErrorMessage is not null ? StatusCode(502, result) : Ok(result);
+            }
+            case MarketplaceType.MercadoLivre:
+            {
+                var result = await _mlCatalogSync.SyncAsync(integration, ct);
+                return result.ErrorMessage is not null ? StatusCode(502, result) : Ok(result);
+            }
+            default:
+                return BadRequest(new { error = "Sync de catálogo não implementado para este tipo de marketplace." });
+        }
+    }
 
-        var result = await _catalogSync.SyncPricesAsync(integration, ct);
+    // ── GET /admin/marketplace/{id}/catalog-scope ─────────────────────────────
 
-        if (result.ErrorMessage is not null)
-            return StatusCode(502, result);
+    [HttpGet("{id:guid}/catalog-scope")]
+    public async Task<ActionResult<CatalogScopeDto>> GetCatalogScope(Guid id, CancellationToken ct)
+    {
+        var integration = await _db.MarketplaceIntegrations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == CompanyId, ct);
 
-        return Ok(result);
+        if (integration is null) return NotFound();
+
+        var categoryIds = await _db.MarketplaceCategorySyncs
+            .Where(c => c.MarketplaceIntegrationId == id)
+            .Select(c => c.CategoryId)
+            .ToListAsync(ct);
+
+        var productIds = await _db.MarketplaceProductSelections
+            .Where(s => s.MarketplaceIntegrationId == id)
+            .Select(s => s.ProductId)
+            .ToListAsync(ct);
+
+        return new CatalogScopeDto(integration.CatalogSyncMode.ToString(), categoryIds, productIds);
+    }
+
+    // ── PUT /admin/marketplace/{id}/catalog-scope ─────────────────────────────
+
+    [HttpPut("{id:guid}/catalog-scope")]
+    public async Task<ActionResult<CatalogScopeDto>> SetCatalogScope(
+        Guid id,
+        [FromBody] UpsertCatalogScopeRequest req,
+        CancellationToken ct)
+    {
+        var integration = await _db.MarketplaceIntegrations
+            .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == CompanyId, ct);
+
+        if (integration is null) return NotFound();
+
+        if (!Enum.TryParse<MarketplaceCatalogSyncMode>(req.Mode, ignoreCase: true, out var mode))
+            return BadRequest(new { error = "Modo de escopo inválido." });
+
+        integration.CatalogSyncMode = mode;
+
+        var existingCategories = await _db.MarketplaceCategorySyncs
+            .Where(c => c.MarketplaceIntegrationId == id)
+            .ToListAsync(ct);
+        _db.MarketplaceCategorySyncs.RemoveRange(existingCategories);
+
+        var existingProducts = await _db.MarketplaceProductSelections
+            .Where(s => s.MarketplaceIntegrationId == id)
+            .ToListAsync(ct);
+        _db.MarketplaceProductSelections.RemoveRange(existingProducts);
+
+        if (mode == MarketplaceCatalogSyncMode.SelectedCategories && req.CategoryIds is { Count: > 0 })
+        {
+            foreach (var categoryId in req.CategoryIds.Distinct())
+                _db.MarketplaceCategorySyncs.Add(new MarketplaceCategorySync
+                {
+                    MarketplaceIntegrationId = id,
+                    CategoryId = categoryId,
+                });
+        }
+
+        if (mode == MarketplaceCatalogSyncMode.SelectedProducts && req.ProductIds is { Count: > 0 })
+        {
+            foreach (var productId in req.ProductIds.Distinct())
+                _db.MarketplaceProductSelections.Add(new MarketplaceProductSelection
+                {
+                    MarketplaceIntegrationId = id,
+                    ProductId = productId,
+                });
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        return new CatalogScopeDto(
+            mode.ToString(),
+            req.CategoryIds ?? new List<Guid>(),
+            req.ProductIds ?? new List<Guid>());
     }
 
     // ── Mapping ───────────────────────────────────────────────────────────────
@@ -181,6 +271,7 @@ public class AdminMarketplaceController : ControllerBase
         i.LastOrderReceivedAtUtc,
         i.LastCatalogSyncAtUtc,
         i.LastErrorMessage,
+        i.CatalogSyncMode.ToString(),
         WebhookUrl: $"/webhooks/marketplace/{i.Id}"
     );
 }
@@ -201,6 +292,7 @@ public record MarketplaceIntegrationDto(
     DateTime? LastOrderReceivedAtUtc,
     DateTime? LastCatalogSyncAtUtc,
     string? LastErrorMessage,
+    string CatalogSyncMode,
     string WebhookUrl // URL que deve ser configurada no portal do marketplace
 );
 
@@ -213,4 +305,16 @@ public record UpsertMarketplaceIntegrationRequest(
     string? WebhookSecret,
     bool AutoAcceptOrders = true,
     bool AutoPrint = true
+);
+
+public record CatalogScopeDto(
+    string Mode,
+    List<Guid> CategoryIds,
+    List<Guid> ProductIds
+);
+
+public record UpsertCatalogScopeRequest(
+    string Mode,
+    List<Guid>? CategoryIds,
+    List<Guid>? ProductIds
 );
