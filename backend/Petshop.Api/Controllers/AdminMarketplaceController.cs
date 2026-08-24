@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public class AdminMarketplaceController : ControllerBase
     private readonly iFoodCatalogSyncService _catalogSync;
     private readonly MercadoLivreCatalogSyncService _mlCatalogSync;
     private readonly MarketplaceCredentialProtectionService _credentials;
+    private readonly IBackgroundJobClient _jobs;
     private readonly ILogger<AdminMarketplaceController> _logger;
 
     public AdminMarketplaceController(
@@ -30,12 +32,14 @@ public class AdminMarketplaceController : ControllerBase
         iFoodCatalogSyncService catalogSync,
         MercadoLivreCatalogSyncService mlCatalogSync,
         MarketplaceCredentialProtectionService credentials,
+        IBackgroundJobClient jobs,
         ILogger<AdminMarketplaceController> logger)
     {
         _db = db;
         _catalogSync = catalogSync;
         _mlCatalogSync = mlCatalogSync;
         _credentials = credentials;
+        _jobs = jobs;
         _logger = logger;
     }
 
@@ -255,6 +259,81 @@ public class AdminMarketplaceController : ControllerBase
             req.ProductIds ?? new List<Guid>());
     }
 
+    // ── GET /admin/marketplace/failures ───────────────────────────────────────
+
+    /// <summary>
+    /// Fila de falhas de ingestão de pedido reprocessáveis (retry automático do
+    /// Hangfire já tenta sozinho — isso é pra quando ainda assim não resolveu, ou
+    /// pra visibilidade/histórico do que já foi resolvido).
+    /// </summary>
+    [HttpGet("failures")]
+    public async Task<IActionResult> ListFailures(
+        [FromQuery] string status = "Pending",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 30,
+        CancellationToken ct = default)
+    {
+        if (page < 1) page = 1;
+        if (pageSize is < 1 or > 200) pageSize = 30;
+
+        var q = _db.MarketplaceIngestionFailures
+            .AsNoTracking()
+            .Include(f => f.Integration)
+            .Where(f => f.CompanyId == CompanyId);
+
+        if (!string.IsNullOrWhiteSpace(status) &&
+            Enum.TryParse<MarketplaceFailureStatus>(status, true, out var statusFilter))
+            q = q.Where(f => f.Status == statusFilter);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .OrderByDescending(f => f.LastAttemptAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        var mapped = items.Select(f => new MarketplaceFailureDto(
+            f.Id,
+            f.MarketplaceIntegrationId,
+            f.Integration?.DisplayName ?? "",
+            f.Integration?.Type.ToString() ?? "",
+            f.ExternalOrderId,
+            f.LastErrorMessage,
+            f.AttemptCount,
+            f.Status.ToString(),
+            f.FirstFailedAtUtc,
+            f.LastAttemptAtUtc,
+            f.ResolvedAtUtc
+        )).ToList();
+
+        return Ok(new { page, pageSize, total, items = mapped });
+    }
+
+    // ── POST /admin/marketplace/failures/{id}/reprocess ───────────────────────
+
+    [HttpPost("failures/{id:guid}/reprocess")]
+    public async Task<IActionResult> ReprocessFailure(Guid id, CancellationToken ct)
+    {
+        var failure = await _db.MarketplaceIngestionFailures
+            .Include(f => f.Integration)
+            .FirstOrDefaultAsync(f => f.Id == id && f.CompanyId == CompanyId, ct);
+
+        if (failure is null) return NotFound();
+        if (failure.Integration is null) return Conflict(new { error = "Integração da falha não existe mais." });
+
+        switch (failure.Integration.Type)
+        {
+            case MarketplaceType.MercadoLivre:
+                _jobs.Enqueue<MercadoLivreOrderIngester>(
+                    j => j.ProcessWebhookAsync(failure.MarketplaceIntegrationId, failure.RawPayload, CancellationToken.None));
+                break;
+            default:
+                return BadRequest(new { error = "Reprocessamento não implementado para este tipo de marketplace." });
+        }
+
+        return Ok(new { message = "Reprocessamento enfileirado." });
+    }
+
     // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static MarketplaceIntegrationDto ToDto(MarketplaceIntegration i) => new(
@@ -317,4 +396,18 @@ public record UpsertCatalogScopeRequest(
     string Mode,
     List<Guid>? CategoryIds,
     List<Guid>? ProductIds
+);
+
+public record MarketplaceFailureDto(
+    Guid Id,
+    Guid MarketplaceIntegrationId,
+    string IntegrationDisplayName,
+    string IntegrationType,
+    string? ExternalOrderId,
+    string? LastErrorMessage,
+    int AttemptCount,
+    string Status,
+    DateTime FirstFailedAtUtc,
+    DateTime LastAttemptAtUtc,
+    DateTime? ResolvedAtUtc
 );

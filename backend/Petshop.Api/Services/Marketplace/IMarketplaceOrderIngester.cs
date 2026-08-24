@@ -9,11 +9,12 @@ namespace Petshop.Api.Services.Marketplace;
 public record IngestResult(
     bool Success,
     string? InternalOrderId = null,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    string? ExternalOrderId = null)
 {
-    public static IngestResult Ok(string orderId) => new(true, orderId);
-    public static IngestResult Fail(string reason) => new(false, null, reason);
-    public static IngestResult Duplicate() => new(true, null); // já processado, ignorar
+    public static IngestResult Ok(string orderId, string? externalOrderId = null) => new(true, orderId, null, externalOrderId);
+    public static IngestResult Fail(string reason, string? externalOrderId = null) => new(false, null, reason, externalOrderId);
+    public static IngestResult Duplicate(string? externalOrderId = null) => new(true, null, null, externalOrderId); // já processado, ignorar
 }
 
 /// <summary>

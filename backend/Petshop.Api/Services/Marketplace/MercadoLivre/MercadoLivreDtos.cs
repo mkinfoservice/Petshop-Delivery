@@ -142,3 +142,10 @@ public sealed class MercadoLivreShippingRef
     [JsonPropertyName("id")]
     public long Id { get; set; }
 }
+
+/// <summary>Resposta de GET /orders/search — usado pela reconciliação periódica.</summary>
+public sealed class MercadoLivreOrderSearchResponse
+{
+    [JsonPropertyName("results")]
+    public List<MercadoLivreOrderPayload> Results { get; set; } = new();
+}

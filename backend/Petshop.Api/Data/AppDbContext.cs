@@ -121,6 +121,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<MarketplaceCategorySync> MarketplaceCategorySyncs => Set<MarketplaceCategorySync>();
     public DbSet<MarketplaceProductSelection> MarketplaceProductSelections => Set<MarketplaceProductSelection>();
     public DbSet<MarketplaceProductMapping> MarketplaceProductMappings => Set<MarketplaceProductMapping>();
+    public DbSet<MarketplaceIngestionFailure> MarketplaceIngestionFailures => Set<MarketplaceIngestionFailure>();
 
     // ── PDV ───────────────────────────────────────────────────
     public DbSet<CashRegister>            CashRegisters            => Set<CashRegister>();
@@ -432,6 +433,26 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             .Property(m => m.Status)
             .HasConversion<string>()
             .HasMaxLength(20);
+
+        // ── MarketplaceIngestionFailure ────────────────────────
+        modelBuilder.Entity<MarketplaceIngestionFailure>()
+            .HasOne(f => f.Integration)
+            .WithMany()
+            .HasForeignKey(f => f.MarketplaceIntegrationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MarketplaceIngestionFailure>()
+            .Property(f => f.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        // Fila de reprocessamento: empresa + status
+        modelBuilder.Entity<MarketplaceIngestionFailure>()
+            .HasIndex(f => new { f.CompanyId, f.Status });
+
+        // Busca do registro Pending pra dar upsert no mesmo pedido (retry/reconciliação)
+        modelBuilder.Entity<MarketplaceIngestionFailure>()
+            .HasIndex(f => new { f.MarketplaceIntegrationId, f.ExternalOrderId, f.Status });
 
         // ── ExternalSource ────────────────────────────────────
         modelBuilder.Entity<ExternalSource>()

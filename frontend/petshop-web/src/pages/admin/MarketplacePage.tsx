@@ -4,6 +4,7 @@ import {
   listIntegrations, createIntegration, updateIntegration,
   deactivateIntegration, syncCatalog, startMercadoLivreConnect,
   getCatalogScope, setCatalogScope,
+  listMarketplaceFailures, reprocessMarketplaceFailure,
   type MarketplaceIntegrationDto, type UpsertIntegrationRequest,
 } from "@/features/marketplace/marketplaceApi";
 import { fetchCategories, type Category } from "@/features/catalog/api";
@@ -819,6 +820,96 @@ const ML_STATUS_MESSAGE: Record<string, { text: string; ok: boolean }> = {
   ml_error: { text: "Falha ao conectar com o Mercado Livre — tente novamente.", ok: false },
 };
 
+function FailuresSection() {
+  const [status, setStatus] = useState<"Pending" | "Resolved">("Pending");
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["marketplace-failures", status],
+    queryFn: () => listMarketplaceFailures(status),
+  });
+
+  const reprocess = useMutation({
+    mutationFn: reprocessMarketplaceFailure,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["marketplace-failures"] }),
+  });
+
+  const items = data?.items ?? [];
+
+  return (
+    <div className="mt-10">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+          Falhas de pedidos
+        </h2>
+        <div className="flex gap-1">
+          {(["Pending", "Resolved"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatus(s)}
+              className="px-2.5 py-1 rounded-lg text-xs font-medium"
+              style={{
+                background: status === s ? "var(--brand-accent)" : "var(--surface)",
+                color: status === s ? "#fff" : "var(--text-muted)",
+              }}
+            >
+              {s === "Pending" ? "Pendentes" : "Resolvidas"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="text-sm" style={{ color: "var(--text-muted)" }}>Carregando...</div>
+      ) : items.length === 0 ? (
+        <div
+          className="text-sm px-4 py-6 text-center rounded-xl"
+          style={{ background: "var(--surface)", color: "var(--text-muted)" }}
+        >
+          {status === "Pending" ? "Nenhuma falha pendente." : "Nenhuma falha resolvida ainda."}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map((f) => (
+            <div
+              key={f.id}
+              className="px-4 py-3 rounded-xl flex items-start justify-between gap-3"
+              style={{ background: "var(--surface)" }}
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-medium" style={{ color: "var(--text)" }}>
+                  {f.integrationDisplayName}
+                  {f.externalOrderId ? ` — pedido ${f.externalOrderId}` : ""}
+                </div>
+                {f.lastErrorMessage && (
+                  <div className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--text-muted)" }}>
+                    {f.lastErrorMessage}
+                  </div>
+                )}
+                <div className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>
+                  {f.attemptCount} tentativa(s) — última {timeAgo(f.lastAttemptAtUtc)}
+                  {f.status === "Resolved" && f.resolvedAtUtc ? ` — resolvida ${timeAgo(f.resolvedAtUtc)}` : ""}
+                </div>
+              </div>
+              {f.status === "Pending" && (
+                <button
+                  onClick={() => reprocess.mutate(f.id)}
+                  disabled={reprocess.isPending}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-60"
+                  style={{ background: "var(--brand-accent)" }}
+                >
+                  <RefreshCw size={13} />
+                  Reprocessar
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MarketplacePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<MarketplaceIntegrationDto | null>(null);
@@ -949,6 +1040,8 @@ export default function MarketplacePage() {
           )}
         </div>
       )}
+
+      {integrations.length > 0 && <FailuresSection />}
 
       {/* Modal */}
       {modalOpen && (

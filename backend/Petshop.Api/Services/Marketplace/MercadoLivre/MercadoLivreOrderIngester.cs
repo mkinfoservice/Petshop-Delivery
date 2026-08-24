@@ -5,6 +5,7 @@ using Petshop.Api.Data;
 using Petshop.Api.Entities;
 using Petshop.Api.Entities.Marketplace;
 using Petshop.Api.Services.Print;
+using Petshop.Api.Services.WhatsApp;
 
 namespace Petshop.Api.Services.Marketplace.MercadoLivre;
 
@@ -31,6 +32,7 @@ public class MercadoLivreOrderIngester : IMarketplaceOrderIngester
     private readonly MercadoLivreAuthService _auth;
     private readonly IHttpClientFactory _http;
     private readonly PrintService _print;
+    private readonly WhatsAppClient _whatsApp;
     private readonly ILogger<MercadoLivreOrderIngester> _logger;
 
     public MercadoLivreOrderIngester(
@@ -38,20 +40,29 @@ public class MercadoLivreOrderIngester : IMarketplaceOrderIngester
         MercadoLivreAuthService auth,
         IHttpClientFactory http,
         PrintService print,
+        WhatsAppClient whatsApp,
         ILogger<MercadoLivreOrderIngester> logger)
     {
         _db = db;
         _auth = auth;
         _http = http;
         _print = print;
+        _whatsApp = whatsApp;
         _logger = logger;
     }
 
     /// <summary>
-    /// Ponto de entrada chamado pelo Hangfire (job em background, retry automático
-    /// embutido). Recebe só o ID — nunca a entidade — porque o job roda numa
-    /// instância de DbContext nova; passar a entidade serializada quebraria o
-    /// tracking do EF Core silenciosamente.
+    /// Ponto de entrada chamado pelo Hangfire (job em background). Recebe só o ID —
+    /// nunca a entidade — porque o job roda numa instância de DbContext nova; passar
+    /// a entidade serializada quebraria o tracking do EF Core silenciosamente.
+    ///
+    /// Falhas de negócio (IngestResult.Success == false) são registradas em
+    /// MarketplaceIngestionFailure (fila reprocessável, sobrevive a deploy/restart,
+    /// diferente do único slot de LastErrorMessage) e o método RELANÇA a exceção —
+    /// só assim o retry automático do Hangfire (10 tentativas, backoff exponencial)
+    /// entra em ação de verdade; antes disso o job "tinha sucesso" mesmo quando a
+    /// ingestão falhava, porque IngestAsync engole os erros e retorna um resultado
+    /// em vez de lançar.
     /// </summary>
     public async Task ProcessWebhookAsync(Guid integrationId, string rawPayload, CancellationToken ct = default)
     {
@@ -66,13 +77,111 @@ public class MercadoLivreOrderIngester : IMarketplaceOrderIngester
 
         var result = await IngestAsync(rawPayload, signature: null, integration, ct);
 
-        if (!result.Success && result.ErrorMessage is not null)
+        if (result.Success)
         {
-            integration.LastErrorMessage = result.ErrorMessage;
+            integration.LastErrorMessage = null;
+            await ResolveFailureIfAnyAsync(integration.Id, result.ExternalOrderId, ct);
             await _db.SaveChangesAsync(ct);
+            return;
+        }
+
+        integration.LastErrorMessage = result.ErrorMessage;
+        await RecordFailureAsync(integration, result.ExternalOrderId, rawPayload, result.ErrorMessage ?? "Falha desconhecida", ct);
+        await _db.SaveChangesAsync(ct);
+
+        throw new InvalidOperationException(
+            $"[MercadoLivre] Falha ao processar webhook (ExternalOrderId={result.ExternalOrderId}): {result.ErrorMessage}");
+    }
+
+    // ── Fila de falha reprocessável + alerta ──────────────────────────────────
+
+    private async Task RecordFailureAsync(
+        MarketplaceIntegration integration,
+        string? externalOrderId,
+        string rawPayload,
+        string errorMessage,
+        CancellationToken ct)
+    {
+        var existing = externalOrderId is not null
+            ? await _db.MarketplaceIngestionFailures.FirstOrDefaultAsync(f =>
+                f.MarketplaceIntegrationId == integration.Id &&
+                f.ExternalOrderId == externalOrderId &&
+                f.Status == MarketplaceFailureStatus.Pending, ct)
+            : null;
+
+        if (existing is not null)
+        {
+            existing.AttemptCount++;
+            existing.LastErrorMessage = errorMessage;
+            existing.LastAttemptAtUtc = DateTime.UtcNow;
+            return;
+        }
+
+        var failure = new MarketplaceIngestionFailure
+        {
+            CompanyId = integration.CompanyId,
+            MarketplaceIntegrationId = integration.Id,
+            ExternalOrderId = externalOrderId,
+            RawPayload = rawPayload.Length > 4000 ? rawPayload[..4000] : rawPayload,
+            LastErrorMessage = errorMessage,
+        };
+        _db.MarketplaceIngestionFailures.Add(failure);
+
+        // Alerta só na primeira ocorrência — retries automáticos subsequentes não repetem alerta
+        _db.AdminAlerts.Add(new Entities.Master.AdminAlert
+        {
+            CompanyId = integration.CompanyId,
+            AlertType = "marketplace_order_failed",
+            Title = $"Falha ao processar pedido do Mercado Livre",
+            Message = $"Não foi possível processar um pedido recebido do Mercado Livre " +
+                      $"({integration.DisplayName}). Motivo: {errorMessage}. O sistema vai tentar " +
+                      "novamente automaticamente; se persistir, reprocesse manualmente em Marketplace > Falhas.",
+            ReferenceId = failure.Id,
+        });
+
+        try
+        {
+            var company = await _db.Companies.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == integration.CompanyId, ct);
+            var ownerPhone = WhatsAppClient.NormalizeToE164Brazil(company?.OwnerAlertPhone);
+            if (ownerPhone is not null)
+            {
+                var text = $"[Alerta Mercado Livre] Falha ao processar um pedido recebido — " +
+                           $"{errorMessage}. Verifique o painel de Marketplace.";
+                await _whatsApp.SendTextAsync(ownerPhone, text, integration.CompanyId, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MercadoLivre] Falha ao enviar alerta WhatsApp.");
         }
     }
 
+    private async Task ResolveFailureIfAnyAsync(Guid integrationId, string? externalOrderId, CancellationToken ct)
+    {
+        if (externalOrderId is null) return;
+
+        var pending = await _db.MarketplaceIngestionFailures
+            .Where(f => f.MarketplaceIntegrationId == integrationId
+                     && f.ExternalOrderId == externalOrderId
+                     && f.Status == MarketplaceFailureStatus.Pending)
+            .ToListAsync(ct);
+
+        foreach (var f in pending)
+        {
+            f.Status = MarketplaceFailureStatus.Resolved;
+            f.ResolvedAtUtc = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Não distingue falha permanente (payload malformado) de transitória (erro de
+    /// rede/API) — ambas viram Fail() e o chamador (ProcessWebhookAsync) relança pra
+    /// ativar o retry automático do Hangfire nos dois casos. Simplificação deliberada:
+    /// payload malformado vindo do Mercado Livre de verdade é praticamente inexistente
+    /// na prática, então o custo de até 10 retries inúteis nesse caso raro é aceitável
+    /// frente à complexidade de classificar cada tipo de erro.
+    /// </summary>
     public async Task<IngestResult> IngestAsync(
         string rawPayload,
         string? signature,
@@ -112,7 +221,7 @@ public class MercadoLivreOrderIngester : IMarketplaceOrderIngester
         if (exists)
         {
             _logger.LogInformation("[MercadoLivre] Pedido duplicado ignorado. ExternalId={Id}", externalOrderId);
-            return IngestResult.Duplicate();
+            return IngestResult.Duplicate(externalOrderId);
         }
 
         MercadoLivreOrderPayload? payload;
@@ -123,11 +232,11 @@ public class MercadoLivreOrderIngester : IMarketplaceOrderIngester
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MercadoLivre] Falha ao buscar pedido {Resource} na API.", evt.Resource);
-            return IngestResult.Fail($"Erro ao buscar pedido: {ex.Message}");
+            return IngestResult.Fail($"Erro ao buscar pedido: {ex.Message}", externalOrderId);
         }
 
         if (payload is null)
-            return IngestResult.Fail("Pedido não encontrado na API do Mercado Livre");
+            return IngestResult.Fail("Pedido não encontrado na API do Mercado Livre", externalOrderId);
 
         var order = MapToOrder(payload, integration);
         _db.Orders.Add(order);
@@ -160,7 +269,7 @@ public class MercadoLivreOrderIngester : IMarketplaceOrderIngester
         _logger.LogInformation("[MercadoLivre] Pedido ingested. External={Ext} Internal={Int}",
             externalOrderId, order.PublicId);
 
-        return IngestResult.Ok(order.Id.ToString());
+        return IngestResult.Ok(order.Id.ToString(), externalOrderId);
     }
 
     private async Task<MercadoLivreOrderPayload?> FetchOrderAsync(

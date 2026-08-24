@@ -51,6 +51,27 @@ export interface CatalogSyncResult {
   errorMessage: string | null;
 }
 
+export interface MarketplaceFailureDto {
+  id: string;
+  marketplaceIntegrationId: string;
+  integrationDisplayName: string;
+  integrationType: string;
+  externalOrderId: string | null;
+  lastErrorMessage: string | null;
+  attemptCount: number;
+  status: string; // Pending | Resolved
+  firstFailedAtUtc: string;
+  lastAttemptAtUtc: string;
+  resolvedAtUtc: string | null;
+}
+
+export interface MarketplaceFailureListResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: MarketplaceFailureDto[];
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 export async function listIntegrations(): Promise<MarketplaceIntegrationDto[]> {
@@ -113,4 +134,22 @@ export async function startMercadoLivreConnect(): Promise<string> {
     "/api/integrations/mercadolivre/authorize",
   );
   return res.authorizeUrl;
+}
+
+// ── Fila de falhas reprocessáveis ───────────────────────────────────────────────
+
+export async function listMarketplaceFailures(
+  status: string = "Pending",
+  page: number = 1,
+  pageSize: number = 30,
+): Promise<MarketplaceFailureListResponse> {
+  return adminFetch<MarketplaceFailureListResponse>(
+    `/admin/marketplace/failures?status=${status}&page=${page}&pageSize=${pageSize}`,
+  );
+}
+
+export async function reprocessMarketplaceFailure(id: string): Promise<{ message: string }> {
+  return adminFetch<{ message: string }>(`/admin/marketplace/failures/${id}/reprocess`, {
+    method: "POST",
+  });
 }

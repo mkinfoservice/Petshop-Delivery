@@ -424,6 +424,7 @@ builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.Mercado
 builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOrderIngester>();
 builder.Services.AddScoped<Petshop.Api.Services.Marketplace.IMarketplaceOrderIngester>(
     sp => sp.GetRequiredService<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreOrderIngester>());
+builder.Services.AddScoped<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreReconciliationJob>();
 
 // ===============================
 // Services — WhatsApp
@@ -1184,6 +1185,12 @@ using (var scope = app.Services.CreateScope())
         "fiscal-cert-expiry-alert",
         j => j.RunAsync(CancellationToken.None),
         "0 8 * * *");
+
+    // Reconciliação de pedidos do Mercado Livre — cobre webhook perdido — a cada hora
+    jobManager.AddOrUpdate<Petshop.Api.Services.Marketplace.MercadoLivre.MercadoLivreReconciliationJob>(
+        "mercadolivre-reconciliation",
+        j => j.RunAsync(CancellationToken.None),
+        "0 * * * *");
 
     // Enforcement de PlanExpiresAtUtc (carência + suspensão automática) — 1x por dia às 8h
     jobManager.AddOrUpdate<Petshop.Api.Services.Master.PlanExpirationJob>(
