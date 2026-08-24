@@ -359,6 +359,17 @@ public class UnimakeNfceEngine
             CertificadoDigital = cert,
             CSC                = em.CscToken ?? "",
             CSCIDToken         = cscIdInt,
+
+            // Sem estas URLs (por UF), a Unimake.DFe monta o <infNFeSupl> da NFC-e com
+            // <qrCode> sem host (só "?p=...") e <urlChave> vazio — bloco obrigatório no
+            // schema da NFC-e (mod 65) que a SEFAZ rejeita com cStat 225 "Falha no Esquema
+            // XML". A URL de QR Code é completada pela lib com chave+hash; a de consulta
+            // por chave é usada como veio (o consumidor digita a chave manualmente).
+            UrlQrCodeHomologacao = SefazEndpoints.GetQrCodeBaseUrl(em.Uf, SefazEnvironment.Homologacao),
+            UrlQrCodeProducao    = SefazEndpoints.GetQrCodeBaseUrl(em.Uf, SefazEnvironment.Producao),
+            UrlChaveHomologacao  = SefazEndpoints.GetConsultaChaveUrl(em.Uf, SefazEnvironment.Homologacao, ""),
+            UrlChaveProducao     = SefazEndpoints.GetConsultaChaveUrl(em.Uf, SefazEnvironment.Producao, ""),
+            VersaoQRCodeNFCe     = 100,
         };
     }
 
