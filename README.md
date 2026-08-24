@@ -12,6 +12,26 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 
 ---
 
+## Atualização — agosto 2026
+
+**Hub de marketplace nativo — Mercado Livre em produção**
+
+- Integração completa via OAuth2 (Authorization Code + refresh token) — vendedor autoriza direto no Mercado Livre, sem digitar client id/secret manualmente
+- Recepção de pedidos por webhook (`orders_v2`) com resolução de tenant por `MerchantId` (uma única URL de notificação por aplicação, diferente do iFood)
+- Sincronização de catálogo com **escopo configurável por integração**: catálogo inteiro, categorias selecionadas ou lista de produtos específicos — nunca sincroniza tudo sem confirmação explícita do lojista (padrão reutilizável para qualquer marketplace futuro)
+- **Camada de resiliência**: retry automático (10 tentativas com backoff exponencial via Hangfire), fila de falhas reprocessável com histórico de tentativas, reconciliação horária (recupera pedidos que o webhook não entregou) e alertas automáticos (painel + WhatsApp) quando algo trava
+- Atributos de produto para marketplace (marca, recomendado para, tipo, modelo) adicionados ao cadastro — exigidos por categorias do Mercado Livre que pedem GTIN/atributos obrigatórios
+- Magalu é o próximo marketplace da fila (arquitetura já levantada, aguardando criação da aplicação no portal deles)
+
+**Enriquecimento de catálogo — geração de descrição por IA e busca de imagem externa**
+
+- Geração automática de descrição de produto via IA (Claude Haiku), com fila de revisão manual obrigatória (nunca aplica sem aprovação — risco de alucinação em texto de e-commerce ao vivo)
+- Fila de revisão para candidatas de imagem enviadas por ferramentas externas (ex: script Python de busca em Mercado Livre/Bing/DuckDuckGo/Google Custom Search), integrada à mesma esteira de aprovação do enriquecimento nativo
+
+**CI/CD**
+
+- GitHub Actions: build + testes do backend, build + type-check do frontend a cada push/PR
+
 ## Atualização — maio 2026
 
 **Mensageria assíncrona completa (MassTransit + RabbitMQ + Outbox Pattern)**
@@ -138,7 +158,8 @@ A equipe acessa pelo celular ou computador. O cliente faz o pedido pelo link, pe
 - **Grupos de adicionais configuráveis:** organize adicionais em etapas (ex: Tipo de Leite → Cobertura → Extras) com seleção única (radio) ou múltipla (checkbox) por grupo
 - Classificação automática na inicialização: adicionais existentes são organizados em grupos por padrão de nome sem intervenção manual
 - Categorias com ordenação personalizada e slug automático
-- Enriquecimento automático: normalização de nomes e busca de imagens por código de barras (base Cosmos/Bluesoft)
+- Enriquecimento automático: normalização de nomes, busca de imagens por código de barras (base Cosmos/Bluesoft) e **geração de descrição por IA** (Claude Haiku) — descrição sempre passa por fila de revisão manual, nunca aplicada automaticamente
+- Fila de revisão de imagem também aceita candidatas enviadas por ferramenta externa (script Python com busca em Mercado Livre/Bing/DuckDuckGo/Google Custom Search)
 - Sync bidirecional com sistemas externos via conectores CSV, REST ou banco de dados
 - Histórico de alterações e preços por produto
 
@@ -232,10 +253,13 @@ PWA mobile-first dedicado ao entregador — sem instalação, acessível pelo na
 | Serviço | Finalidade |
 |---|---|
 | iFood Partner API | Recepção de pedidos via webhook + sync de cardápio |
+| Mercado Livre API | OAuth2, recepção de pedidos, sync de catálogo com escopo configurável |
 | WhatsApp (Evolution API) | Notificações automáticas e atendimento conversacional |
 | CloudAMQP (RabbitMQ) | Broker de mensagens para eventos assíncronos |
 | ViaCEP | Preenchimento automático de endereço por CEP |
 | Cosmos (Bluesoft) | Enriquecimento de catálogo por EAN/GTIN (base brasileira) |
+| Anthropic (Claude Haiku) | Geração automática de descrição de produto via IA |
+| Google Custom Search / Bing / DuckDuckGo | Busca de imagem de produto (script externo de enriquecimento) |
 | SEFAZ | Emissão de NFC-e em homologação e produção |
 | OpenRouteService (ORS) | Otimização de rotas e geocodificação |
 | Nominatim | Geocodificação de endereços como fallback |
@@ -277,7 +301,7 @@ slug.vendapps.com.br
 
 **Outbox Pattern:** `Publish()` é chamado antes de `SaveChangesAsync()`. O evento vai para `OutboxMessage` na mesma transação. O poller MassTransit envia ao broker em background. Falha de rede para o RabbitMQ não impacta o request HTTP.
 
-**Plug-in de marketplace:** `IMarketplaceOrderIngester` e `IMarketplaceStatusCallback` permitem adicionar novos canais (Rappi, Uber Eats) sem alterar o core — implementar a interface e registrar no DI.
+**Plug-in de marketplace:** `IMarketplaceOrderIngester` e `IMarketplaceStatusCallback` permitem adicionar novos canais (iFood e Mercado Livre já implementados; Magalu e Casas Bahia na fila) sem alterar o core — implementar a interface e registrar no DI. Camada de resiliência (retry, fila de falha, reconciliação, alerta) é o padrão a reaproveitar em cada novo marketplace.
 
 ---
 
@@ -355,11 +379,22 @@ VITE_API_URL=https://vendapps.onrender.com
 
 ---
 
+## Ativando a Integração Mercado Livre
+
+1. No painel do vendedor, clique em **"Conectar Mercado Livre"** — o botão redireciona para a tela de autorização OAuth do próprio Mercado Livre (nada de client id/secret manual)
+2. Após autorizar, o vendedor volta automaticamente para o painel com a integração já ativa
+3. Configure o **escopo de catálogo** (catálogo inteiro, categorias específicas ou produtos selecionados) antes de sincronizar
+4. Categorias do Mercado Livre podem exigir atributos como marca, GTIN ou tipo — preencha esses campos no cadastro do produto quando sinalizado como pendente
+
+---
+
 ## Documentação Interna
 
 | Documento | Descrição |
 |---|---|
 | [docs/SAAS_OPERATIONS.md](docs/SAAS_OPERATIONS.md) | Onboarding de tenant, domínio próprio, planos, feature flags, branding, operações SQL e troubleshooting |
+| [docs/enrichment.md](docs/enrichment.md) | Arquitetura do módulo de enriquecimento de catálogo (nomes/imagens) |
+| [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md) | Contexto de continuidade para IA/dev que assumir o projeto — estado real, decisões e por quê, armadilhas já descobertas, próximo passo |
 
 ---
 
